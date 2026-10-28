@@ -65,6 +65,7 @@ let raidSkip=false,raidFailure=false;
 const raidFriday=new Date();raidFriday.setUTCDate(raidFriday.getUTCDate()-(raidFriday.getUTCDay()+2)%7);raidFriday.setUTCHours(7,0,0,0);if(raidFriday>new Date())raidFriday.setUTCDate(raidFriday.getUTCDate()-7);
 const raidDate=raidFriday.toISOString().slice(0,10);
 const streakMode=process.argv.includes("--streaks-only");
+const fankitMode=process.argv.includes("--fankit-only"),fankitQueries=[],fankitWrites=[];let fankitFailure=false,fankitOversize=false,fankitEmojiFailure=false;
 const pepeMode=process.argv.includes("--pepe-only"),pepeAcks=[];
 const posterMode=process.argv.includes("--poster-only");
 const memberMode=process.argv.includes("--members-only");
@@ -172,7 +173,19 @@ try{
   const url=new URL(request.url);
   if(url.hostname==='cdn.discordapp.com'&&url.pathname==='/attachments/local/evidence.png')return new Response(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXZkAAAAASUVORK5CYII=','base64'),{headers:{'Content-Type':'image/png'}});
   if(url.hostname==='assets.clashk.ing'&&/^\/static_data\/(troops|spells|heroes|pets|equipment|buildings|league_tiers)\.json$/u.test(url.pathname))return new Response(readFileSync(join(assetsRepo,'assets',url.pathname)),{headers:{'Content-Type':'application/json'}});
+  if(fankitMode&&url.hostname==='fankit.supercell.com'){
+   if(fankitFailure)return Response.json({success:false},{status:503});
+   fankitQueries.push(url.searchParams.get('q'));
+   if(url.searchParams.get('limit')!=='25'||url.searchParams.get('page')!=='1')throw Error('Injected fan-kit query parameters');
+   const asset=(id,title)=>({id,title,is_image:true,preview_url:`https://media.ffycdn.net/eu/supercell/${id}.png?width=800`,generic_url:`https://media.ffycdn.net/eu/supercell/${id}.png?width={width}`});
+   return Response.json({success:true,data:url.searchParams.get('q')==='empty'?[]:[asset(101,'Archer'),{...asset(666,'Unsafe'),preview_url:'http://127.0.0.1/private'},asset(102,'Queen')]});
+  }
+  if(fankitMode&&url.hostname==='media.ffycdn.net'){
+   if(url.searchParams.get('width')!=='128')throw Error('Unexpected emoji image size');
+   return new Response(fankitOversize?new Uint8Array(262145):readFileSync(join(botRepo,'worker/src/assets/pepe/sign.png')),{headers:{'Content-Type':'image/png'}});
+  }
   if(url.hostname==='discord.com'){
+   if(fankitMode&&request.method==='POST'&&url.pathname.endsWith('/guilds/999999999999996510/emojis')){fankitWrites.push(await request.json());return fankitEmojiFailure?Response.json({message:'Unavailable'},{status:503}):Response.json({id:'999999999999991234',name:fankitWrites.at(-1).name});}
    if(roleMode||quickPanelMode){
     if(url.pathname==='/api/v10/users/@me')return Response.json({id:app});
     if(url.pathname===`/api/v10/guilds/${roleServer}`)return Response.json({id:roleServer,owner_id:other});
@@ -219,7 +232,25 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(pepeMode){
+ if(fankitMode){
+  const run=query=>interact({type:2,data:{name:'fankit',options:[{name:'query',type:3,value:query}]}});
+  const first=await run('archer & queen');
+  if(first.embeds?.[0]?.title!=='Archer'||!first.embeds[0].footer.text.startsWith('1/2')||fankitQueries.at(-1)!=='archer & queen')throw Error('Fan-kit query encoding/filter mismatch '+text(first));
+  const controls=first.components[0].components;
+  if(!controls[0].disabled||controls[1].disabled||!controls[2].url.startsWith('https://media.ffycdn.net/'))throw Error('Fan-kit controls invalid');
+  const second=await interact({type:3,data:{custom_id:controls[1].custom_id,component_type:2}},other);
+  if(second.embeds?.[0]?.title!=='Queen'||!second.components[0].components[1].disabled)throw Error('Public fan-kit paging failed');
+  const emoji=second.components[0].components[3].custom_id;
+  const denied=await interact({type:3,data:{custom_id:emoji,component_type:2}},other,'0');if(!text(denied).includes('Create Expressions')||fankitWrites.length)throw Error('Emoji permission bypass');
+  const created=await interact({type:3,data:{custom_id:emoji,component_type:2}},other,String(1n<<43n));
+  if(created.flags!==64||!text(created).includes('Emoji added')||fankitWrites.length!==1||!fankitWrites[0].image.startsWith('data:image/png;base64,'))throw Error('Emoji upload failed '+text(created));
+  fankitOversize=true;const big=await interact({type:3,data:{custom_id:emoji,component_type:2}},actor,'8');if(!text(big).includes('too large')||fankitWrites.length!==1)throw Error('Oversized emoji uploaded');fankitOversize=false;
+  const missing=await interact({type:3,data:{custom_id:emoji.replace(/:102$/,':103'),component_type:2}},actor,'8');if(!text(missing).includes('no longer available')||fankitWrites.length!==1)throw Error('Unverified asset uploaded');
+  fankitEmojiFailure=true;const failed=await interact({type:3,data:{custom_id:emoji,component_type:2}},actor,'8');if(!text(failed).includes('Could not add')||fankitWrites.length!==2)throw Error('Failed upload retried or hidden');fankitEmojiFailure=false;
+  const empty=await run('empty');if(!text(empty).includes('No fan-kit images'))throw Error('Fan-kit empty state missing');
+  fankitFailure=true;const upstream=await interact({type:3,data:{custom_id:controls[1].custom_id,component_type:2}},other);if(upstream.flags!==64||upstream.embeds||!text(upstream).includes('unavailable'))throw Error('Upstream failure overwrote results');
+  console.log(JSON.stringify({fankit:'passed',checks:['actual Worker integration','encoded search','untrusted URLs excluded','public persistent paging','download URL','current clicker permission','canonical result verified before upload','emoji image bytes','256KiB streamed bound','no retry on uncertain creation','empty and failure states'],externalDiscordWrites:0}));
+ }else if(pepeMode){
   const run=(value,hidden)=>interact({type:2,data:{name:'pepe',options:[{name:'sign_text',type:3,value},...(hidden?[{name:'hidden',type:3,value:hidden}]:[])]}});
   const privateImage=await run('Hello clan');
   if(pepeAcks.at(-1).data.flags!==64||privateImage.flags!==64||privateImage.imageName!=='pepe.png'||privateImage.posterBytes<10000)throw Error('Private image visibility or PNG missing');

@@ -62,6 +62,10 @@ export class DiscordRestClient {
     return result.items;
   }
 
+  createGuildEmoji(guildId: string, name: string, image: string): Promise<{id:string;name:string}> {
+    return this.request(`/guilds/${guildId}/emojis`, { method: "POST", body: JSON.stringify({ name, image }) });
+  }
+
   createApplicationEmoji(name: string, image: string): Promise<DiscordApplicationEmoji> {
     return this.request(`/applications/${this.#applicationId}/emojis`, {
       body: JSON.stringify({ image, name }),

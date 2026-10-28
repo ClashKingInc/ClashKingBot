@@ -1,3 +1,4 @@
+import { fankitCommand, dispatchFankit } from "./fankit";
 import { pepeCommand } from "./pepe";
 import { buttonsCommand, quickMemberAction } from "./buttons";
 import { botInfoCommand } from "./bot-info";
@@ -40,7 +41,7 @@ import { clanCommand } from "./clan";
 import { dispatchGamePage } from "./game-pages";
 import type { Command, CommandContext, CommandServices, ComponentHandler } from "./types";
 
-const commands: readonly Command[] = [pepeCommand,buttonsCommand,botInfoCommand,giveawayCommand,rolesCommand,graphCommand,roleUsersCommand,boostsCommand,statsCommand,helpCommand,baseCommand, linkCommand, rosterCommand, refreshCommand, mainAccountCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand, familyCommand, banCommand, strikeCommand, warCommand, cwlCommand];
+const commands: readonly Command[] = [fankitCommand,pepeCommand,buttonsCommand,botInfoCommand,giveawayCommand,rolesCommand,graphCommand,roleUsersCommand,boostsCommand,statsCommand,helpCommand,baseCommand, linkCommand, rosterCommand, refreshCommand, mainAccountCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand, familyCommand, banCommand, strikeCommand, warCommand, cwlCommand];
 const commandByName = new Map(commands.map((command) => [command.definition.name, command]));
 // Retain cached legacy invocations without registering a separate slash root.
 commandByName.set("unlink", unlinkCommand);
@@ -126,6 +127,7 @@ async function executePersistentHandler(
   waitUntil?: (promise: Promise<unknown>) => void,
 ): Promise<DiscordInteractionResponse> {
   const customId = context.interaction.data?.custom_id ?? "";
+  if(customId.startsWith("ck:fk:"))return dispatchFankit(context,waitUntil);
   // Old Legend History buttons still exist on Discord messages. Route them
   // through the same renderer as /legends history instead of maintaining a
   // second presentation or invalidating otherwise usable historical messages.
