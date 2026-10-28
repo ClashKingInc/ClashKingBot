@@ -38,6 +38,7 @@ const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
 let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
+const memberMode=process.argv.includes("--members-only");
 const todoMode=process.argv.includes("--todo-only");let legendFails=false;
 const sentReminders=[];
 const roleMode=process.argv.includes('--roles-only'),roleServer='999999999999996510';
@@ -54,6 +55,8 @@ const provider=createServer(async(req,res)=>{
  const url=new URL(req.url,'http://provider');live.push(url.pathname+url.search);res.setHeader('Content-Type','application/json');
  if(roleMode&&url.pathname===`/api/v10/guilds/${roleServer}`)return res.end(JSON.stringify({id:roleServer,owner_id:other}));
  const p=decodeURIComponent(url.pathname),endTime=fixtureEnd;
+ if(memberMode&&(p===`/v1/clans/${group}`||p==='/v1/clans/#PYLQGRJJ'))return res.end(JSON.stringify({tag:p.split('/').at(-1),name:'Report Clan',memberList:[{tag,name:'Member Sixteen',townHallLevel:16,trophies:6000,role:'leader',leagueTier:{name:'Legend I'}},...(p.endsWith(group)?[{tag:tags[1],name:'Member Eighteen',townHallLevel:18,trophies:5000,role:'member',leagueTier:{name:'Legend II'}}]:[])]}));
+
  const startTime=new Date(Date.now()+1800000).toISOString(),warState=warEnded?'warEnded':reminderPreparation?'preparation':'inWar';
  const own={tag:group,name:'Reminder Clan',stars:5,destructionPercentage:80,members:[{tag,name:'Missing Player',townhallLevel:16,mapPosition:1,attacks:[]},{tag:tags[1],name:'Finished Player',townhallLevel:16,mapPosition:2,attacks:[{attackerTag:tags[1],defenderTag:'#PYLR',stars:3,destructionPercentage:100,order:1},{attackerTag:tags[1],defenderTag:'#PYLQ',stars:2,destructionPercentage:80,order:2}]}]};
  const opponent={tag:'#PYLQGRJJ',name:'Other Clan',stars:3,destructionPercentage:50,members:[]};
@@ -66,7 +69,7 @@ const provider=createServer(async(req,res)=>{
  if(p==='/v1/clans/#PYLQGRJJ')return res.end(JSON.stringify({tag:opponent.tag,name:opponent.name,warLeague:{id:48000019,name:'Champion League I'},memberList:[]}));
  if(p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Reminder Clan',warLeague:{id:48000019,name:'Champion League I'},memberList:[{tag,name:'Missing Player',townHallLevel:16},{tag:tags[1],name:'Finished Player',townHallLevel:16}]}));
  if(p===`/v1/clans/${group}/capitalraidseasons`)return res.end(JSON.stringify({items:reminderRaidActive?[{state:'ongoing',endTime,members:[{tag:tags[1],attacks:6,attackLimit:5,bonusAttackLimit:1}]}]:[]}));
- if(url.pathname.startsWith('/v1/players/')){const playerTag=decodeURIComponent(url.pathname.split('/').at(-1));return res.end(JSON.stringify({tag:playerTag,name:playerTag===tag?'Current Player':`Account ${tags.indexOf(playerTag)+1}`,townHallLevel:16,trophies:5500,warStars:100,expLevel:250,donations:50,donationsReceived:40,currentLeagueGroupTag:group,currentLeagueSeasonId:currentSeason,leagueTier:{id:todoMode&&playerTag===tags[0]?105000036:tier,name:'Current League'},...(todoMode?{clan:{tag:group,name:'Reminder Clan'}}:{}),
+ if(url.pathname.startsWith('/v1/players/')){const playerTag=decodeURIComponent(url.pathname.split('/').at(-1));return res.end(JSON.stringify({tag:playerTag,name:playerTag===tag?'Current Player':`Account ${tags.indexOf(playerTag)+1}`,townHallLevel:memberMode&&playerTag===tags[1]?18:16,trophies:5500,warStars:100,expLevel:250,donations:50,donationsReceived:40,currentLeagueGroupTag:group,currentLeagueSeasonId:currentSeason,leagueTier:{id:todoMode&&playerTag===tags[0]?105000036:tier,name:'Current League'},...(todoMode?{clan:{tag:group,name:'Reminder Clan'}}:{}),
  // Deliberately synthetic name input exercises the normal lookup renderer; this is not real player data.
  ...(betaInventory?{heroes:[{name:'P.E.K.K.A.',level:15}]}:{})}));}
  if(url.pathname===`/v1/leaguegroup/${encodeURIComponent(group)}/${currentSeason}`||decodeURIComponent(url.pathname)===`/v1/leaguegroup/${group}/${currentSeason}`){
@@ -144,7 +147,28 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(todoMode){
+ if(memberMode){
+  const server='999999999999996510';
+  if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic member report data exists');
+  await db.query("INSERT INTO servers(id,name) VALUES($1,'Member reports')",[server]);
+  try{
+   await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,'Report Clan',true,0,2,'',0,0),('#PYLQGRJJ','Second Report',true,0,1,'',0,0)",[group]);
+   await db.query("INSERT INTO server_clans(tag,server_id) VALUES($1,$2),('#PYLQGRJJ',$2)",[group,server]);
+   const clanOption={name:'clan',type:3,value:group};
+   const composition=await interact(command('clan','compo',[clanOption]));
+   if(!text(composition).includes('TH18')||!text(composition).includes('TH16'))throw Error('Clan composition failed');
+   const family=await interact(command('family','compo'));
+   if(!text(family).includes('2 members'))throw Error('Family duplicated a player appearing in two clan snapshots');
+   const sorted=await interact(command('clan','sorted',[clanOption,{name:'sort_by',type:3,value:'townhall'},{name:'sort_order',type:3,value:'asc'},{name:'limit',type:4,value:1}]));
+   if(!text(sorted).includes('Member Sixteen')||text(sorted).includes('Member Eighteen'))throw Error('Sort direction/limit failed');
+   const filtered=await interact(command('family','sorted',[{name:'sort_by',type:3,value:'war_stars'},{name:'townhall',type:4,value:18}]));
+   if(!text(filtered).includes('100')||!text(filtered).includes('1/1 players'))throw Error('Full-profile statistic or Town Hall filter failed');
+   const id=sorted.components[0].components[0].custom_id;
+   const refreshed=await interact({type:3,data:{custom_id:id,component_type:2}},other);
+   if(!text(refreshed).includes('Member Sixteen'))throw Error('Member report refresh failed');
+   console.log(JSON.stringify({memberReports:'passed',checks:['clan composition','deduplicated family composition','ascending sort and limit','live-profile metric','Town Hall filter','public refresh'],externalDiscordWrites:0}));
+  }finally{await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']]);}
+ }else if(todoMode){
   if((await db.query('SELECT 1 FROM player_stat_changes WHERE player_tag=ANY($1::text[])',[tags])).rowCount)throw Error('Synthetic task stats already exist');
   try{
    const now=new Date(),gamesAt=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),22,9));

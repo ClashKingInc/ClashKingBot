@@ -1,3 +1,4 @@
+import { dispatchMemberReport } from "./member-reports";
 import {
   InteractionResponseType,
   InteractionType,
@@ -123,6 +124,7 @@ async function executePersistentHandler(
       data: { ...context.interaction.data, custom_id: `ck:page:lh:${invokingUserId(context)}:${tag}:0` },
     } }, waitUntil);
   }
+  if(customId.startsWith("ck:members:"))return dispatchMemberReport(context,waitUntil);
   if(customId.startsWith("ck:war:"))return dispatchWar(context,waitUntil);
   if(customId.startsWith("ck:moderation:"))return dispatchModeration(context,waitUntil);
   if(customId.startsWith("ck:page:"))return dispatchGamePage(context,waitUntil);

@@ -1,3 +1,4 @@
+import { memberReport, memberReportOptions } from "./member-reports";
 import { contributionOptions, contributionReport, type ContributionClan } from "./contribution-report";
 import { CommandInputError, OptionType, requireGuildId } from "./command-utils";
 import { subcommand } from "./game-common";
@@ -5,6 +6,8 @@ import type { Command } from "./types";
 export const familyCommand:Command={
  deferred:true,
  definition:{name:"family",description:"Linked family clan contribution reports",type:1,integration_types:[0],contexts:[0],options:[
+  {name:"compo",description:"Group current family members by a selected attribute",type:OptionType.Subcommand,options:memberReportOptions("compo")},
+  {name:"sorted",description:"Rank current family members by a selected statistic",type:OptionType.Subcommand,options:memberReportOptions("sorted")},
   {name:"donations",description:"Top family contributors and clan donation totals",type:OptionType.Subcommand,options:[
    ...contributionOptions,{name:"season",description:"Recorded season YYYY-MM (defaults to current)",type:OptionType.String},
    {name:"sort_by",description:"Rank by donated, received or ratio",type:OptionType.String,choices:[{name:"Donated",value:"donated"},{name:"Received",value:"received"},{name:"Ratio",value:"ratio"}]},
@@ -13,7 +16,9 @@ export const familyCommand:Command={
   {name:"games",description:"Current Clan Games players and totals for linked clans",type:OptionType.Subcommand,options:contributionOptions},
  ]},
  async execute(context){
-  const ctx=subcommand(context),guild=requireGuildId(ctx);
+  const ctx=subcommand(context);
+  if(["compo","sorted"].includes(ctx.path[0]??""))return memberReport(ctx,"family");
+  const guild=requireGuildId(ctx);
   const linked=await ctx.services.api.get<Array<{tag:string}>>(`/v2/server/${guild}/clans-basic`);
   if(!linked.length)throw new CommandInputError("No family clans are linked to this server. Add clans in the dashboard first.");
   const clans:ContributionClan[]=[];

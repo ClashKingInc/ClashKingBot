@@ -1,3 +1,4 @@
+import { memberReport, memberReportOptions } from "./member-reports";
 import { contributionOptions, contributionReport } from "./contribution-report";
 import { actionRow, legacyMessage } from "../discord/components";
 import { CommandInputError, invokingUserId, normalizeTag, OptionType, stringOption } from "./command-utils";
@@ -17,12 +18,14 @@ const clanOption={name:"clan",description:"Clan tag or name",type:OptionType.Str
 export const clanCommand:Command={
  deferred:true,
  definition:{name:"clan",description:"Clan overview and season donations",type:1,integration_types:[0,1],contexts:[0,1,2],options:[
+  {name:"compo",description:"Group clan members by Town Hall, role, league and more",type:OptionType.Subcommand,options:[clanOption,...memberReportOptions("compo")]},
+  {name:"sorted",description:"Rank current clan members by a selected statistic",type:OptionType.Subcommand,options:[clanOption,...memberReportOptions("sorted")]},
   {name:"games",description:"Current Clan Games points for clan members",type:OptionType.Subcommand,options:[clanOption,...contributionOptions]},
   {name:"search",description:"View a clan overview",type:OptionType.Subcommand,options:[clanOption,{name:"type",description:"Overview style (default Detailed)",type:OptionType.String,choices:[{name:"Detailed",value:"d"},{name:"Basic",value:"b"},{name:"Minimalistic",value:"m"}]}]},
   {name:"donations",description:"View current or historical clan donations",type:OptionType.Subcommand,options:[clanOption,
    {name:"season",description:"Season YYYY-MM (defaults to current)",type:OptionType.String},
    {name:"current_members",description:"Only include current clan members (default false)",type:OptionType.Boolean},
-   {name:"townhall",description:"Only show this Town Hall",type:OptionType.Integer,min_value:1,max_value:18},
+   {name:"townhall",description:"Only show this Town Hall",type:OptionType.Integer,min_value:1,max_value:30},
    {name:"limit",description:"Number of players (default 50)",type:OptionType.Integer,min_value:1,max_value:50},
    {name:"sort_by",description:"Sort players by (default Donations)",type:OptionType.String,choices:[{name:"Donations",value:"donated"},{name:"Received",value:"received"},{name:"Name",value:"name"},{name:"Town Hall",value:"townHallLevel"}]},
    {name:"sort_order",description:"Sort direction (default Descending)",type:OptionType.String,choices:[{name:"Descending",value:"desc"},{name:"Ascending",value:"asc"}]},
@@ -39,7 +42,9 @@ export const clanCommand:Command={
   return result.items.map(clan=>({name:`${clan.name} | Lv${clan.clanLevel} | ${clan.tag}`.slice(0,100),value:clan.tag}));
  },
  async execute(context){
-  const ctx=subcommand(context),raw=stringOption(ctx,"clan");if(!raw)throw new CommandInputError("Choose a clan or enter its tag.");
+  const ctx=subcommand(context);
+  if(["compo","sorted"].includes(ctx.path[0]??""))return memberReport(ctx,"clan");
+  const raw=stringOption(ctx,"clan");if(!raw)throw new CommandInputError("Choose a clan or enter its tag.");
   const tag=normalizeTag(raw,ctx.locale),view=ctx.path[0]==="donations"?"d":"o";
   if(ctx.path[0]==="games")return contributionReport(ctx,[await ctx.services.api.get<Clan>(`/v2/bot/clash/clans/${encodeURIComponent(tag)}`)],"games",false);
   const membersOnly=ctx.options.get("current_members")?.value===true||stringOption(ctx,"__members_only")==="true";
@@ -47,7 +52,7 @@ export const clanCommand:Command={
   if(!["d","b","m"].includes(style))throw new CommandInputError("Choose a valid overview style.");
   const season=stringOption(ctx,"season")??"current",hall=Number(ctx.options.get("townhall")?.value??0),limit=Number(ctx.options.get("limit")?.value??50),sort=stringOption(ctx,"sort_by")??"donated",order=stringOption(ctx,"sort_order")??"desc";
   if(season!=="current"&&!/^\d{4}-(0[1-9]|1[0-2])$/u.test(season))throw new CommandInputError("Use a season in YYYY-MM format.");
-  if(!Number.isInteger(hall)||hall<0||hall>18||!Number.isInteger(limit)||limit<1||limit>50||!["donated","received","name","townHallLevel"].includes(sort)||!["asc","desc"].includes(order))throw new CommandInputError("Choose valid donation filters.");
+  if(!Number.isInteger(hall)||hall<0||hall>30||!Number.isInteger(limit)||limit<1||limit>50||!["donated","received","name","townHallLevel"].includes(sort)||!["asc","desc"].includes(order))throw new CommandInputError("Choose valid donation filters.");
   const [clan,emoji,stats,color]=await Promise.all([
    ctx.services.api.get<Clan>(`/v2/bot/clash/clans/${encodeURIComponent(tag)}`),emojis(ctx),
    ctx.services.api.get<SeasonStats>(`/v2/bot/clans/${encodeURIComponent(tag)}/season-stats`,season==="current"?{}:{season}),serverEmbedColor(ctx),
