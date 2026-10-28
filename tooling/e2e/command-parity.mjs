@@ -38,6 +38,7 @@ const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
 let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
+const posterMode=process.argv.includes("--poster-only");
 const memberMode=process.argv.includes("--members-only");
 const todoMode=process.argv.includes("--todo-only");let legendFails=false;
 const sentReminders=[];
@@ -129,7 +130,14 @@ try{
    if(request.method==='GET'&&url.pathname.endsWith('/emojis')){emojiInventoryRequests++;return Response.json({items:emojiItems});}
    if(request.method==='GET'&&url.pathname.includes('/channels/'))return Response.json({id:url.pathname.split('/').at(-1),guild_id:'999999999999996510',type:0});
    if(request.method==='POST'&&url.pathname.endsWith('/messages')){if(reminderSendFails)return Response.json({message:'Missing permissions'},{status:403});sentReminders.push(await request.json());return Response.json({id:'999999999999996999'});}
-   const token=url.pathname.split('/')[5];const data=await request.json();replies.set(token,data);return Response.json({id:'999999999999996999'});
+   const token=url.pathname.split('/')[5];let data;
+   if(request.headers.get('content-type')?.startsWith('multipart/form-data')){
+    const form=await request.formData();data=JSON.parse(form.get('payload_json'));
+    const file=form.get('files[0]');if(!file)throw Error('Missing poster attachment');
+    const bytes=Buffer.from(await file.arrayBuffer());
+    if(bytes.subarray(0,8).toString('hex')!=='89504e470d0a1a0a'||bytes.readUInt32BE(16)!==1600||bytes.readUInt32BE(20)!==1100)throw Error('Invalid poster PNG');
+    data.posterBytes=bytes.length;
+   }else data=await request.json();replies.set(token,data);return Response.json({id:'999999999999996999'});
   }
   // Keep the actual cron consumer from claiming other development users' jobs.
   // Only the local harness adds this existing API filter; production code is unchanged.
@@ -147,7 +155,30 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(memberMode){
+ if(posterMode){
+  if((await db.query('SELECT 1 FROM battles_ranked WHERE player_tag=$1',[tag])).rowCount)throw Error('Synthetic Legend rows already exist');
+  try{
+   const missing=await interact(command('legends','poster',[player]));
+   if(!text(missing).includes('No recorded Legend battles'))throw Error('Missing history did not return a clear status '+text(missing));
+   await db.query("INSERT INTO battles_ranked(player_tag,opponent_tag,battle_time,direction,battle_mode,player_town_hall,opponent_town_hall,stars,destruction_percentage,duration_seconds,looted_resources) VALUES($1,'#PYLQGRJ',now(),1,2,18,18,3,100,90,'{}')",[tag]);
+   const poster=await interact(command('legends','poster',[player]));
+   if(!poster.posterBytes||poster.embeds?.length)throw Error('Expected standalone poster '+text(poster));
+   const refresh=poster.components[0].components[0].custom_id;
+   if(!refresh.includes(':today:'))throw Error('Default poster date was pinned');
+   const updated=await interact({type:3,data:{custom_id:refresh,component_type:2}},other);
+   if(!updated.posterBytes)throw Error('Public poster refresh failed '+text(updated));
+   const selectedDay=new Date(Date.now()-(5*60+10)*60000).toISOString().slice(0,10);
+   const dated=await interact(command('legends','poster',[player,{name:'day',type:3,value:selectedDay}]));
+   if(!dated.components[0].components[0].custom_id.includes(`:${selectedDay}:`))throw Error('Explicit date lost from refresh');
+   const datedRefresh=await interact({type:3,data:{custom_id:dated.components[0].components[0].custom_id,component_type:2}},other);
+   if(!datedRefresh.posterBytes)throw Error('Explicit-date refresh failed');
+   const standard=await interact(command('legends','player',[player]));
+   if(!standard.posterBytes||!standard.embeds?.some(embed=>embed.title==='Legend Day'))throw Error('Existing player day view regressed '+text(standard));
+   const bad=await interact(command('legends','poster',[player,{name:'day',type:3,value:'2026-02-31'}]));
+   if(!text(bad).includes('Choose a day in the current Legend season'))throw Error('Invalid date was accepted');
+   console.log(JSON.stringify({poster:'passed',checks:['empty history status','actual API and SQL Legend series','WASM PNG 1600x1100','standalone image','public refresh','explicit date retained','existing player day view','invalid date rejected'],visualInspection:false,externalDiscordWrites:0}));
+  }finally{await db.query('DELETE FROM battles_ranked WHERE player_tag=$1',[tag]);}
+ }else if(memberMode){
   const server='999999999999996510';
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic member report data exists');
   await db.query("INSERT INTO servers(id,name) VALUES($1,'Member reports')",[server]);

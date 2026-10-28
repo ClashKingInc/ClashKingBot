@@ -63,6 +63,9 @@ export async function dispatchGamePage(ctx: CommandContext, waitUntil?: (promise
     }
   }else if(kind==="ls"&&parts.length===3&&["day","season"].includes(parts[1]!)&&/^\d{4}-\d{2}-\d{2}$/u.test(parts[2]!)){
     command=legendsCommand;action="player";options=[string("player",tag(parts[0])),string("__view",parts[1]!),string("__day",parts[2]!)];
+  }else if(kind==="lp"&&parts.length===2&&(parts[1]==="today"||/^\d{4}-\d{2}-\d{2}$/u.test(parts[1]!))){
+    command=legendsCommand;action="poster";options=[string("player",tag(parts[0]))];
+    if(parts[1]!=="today")options.push(string("day",parts[1]!));
   }else if(kind==="lg"&&parts.length===2&&["cutoffs","buckets","winners","daily"].includes(parts[0]!)&&/^[1-9][0-9]?$/u.test(parts[1]!)&&Number(parts[1])<=50){
     command=legendsCommand;action="stats";options=[string("type",parts[0]!),{name:"limit",type:OptionType.Integer,value:Number(parts[1])}];
   }else if((kind==="lh"&&(parts.length===1||parts.length===2))||(kind==="lc"&&parts.length===1)){
