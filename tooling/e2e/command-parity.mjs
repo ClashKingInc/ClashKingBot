@@ -63,7 +63,7 @@ const sentReminders=[];
 const roleMode=process.argv.includes('--roles-only'),roleServer='999999999999996510';
 const botRole='999999999999996520',newRole='999999999999996521',oldRole='999999999999996522',unmanagedRole='999999999999996523';
 const memberRoles=new Set([oldRole,unmanagedRole]),roleWrites=[];
-let nickname='Original nickname';
+let nickname='Original nickname',roleJoinedAt;
 const roleDefinitions=[{id:roleServer,name:'@everyone',position:0,permissions:'0'},
  {id:botRole,name:'Bot',position:10,permissions:String((1<<28)+(1<<27))},
  {id:newRole,name:'TH16',position:2,permissions:'0'},
@@ -162,7 +162,7 @@ try{
     if(url.pathname===`/api/v10/guilds/${roleServer}/roles`)return Response.json(roleDefinitions);
     if(url.pathname===`/api/v10/guilds/${roleServer}/members/${app}`)return Response.json({user:{id:app,bot:true},roles:[botRole]});
     if(url.pathname===`/api/v10/guilds/${roleServer}/members/${actor}`){
-     if(request.method==='GET')return Response.json({user:{id:actor,username:'Local'},nick:nickname,roles:[...memberRoles]});
+     if(request.method==='GET')return Response.json({user:{id:actor,username:'Local'},nick:nickname,roles:[...memberRoles],joined_at:roleJoinedAt});
      if(request.method==='PATCH'){nickname=(await request.json()).nick;roleWrites.push({kind:'nickname',value:nickname});return Response.json({});}
     }
     const change=new RegExp(`/guilds/${roleServer}/members/${actor}/roles/([0-9]+)$`).exec(url.pathname);
@@ -857,7 +857,28 @@ try{
    if(memberRoles.has(oldRole))throw Error('Removed clan left stale family role');
    beforeConfig=await jobRevision();await configRequest('DELETE','/clans/'+encodeURIComponent(group));
    if(await jobRevision()!==beforeConfig)throw Error('Missing clan removal requeued roles');
-   console.log(JSON.stringify({roleRefresh:'passed',checks:['actual signed command/API/SQL flow','null nickname defaults','preview performs no Discord edits','role add/remove preserves unmanaged role','repeat no-op','role hierarchy protection','settings enable enqueues human members','unchanged settings no-op','leave grace retained','disabled settings do not enqueue','scheduled automatic job completion','completed job reopened','new nickname applied automatically','cosmetic settings do not enqueue','created and updated rule application','unchanged rule no-op','deleted rule reconciliation','clan add/remove family role reconciliation','clan abbreviation nickname refresh','category rename/delete reconciliation','unchanged clan/category no-op','category mutation preserves leave grace'],externalDiscordWrites:0,localProviderWrites:roleWrites.length}));
+   await settings({auto_eval_status:false});
+   const joined=new Date();joined.setUTCFullYear(joined.getUTCFullYear()-2);joined.setUTCDate(joined.getUTCDate()-1);roleJoinedAt=joined.toISOString();
+   await db.query("UPDATE discord_cache.members SET data=jsonb_set(data,'{joined_at}',to_jsonb($3::text)) WHERE guild_id=$1 AND user_id=$2",[roleServer,actor,roleJoinedAt]);
+   const tenureOptions=[{name:'mode',type:3,value:'add'},{name:'months',type:4,value:12},{name:'role',type:8,value:oldRole}];
+   const deniedTenure=await interact(command('roles','tenure',tenureOptions));if(!text(deniedTenure).includes('Manage Server'))throw Error('Tenure configuration permission bypassed');
+   const savedTenure=await interact(command('roles','tenure',tenureOptions),actor,'32');if(!text(savedTenure).includes('Saved the 12-month'))throw Error('Tenure command did not save rule '+text(savedTenure));
+   await ruleRequest('POST','',{type:'status',option:'36',role_id:newRole});
+   const tenureId=`tenure:${roleServer}:${actor}`;
+   const legacyClaim=await fetch(`http://127.0.0.1:${port}/v2/bot/role-refresh/claim`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({serverId:roleServer})});if(!legacyClaim.ok||(await db.query('SELECT 1 FROM role_refresh_jobs WHERE id=$1',[tenureId])).rowCount)throw Error('Old consumer scheduled unsupported tenure work');
+   await (await bot.getWorker()).scheduled({cron:'* * * * *'});
+   await wait(async()=>Boolean((await db.query('SELECT completed_at FROM role_refresh_jobs WHERE id=$1',[tenureId])).rows[0]?.completed_at),'tenure with game automation disabled');
+   if(!memberRoles.has(oldRole)||!memberRoles.has(newRole))throw Error('Tenure milestone missing or shared role removed');
+   joined.setUTCFullYear(joined.getUTCFullYear()-2);roleJoinedAt=joined.toISOString();
+   await db.query("UPDATE discord_cache.members SET data=jsonb_set(data,'{joined_at}',to_jsonb($3::text)) WHERE guild_id=$1 AND user_id=$2",[roleServer,actor,roleJoinedAt]);
+   await db.query("UPDATE role_refresh_jobs SET completed_at=NULL,attempts=12,updated_at=now()-interval '2 hours' WHERE id=$1",[tenureId]);
+   await (await bot.getWorker()).scheduled({cron:'* * * * *'});
+   await wait(async()=>{const value=(await db.query('SELECT completed_at FROM role_refresh_jobs WHERE id=$1',[tenureId])).rows[0]?.completed_at;return value&&+value>Date.now()-60000;},'tenure progression');
+   if(memberRoles.has(oldRole)||!memberRoles.has(newRole)||!memberRoles.has(unmanagedRole))throw Error('Highest tenure threshold not applied safely');
+   roleJoinedAt=undefined;memberRoles.add(oldRole);
+   const missingJoin=await interact({type:2,data:{name:'refresh'}});
+   if(!text(missingJoin).includes('1/1 refreshes completed')||!memberRoles.has(oldRole))throw Error('Missing join date revoked tenure');
+   console.log(JSON.stringify({roleRefresh:'passed',checks:['actual signed command/API/SQL flow','null nickname defaults','preview performs no Discord edits','role add/remove preserves unmanaged role','repeat no-op','role hierarchy protection','settings enable enqueues human members','unchanged settings no-op','leave grace retained','disabled settings do not enqueue','scheduled automatic job completion','completed job reopened','new nickname applied automatically','cosmetic settings do not enqueue','created and updated rule application','unchanged rule no-op','deleted rule reconciliation','clan add/remove family role reconciliation','clan abbreviation nickname refresh','category rename/delete reconciliation','unchanged clan/category no-op','category mutation preserves leave grace','tenure independent of game automation','highest earned tenure threshold','shared and unmanaged role preservation','missing join date safe','tenure capability gate','exhausted tenure job reopens after cooldown'],externalDiscordWrites:0,localProviderWrites:roleWrites.length}));
   }finally{
    await db.query('DELETE FROM servers WHERE id=$1',[roleServer]);
    await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);

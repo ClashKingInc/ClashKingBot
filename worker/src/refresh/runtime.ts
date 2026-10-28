@@ -25,9 +25,10 @@ export async function processRefreshJob(services: CommandServices, job: RefreshJ
   }
   if (member.user?.bot) return { skipped: "Bot member", add: [], remove: [], blocked: [] };
   const data = await services.api.get<RefreshData>(`/v2/bot/role-refresh/${job.server_id}/data`, { userId: job.user_id });
-  if (!job.request_id && !data.settings.autoeval_enabled) return { skipped: "Automatic refresh disabled", add: [], remove: [], blocked: [] };
+  if (!job.request_id && !data.settings.autoeval_enabled && !job.categories.every(category=>category==="tenure")) return { skipped: "Automatic refresh disabled", add: [], remove: [], blocked: [] };
   const plan = planRefresh(data, member.roles, job.categories, {
     username: member.user?.global_name ?? member.user?.username ?? "",
+    joinedAt: member.joined_at,
     displayName: member.nick ?? member.user?.global_name ?? member.user?.username ?? "",
   }, !job.request_id);
   const botTop = topRole(state.roles, state.bot), memberTop = topRole(state.roles, member);
@@ -64,7 +65,7 @@ export async function processRefreshJob(services: CommandServices, job: RefreshJ
 
 export async function drainRefreshJobs(services: CommandServices, requestId?: string, serverId?: string) {
   const { jobs } = await services.api.post<{ jobs: RefreshJob[] }>("/v2/bot/role-refresh/claim", {
-    ...(requestId ? { requestId } : {}), ...(serverId ? { serverId } : {}),
+    ...(requestId ? { requestId } : { includeTenure: true }), ...(serverId ? { serverId } : {}),
   });
   const states = new Map<string, Promise<GuildState>>();
   let botId: Promise<string> | undefined;
