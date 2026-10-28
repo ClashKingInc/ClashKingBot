@@ -38,7 +38,7 @@ const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
 let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
-const graphMode=process.argv.includes("--graph-month-only");let graphFailure=false;
+const graphMode=process.argv.includes("--graph-month-only");let graphFailure=false,graphGap=false;
 const warPanelMode=process.argv.includes("--war-panel-only");
 const roleUsersMode=process.argv.includes("--role-users-only");
 const boostsMode=process.argv.includes("--boosts-only");let boostFailure=false;
@@ -187,6 +187,7 @@ try{
    const headers=new Headers(request.headers);headers.delete('content-length');
    return fetch(request.url,{method:'POST',headers,body:JSON.stringify(body)});
   }
+  if(graphMode&&graphGap&&decodeURIComponent(url.pathname).includes(group+'/season-stats')&&url.searchParams.get('season')==='2024-12')return Response.json({message:'Unavailable'},{status:503});
   if(graphMode&&graphFailure&&decodeURIComponent(url.pathname).includes('#PYLQGRJJ/season-stats'))return Response.json({message:'Unavailable'},{status:503});
   if(todoMode&&legendFails&&url.pathname==='/v2/legends/days')return Response.json({message:'Temporarily unavailable'},{status:503});
   if(url.hostname==='127.0.0.1'&&url.port===String(port))return fetch(request.url,{method:request.method,headers:Object.fromEntries(request.headers),body:['GET','HEAD'].includes(request.method)?undefined:await request.arrayBuffer()});
@@ -201,12 +202,14 @@ try{
   const server='999999999999996510',season='2025-01';
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic graph scope exists');
   await db.query("INSERT INTO servers(id,name) VALUES($1,'Graph fixture')",[server]);
-  let event;
+  let event,priorEvent;
   try{
    await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,'Alpha Clan',true,0,0,'',0,0),('#PYLQGRJJ','Beta Clan',true,0,0,'',0,0)",[group]);
    await db.query("INSERT INTO server_clans(tag,server_id) VALUES($1,$2),('#PYLQGRJJ',$2)",[group,server]);
    const window=await(await fetch(`http://127.0.0.1:${port}/v2/bot/clans/${encodeURIComponent(group)}/season-stats?season=${season}`,{headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`}})).json();event=new Date(Date.parse(window.start)+86400000);
    await db.query("INSERT INTO player_stat_changes(player_tag,clan_tag,event_time,stat_type,previous_value,current_value,delta) VALUES($1,$2,$3,'donated',0,260,260),($4,'#PYLQGRJJ',$3,'donated',0,100,100)",[tag,group,event,tags[1]]);
+   const prior=await(await fetch(`http://127.0.0.1:${port}/v2/bot/clans/${encodeURIComponent(group)}/season-stats?season=2024-12`,{headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`}})).json();priorEvent=new Date(Date.parse(prior.start)+86400000);
+   await db.query("INSERT INTO player_stat_changes(player_tag,clan_tag,event_time,stat_type,previous_value,current_value,delta) VALUES($1,$2,$3,'donated',0,130,130)",[tag,group,priorEvent]);
    const first=await interact(command('graph','month',[{name:'attribute',type:3,value:'donated'},{name:'season',type:3,value:season}]));
    if(!first.posterBytes||!text(first).includes('Alpha Clan: 260')||!text(first).includes('Beta Clan: 100'))throw Error('Graph totals or PNG missing '+text(first));
    const custom=await interact(command('graph','month',[{name:'attribute',type:3,value:'donated'},{name:'season',type:3,value:season},{name:'clans',type:3,value:group},{name:'limit',type:4,value:1}]));
@@ -214,10 +217,17 @@ try{
    const id=first.components[0].components[0].custom_id;
    const refreshed=await interact({type:3,data:{custom_id:id}},other);
    if(!refreshed.posterBytes||!text(refreshed).includes('260'))throw Error('Public chart refresh failed');
+   const series=await interact(command('graph','over-time',[{name:'attribute',type:3,value:'donated'},{name:'season',type:3,value:season},{name:'months',type:4,value:2}]));
+   if(!series.posterBytes||!text(series).includes('130 → 260')||!text(series).includes('0 → 100'))throw Error('Multi-season contributions failed '+text(series));
+   graphGap=true;
+   const seriesId=series.components[0].components[0].custom_id;
+   const gap=await interact({type:3,data:{custom_id:seriesId}},other);
+   if(!gap.posterBytes||!text(gap).includes('? → 260')||!text(gap).includes('1 observations unavailable'))throw Error('Missing season became zero '+text(gap));
+   graphGap=false;
    graphFailure=true;const partial=await interact(command('graph','month',[{name:'attribute',type:3,value:'donated'},{name:'season',type:3,value:season}]));
    if(text(partial).includes('Beta Clan:')||!partial.posterBytes)throw Error('Failed clan included as zero');
-   console.log(JSON.stringify({graphMonth:'passed',checks:['actual recorded clan totals','PNG rendering','custom clan selection','public refresh','unavailable clan excluded'],externalDiscordWrites:0}));
-  }finally{if(event)await db.query('DELETE FROM player_stat_changes WHERE event_time=$1 AND player_tag=ANY($2::text[])',[event,[tag,tags[1]]]);await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']]);}
+   console.log(JSON.stringify({graphMonth:'passed',checks:['actual recorded clan totals','PNG rendering','custom clan selection','public refresh','unavailable clan excluded','multi-season totals','missing season preserved as gap','series refresh options'],externalDiscordWrites:0}));
+  }finally{if(event)await db.query('DELETE FROM player_stat_changes WHERE event_time=ANY($1::timestamptz[]) AND player_tag=ANY($2::text[])',[[event,...(priorEvent?[priorEvent]:[])],[tag,tags[1]]]);await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']]);}
  }else if(warPanelMode){
   const server='999999999999996510',message='999999999999996599',prep=String(Math.floor(Date.parse(fixturePrep)/1000));
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=$1',[group])).rowCount)throw Error('Synthetic panel scope exists');
