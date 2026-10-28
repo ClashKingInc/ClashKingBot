@@ -41,7 +41,7 @@ let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
 const giveawayDeliveryMode=process.argv.includes("--giveaway-delivery");
 const giveawayMessages=[];
 const giveawayMode=process.argv.includes("--giveaway-only")||giveawayDeliveryMode;
-const graphMode=process.argv.includes("--graph-month-only");let graphFailure=false,graphGap=false;
+const graphMode=process.argv.includes("--graph-month-only");let graphFailure=false,graphGap=false,dailyGraphFailure=false;
 const warPanelMode=process.argv.includes("--war-panel-only");
 const roleUsersMode=process.argv.includes("--role-users-only");
 const boostsMode=process.argv.includes("--boosts-only");let boostFailure=false;
@@ -197,6 +197,7 @@ try{
    const headers=new Headers(request.headers);headers.delete('content-length');
    return fetch(request.url,{method:'POST',headers,body:JSON.stringify(body)});
   }
+  if(graphMode&&dailyGraphFailure&&url.pathname==='/v2/bot/clans/daily-stats')return Response.json({message:'Unavailable'},{status:503});
   if(graphMode&&graphGap&&decodeURIComponent(url.pathname).includes(group+'/season-stats')&&url.searchParams.get('season')==='2024-12')return Response.json({message:'Unavailable'},{status:503});
   if(graphMode&&graphFailure&&decodeURIComponent(url.pathname).includes('#PYLQGRJJ/season-stats'))return Response.json({message:'Unavailable'},{status:503});
   if(todoMode&&legendFails&&url.pathname==='/v2/legends/days')return Response.json({message:'Temporarily unavailable'},{status:503});
@@ -262,7 +263,7 @@ try{
   const server='999999999999996510',season='2025-01';
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic graph scope exists');
   await db.query("INSERT INTO servers(id,name) VALUES($1,'Graph fixture')",[server]);
-  let event,priorEvent;
+  let event,priorEvent,dailyOwned=false;const dailyPlayer=tags[10],dailyTime=new Date();dailyTime.setUTCDate(dailyTime.getUTCDate()-1);dailyTime.setUTCHours(12,0,0,0);
   try{
    await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,'Alpha Clan',true,0,0,'',0,0),('#PYLQGRJJ','Beta Clan',true,0,0,'',0,0)",[group]);
    await db.query("INSERT INTO server_clans(tag,server_id) VALUES($1,$2),('#PYLQGRJJ',$2)",[group,server]);
@@ -286,8 +287,25 @@ try{
    graphGap=false;
    graphFailure=true;const partial=await interact(command('graph','month',[{name:'attribute',type:3,value:'donated'},{name:'season',type:3,value:season}]));
    if(text(partial).includes('Beta Clan:')||!partial.posterBytes)throw Error('Failed clan included as zero');
+   if((await db.query('SELECT 1 FROM basic_player WHERE tag=$1',[dailyPlayer])).rowCount)throw Error('Daily player fixture already exists');
+   await db.query("INSERT INTO basic_player(tag,name,clan_tag,townhall_level) VALUES($1,'Daily fixture','#PYLQGRJJ',16)",[dailyPlayer]);dailyOwned=true;
+   await db.query("INSERT INTO player_change_history(event_time,player_tag,change_type,item_id,previous_value,current_value) VALUES($1,$2,1,0,'10','13'),($1,$2,1,1,'13','12'),($1,$2,1,2,'12','12'),($1,$2,2,0,'0','1'),($1,$2,12,NULL,'Old name','New name')",[dailyTime,dailyPlayer]);
+   await db.query("INSERT INTO player_stat_changes(player_tag,clan_tag,event_time,stat_type,previous_value,current_value,delta) VALUES($1,$2,$3,'donated',0,100,100)",[dailyPlayer,group,dailyTime]);
+   let resetRejected=false;try{await db.query("INSERT INTO player_stat_changes(player_tag,clan_tag,event_time,stat_type,previous_value,current_value,delta) VALUES($1,$2,$3,'donated',100,50,-50)",[dailyPlayer,group,dailyTime]);}catch(error){if(error.code==='23514')resetRejected=true;else throw error;}if(!resetRejected)throw Error('Negative contribution reset accepted by schema');
+   await db.query('INSERT INTO player_online_events(tag,clan_tag,seen_at) VALUES($1,$2,$3),($1,$2,$3)',[dailyPlayer,group,dailyTime]);
+   const dailyQuery=async(metric,days=3)=>{const response=await fetch(`http://127.0.0.1:${port}/v2/bot/clans/daily-stats`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({clans:[group,'#PYLQGRJJ',group],metric,days})});return {status:response.status,data:await response.json()};};
+   const gain=await dailyQuery('troopLevels');if(gain.status!==200||gain.data.basis!=='latest_stored_members'||gain.data.series.length!==2||gain.data.series.find(x=>x.tag==='#PYLQGRJJ').values.reduce((a,b)=>a+b,0)!==3)throw Error('Daily upgrade delta or attribution failed '+JSON.stringify(gain));
+   const names=await dailyQuery('nameChanges');if(names.data.series.find(x=>x.tag==='#PYLQGRJJ').values.reduce((a,b)=>a+b,0)!==1)throw Error('Name change was not counted once');
+   const donations=await dailyQuery('donated');if(donations.data.basis!=='recorded_clan'||donations.data.series.find(x=>x.tag===group).values.reduce((a,b)=>a+b,0)!==100)throw Error('Donation attribution or negative reset incorrect');
+   const activity=await dailyQuery('activity');if(activity.data.series.find(x=>x.tag===group).values.reduce((a,b)=>a+b,0)!==2)throw Error('Activity aggregate incorrect');
+   if((await dailyQuery('donated',181)).status!==400)throw Error('Unbounded daily range accepted');
+   const dayOptions=[{name:'attribute',type:3,value:'donated'},{name:'days',type:4,value:3}];
+   const chart=await interact(command('graph','daily',dayOptions));if(!chart.posterBytes||!text(chart).includes('Alpha Clan: 100')||!text(chart).includes('Today is partial'))throw Error('Daily chart output failed '+text(chart));
+   const control=chart.components[0].components[0].custom_id;if(!text(await interact({type:3,data:{custom_id:control,component_type:2}},other)).includes('Alpha Clan: 100'))throw Error('Daily refresh lost options');
+   dailyGraphFailure=true;const missingDaily=await interact(command('graph','daily',dayOptions));if(missingDaily.posterBytes||!text(missingDaily).includes('unavailable'))throw Error('Missing daily data rendered as zero');dailyGraphFailure=false;
+   console.log(JSON.stringify({dailyGraph:'passed',checks:['positive level gains counted once','decreases/boosts ignored','name events','recorded donation clan','schema rejects negative resets','aggregate activity','bounded range','duplicate clans','real PNG','refresh options','upstream failure'],externalDiscordWrites:0}));
    console.log(JSON.stringify({graphMonth:'passed',checks:['actual recorded clan totals','PNG rendering','custom clan selection','public refresh','unavailable clan excluded','multi-season totals','missing season preserved as gap','series refresh options'],externalDiscordWrites:0}));
-  }finally{if(event)await db.query('DELETE FROM player_stat_changes WHERE event_time=ANY($1::timestamptz[]) AND player_tag=ANY($2::text[])',[[event,...(priorEvent?[priorEvent]:[])],[tag,tags[1]]]);await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']]);}
+  }finally{if(dailyOwned){await db.query('DELETE FROM player_change_history WHERE player_tag=$1',[dailyPlayer]);await db.query('DELETE FROM player_stat_changes WHERE player_tag=$1',[dailyPlayer]);await db.query('DELETE FROM player_online_events WHERE tag=$1',[dailyPlayer]);await db.query('DELETE FROM basic_player WHERE tag=$1',[dailyPlayer]);}if(event)await db.query('DELETE FROM player_stat_changes WHERE event_time=ANY($1::timestamptz[]) AND player_tag=ANY($2::text[])',[[event,...(priorEvent?[priorEvent]:[])],[tag,tags[1]]]);await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']]);}
  }else if(warPanelMode){
   const server='999999999999996510',message='999999999999996599',prep=String(Math.floor(Date.parse(fixturePrep)/1000));
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=$1',[group])).rowCount)throw Error('Synthetic panel scope exists');

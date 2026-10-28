@@ -1,3 +1,4 @@
+import { dailyMetrics, graphDaily } from "./graph-daily";
 import { actionRow, legacyMessage } from "../discord/components";
 import { CommandInputError, OptionType, invokingUserId, normalizeTag, requireGuildId, stringOption } from "./command-utils";
 import { subcommand } from "./game-common";
@@ -18,6 +19,7 @@ export const graphCommand:Command={
  ]}]},
  async execute(context){
   const ctx=subcommand(context),attribute=stringOption(ctx,"attribute")??"",season=stringOption(ctx,"season")??"current",limit=Number(ctx.options.get("limit")?.value??10),order=stringOption(ctx,"sort_order")??"desc",raw=stringOption(ctx,"clans")??"";
+  if(ctx.path[0]==="daily")return graphDaily(ctx);
   if(!Object.hasOwn(graphMetrics,attribute)||season!=="current"&&!/^\d{4}-(0[1-9]|1[0-2])$/u.test(season)||!Number.isInteger(limit)||limit<1||limit>15||!["asc","desc"].includes(order))throw new CommandInputError("Choose valid chart options.");
   if(ctx.path[0]==="over-time")return (await import("./graph-series")).graphSeries(ctx);
   const refs=raw?[...new Set(raw.split(/[\s,]+/u).filter(Boolean).map(tag=>normalizeTag(tag,ctx.locale)))].map(tag=>({tag,name:tag})):await ctx.services.api.get<Array<{tag:string;name:string}>>(`/v2/server/${requireGuildId(ctx)}/clans-basic`);
@@ -54,5 +56,12 @@ graphCommand.definition.options!.push({name:"over-time",description:"Compare rec
  {name:"season",description:"Last game season YYYY-MM (default current)",type:OptionType.String},
  {name:"months",description:"Number of game seasons (default 4)",type:OptionType.Integer,min_value:2,max_value:12},
  {name:"limit",description:"Clans ranked by final-season total (default 5)",type:OptionType.Integer,min_value:1,max_value:10},
+ {name:"clans",description:"Space-separated clan tags (default linked family)",type:OptionType.String,max_length:250},
+]});
+
+graphCommand.definition.options!.push({name:"daily",description:"Daily observations and gains for clans or a family",type:OptionType.Subcommand,options:[
+ {name:"attribute",description:"Statistic to graph",type:OptionType.String,required:true,choices:Object.entries(dailyMetrics).map(([value,name])=>({name,value}))},
+ {name:"days",description:"UTC days to show, including today (default 30)",type:OptionType.Integer,min_value:1,max_value:180},
+ {name:"limit",description:"Clans ranked by window total (default 5)",type:OptionType.Integer,min_value:1,max_value:10},
  {name:"clans",description:"Space-separated clan tags (default linked family)",type:OptionType.String,max_length:250},
 ]});
