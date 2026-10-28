@@ -38,7 +38,9 @@ const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
 let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
-const giveawayMode=process.argv.includes("--giveaway-only");
+const giveawayDeliveryMode=process.argv.includes("--giveaway-delivery");
+const giveawayMessages=[];
+const giveawayMode=process.argv.includes("--giveaway-only")||giveawayDeliveryMode;
 const graphMode=process.argv.includes("--graph-month-only");let graphFailure=false,graphGap=false;
 const warPanelMode=process.argv.includes("--war-panel-only");
 const roleUsersMode=process.argv.includes("--role-users-only");
@@ -75,6 +77,11 @@ const provider=createServer(async(req,res)=>{
  const url=new URL(req.url,'http://provider');live.push(url.pathname+url.search);res.setHeader('Content-Type','application/json');
  if(roleMode&&url.pathname===`/api/v10/guilds/${roleServer}`)return res.end(JSON.stringify({id:roleServer,owner_id:other}));
  const p=decodeURIComponent(url.pathname),endTime=fixtureEnd;
+ if(giveawayDeliveryMode&&url.pathname==='/webhooks/999999999999996588'&&req.method==='GET')return res.end(JSON.stringify({id:'999999999999996588',type:1,guild_id:'999999999999996510',channel_id:'999999999999996511',token:'local-only'}));
+ if(giveawayDeliveryMode&&url.pathname==='/webhooks/999999999999996588/local-only'&&req.method==='POST'){
+  giveawayMessages.push(JSON.parse(text));return res.end(JSON.stringify({id:'999999999999996589',channel_id:'999999999999996511',timestamp:new Date().toISOString(),content:'',embeds:[]}));
+ }
+
  if(boostsMode&&p.startsWith('/v1/clans/'))return res.end(JSON.stringify({tag:p.split('/').at(-1),name:'Boost Clan',memberList:[{tag,name:'First',townHallLevel:16},{tag:tags[1],name:'Second',townHallLevel:16},{tag:tags[2],name:'Moved',townHallLevel:16}]}));
  if(boostsMode&&p.startsWith('/v1/players/')){
   const who=p.split('/').at(-1);
@@ -224,6 +231,18 @@ try{
    if(winners.find(x=>x.user_id===actor)?.reason!=='Winner could not claim prize'||winners.find(x=>x.user_id===eligible)?.status!=='winner')throw Error('Reroll history not persisted');
    const effects=(await db.query("SELECT payload FROM giveaway_publication_effects WHERE giveaway_id=$1 AND kind='reroll'",[id])).rows;
    if(effects.length!==1||effects[0].payload.reason!=='Winner could not claim prize'||effects[0].payload.actor_label!=='Discord')throw Error('Reroll publication missing reason/source');
+   if(giveawayDeliveryMode){
+    if(!/^127\.0\.0\.1:\d+$/u.test(process.env.CLASHKING_E2E_VALKEY_ADDR??''))throw Error('Dedicated loopback Valkey required for delivery test');
+    await db.query('UPDATE giveaways SET webhook_id=$2 WHERE id=$1',[id,'999999999999996588']);
+    const trackingRepo=process.env.CLASHKING_E2E_TRACKING_REPO??join(botRepo,'../clashking_tracking');
+    const child=spawn('go',['run','./cmd/verify-giveaway-delivery'],{cwd:trackingRepo,env:{PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR,CLASHKING_GIVEAWAY_E2E:'1',TEST_DATABASE_URL:database,TEST_API_URL:`http://127.0.0.1:${port}`,TEST_DISCORD_URL:`http://127.0.0.1:${providerPort}`,TEST_API_TOKEN:keys.API_BOT_TOKEN,TEST_GUILD_ID:server,TEST_GIVEAWAY_ID:id,TEST_VALKEY_ADDR:process.env.CLASHKING_E2E_VALKEY_ADDR},stdio:['ignore','pipe','pipe']});
+    let output='';child.stdout.on('data',chunk=>output+=chunk);child.stderr.on('data',chunk=>output+=chunk);
+    const code=await new Promise((resolve,reject)=>{child.once('error',reject);child.once('exit',resolve);});
+    if(code!==0)throw Error('Tracking delivery failed: '+output.slice(-4000));
+    if(giveawayMessages.length!==1||!JSON.stringify(giveawayMessages[0]).includes('Winner could not claim prize'))throw Error('Delivered message missing reason or duplicated');
+    const mentions=giveawayMessages[0].allowed_mentions;
+    if(mentions.parse?.length||JSON.stringify(mentions.users)!==JSON.stringify([eligible]))throw Error('Unexpected announcement mentions');
+   }
    const repeat=await interact(command('giveaway','reroll',opts),actor,'32');if(!text(repeat).includes('not a current winner'))throw Error('Repeat rerolled old winner');
    const counts=(await db.query("SELECT count(*)::int n FROM giveaway_publication_effects WHERE giveaway_id=$1 AND kind='reroll'",[id])).rows[0].n;if(counts!==1)throw Error('Repeat queued duplicate announcement');
    const imported='local-reroll-imported';
@@ -235,7 +254,7 @@ try{
    const fallback=await interact(command('giveaway','reroll',importedOptions),actor,'32');if(!text(fallback).includes(eligible))throw Error('Legacy winner without status not supported '+text(fallback));
    await db.query("UPDATE giveaways SET status='ongoing' WHERE id=$1",[imported]);
    const ongoing=await interact(command('giveaway','reroll',[{...opts[0],value:imported},{...opts[1],value:eligible}]),actor,'32');if(!text(ongoing).includes('ended giveaway'))throw Error('Ongoing reroll accepted');
-   console.log(JSON.stringify({giveawayReroll:'passed',checks:['manager permission','duplicate and foreign rejection','recorded positive weights','zero weight excluded','reason and history persisted','announcement queued','stale retry rejected','missing imported booster odds rejected','legacy unweighted import','ongoing rejected'],externalDiscordWrites:0}));
+   console.log(JSON.stringify({giveawayReroll:'passed',trackingDelivery:giveawayDeliveryMode?'passed':'not run',checks:['manager permission','duplicate and foreign rejection','recorded positive weights','zero weight excluded','reason and history persisted','announcement queued','stale retry rejected','missing imported booster odds rejected','legacy unweighted import','ongoing rejected'],externalDiscordWrites:0}));
   }finally{await db.query('DELETE FROM giveaway_publication_effects WHERE server_id=ANY($1::text[]) AND giveaway_id=ANY($2::text[])',[[server,foreign],[id,outsider,'local-reroll-imported']]);await db.query('DELETE FROM giveaways WHERE server_id=ANY($1::text[])',[[server,foreign]]);await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,foreign]]);}
  }else if(graphMode){
   const server='999999999999996510',season='2025-01';
