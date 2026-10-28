@@ -49,8 +49,9 @@ const warStatsMode=process.argv.includes("--war-statistics-only");
 const botInfoMode=process.argv.includes("--bot-info-only");let botInfoFailure=false;
 const handoffMode=process.argv.includes("--roster-handoff-only");
 const verificationMode=process.argv.includes("--clan-verification-only")||handoffMode;let verificationDescription="";
+const memberWarningMode=process.argv.includes("--member-warning-only");
 const quickPanelMode=process.argv.includes("--quick-panel-only");
-const rosterReadMode=process.argv.includes("--roster-commands-only")||quickPanelMode;let rosterProfileFailure=false;
+const rosterReadMode=process.argv.includes("--roster-commands-only")||quickPanelMode||memberWarningMode;let rosterProfileFailure=false;
 const helpMode=process.argv.includes("--help-only");
 const warPreferenceMode=process.argv.includes("--war-preference-only");let warPreferenceFailure=false;
 const summaryMode=process.argv.includes("--summary-only");
@@ -78,8 +79,9 @@ const roleDefinitions=[{id:roleServer,name:'@everyone',position:0,permissions:'0
 const provider=createServer(async(req,res)=>{
  let text='';for await(const chunk of req)text+=chunk;
  const url=new URL(req.url,'http://provider');live.push(url.pathname+url.search);res.setHeader('Content-Type','application/json');
- if(roleMode&&url.pathname===`/api/v10/guilds/${roleServer}/roles`)return res.end(JSON.stringify(roleDefinitions.map(role=>({...role,managed:role.id===botRole}))));
+ if((roleMode||memberWarningMode)&&url.pathname===`/api/v10/guilds/${roleServer}/roles`)return res.end(JSON.stringify(roleDefinitions.map(role=>({...role,managed:role.id===botRole}))));
  if(roleMode&&url.pathname===`/api/v10/guilds/${roleServer}`)return res.end(JSON.stringify({id:roleServer,owner_id:other}));
+ if(memberWarningMode&&url.pathname.startsWith('/api/v10/channels/'))return res.end(JSON.stringify({id:url.pathname.split('/').at(-1),guild_id:url.pathname.endsWith('/999999999999996599')?'999999999999996512':roleServer,type:0}));
  const p=decodeURIComponent(url.pathname),endTime=fixtureEnd;
  if(giveawayDeliveryMode&&url.pathname==='/webhooks/999999999999996588'&&req.method==='GET')return res.end(JSON.stringify({id:'999999999999996588',type:1,guild_id:'999999999999996510',channel_id:'999999999999996511',token:'local-only'}));
  if(giveawayDeliveryMode&&url.pathname==='/webhooks/999999999999996588/local-only'&&req.method==='POST'){
@@ -508,6 +510,20 @@ try{
    await db.query('INSERT INTO server_clans(server_id,tag) VALUES($1,$3),($2,$3)',[server,elsewhere,group]);
    const created=await request('/v2/roster?server_id='+server,{alias:'Visible roster',roster_type:'family',members:[{tag:tags[1],name:'Stored member',townhall:15,trophies:1}]});
    const foreignRoster=await request('/v2/roster?server_id='+elsewhere,{alias:'Other server secret',roster_type:'family',members:[{tag:tags[1],name:'Stored member',townhall:15}]});
+   if(memberWarningMode){
+    const base=[{name:'clan',type:3,value:group}];
+    const cmd=(action,extra=[])=>command('clan','member-warning',[...base,{name:'action',type:3,value:action},...extra]);
+    const values=[{name:'channel',type:7,value:'999999999999996511'},{name:'below',type:4,value:10},{name:'above',type:4,value:45},{name:'role',type:8,value:newRole}];
+    const denied=await interact(cmd('set',values),actor,'0');if(!text(denied).includes('Manage Server'))throw Error('Warning permission bypass');
+    const created=await interact(cmd('set',values),actor,'32');if(!text(created).includes('Saved warnings'))throw Error('Warning save failed '+text(created));
+    const saved=(await db.query('SELECT below_count,above_count,role_id FROM server_clan_member_warnings WHERE server_id=$1 AND clan_tag=$2',[server,group])).rows[0];if(saved?.below_count!==10||saved?.above_count!==45||saved?.role_id!==newRole)throw Error('Warning configuration missing');
+    if(!text(await interact(cmd('view'),actor,'32')).includes('Above 45'))throw Error('Warning view failed');
+    const invalid=await interact(cmd('set',values.map(v=>v.name==='below'?{...v,value:49}:v)),actor,'32');if(text(invalid).includes('Saved warnings'))throw Error('Overlapping warning thresholds accepted');
+    const foreign=await interact(cmd('set',values.map(v=>v.name==='channel'?{...v,value:'999999999999996599'}:v)),actor,'32');if(text(foreign).includes('Saved warnings'))throw Error('Foreign warning channel accepted');
+    const broad=await interact(cmd('set',values.map(v=>v.name==='role'?{...v,value:server}:v)),actor,'32');if(text(broad).includes('Saved warnings'))throw Error('Everyone warning role accepted');
+    const disabled=await interact(cmd('disable'),actor,'32');if(!text(disabled).includes('disabled')||(await db.query('SELECT 1 FROM server_clan_member_warnings WHERE server_id=$1',[server])).rowCount)throw Error('Warning disable failed');
+    console.log(JSON.stringify({memberWarningConfiguration:'passed',checks:['manager-only command','actual API and SQL persistence','view','invalid thresholds','foreign channel','everyone role rejected','disable']}));
+   }
    if(quickPanelMode){
     if((await db.query('SELECT 1 FROM discord_cache.gateway_shards WHERE application_id=$1',[app])).rowCount)throw Error('Synthetic panel gateway exists');
     const generation=randomBytes(16).toString('hex');
