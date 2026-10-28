@@ -38,6 +38,7 @@ const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
 let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
+const warPreferenceMode=process.argv.includes("--war-preference-only");let warPreferenceFailure=false;
 const summaryMode=process.argv.includes("--summary-only");
 let summaryRaidStart=new Date();
 const progressMode=process.argv.includes("--progress-only");
@@ -95,7 +96,7 @@ const provider=createServer(async(req,res)=>{
  if(p==='/v1/clans/#PYLQGRJJ')return res.end(JSON.stringify({tag:opponent.tag,name:opponent.name,warLeague:{id:48000019,name:'Champion League I'},memberList:[]}));
  if(p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Reminder Clan',warLeague:{id:48000019,name:'Champion League I'},memberList:[{tag,name:'Missing Player',townHallLevel:16},{tag:tags[1],name:'Finished Player',townHallLevel:16}]}));
  if(p===`/v1/clans/${group}/capitalraidseasons`)return res.end(JSON.stringify({items:reminderRaidActive?[{state:'ongoing',endTime,members:[{tag:tags[1],attacks:6,attackLimit:5,bonusAttackLimit:1}]}]:[]}));
- if(url.pathname.startsWith('/v1/players/')){const playerTag=decodeURIComponent(url.pathname.split('/').at(-1));return res.end(JSON.stringify({tag:playerTag,name:playerTag===tag?'Current Player':`Account ${tags.indexOf(playerTag)+1}`,townHallLevel:memberMode&&playerTag===tags[1]?18:16,trophies:5500,warStars:100,expLevel:250,donations:50,donationsReceived:40,currentLeagueGroupTag:group,currentLeagueSeasonId:currentSeason,leagueTier:{id:todoMode&&playerTag===tags[0]?105000036:tier,name:'Current League'},...(todoMode?{clan:{tag:group,name:'Reminder Clan'}}:{}),
+ if(url.pathname.startsWith('/v1/players/')){if(warPreferenceFailure&&decodeURIComponent(url.pathname).endsWith(tags[1])){res.statusCode=503;return res.end('{}');}const playerTag=decodeURIComponent(url.pathname.split('/').at(-1));return res.end(JSON.stringify({tag:playerTag,name:playerTag===tag?'Current Player':`Account ${tags.indexOf(playerTag)+1}`,townHallLevel:memberMode&&playerTag===tags[1]?18:16,trophies:5500,warStars:100,expLevel:250,donations:50,donationsReceived:40,currentLeagueGroupTag:group,currentLeagueSeasonId:currentSeason,...(warPreferenceMode?{warPreference:playerTag===tag?'in':'out'}:{}),leagueTier:{id:todoMode&&playerTag===tags[0]?105000036:tier,name:'Current League'},...(todoMode?{clan:{tag:group,name:'Reminder Clan'}}:{}),
  // Deliberately synthetic name input exercises the normal lookup renderer; this is not real player data.
  ...(betaInventory?{heroes:[{name:'P.E.K.K.A.',level:15}]}:{})}));}
  if(url.pathname===`/v1/leaguegroup/${encodeURIComponent(group)}/${currentSeason}`||decodeURIComponent(url.pathname)===`/v1/leaguegroup/${group}/${currentSeason}`){
@@ -180,7 +181,43 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(summaryMode){
+ if(warPreferenceMode){
+  const ids=[],selected=[tag,tags[1]],key='test-war-preference';
+  for(const table of ['player_change_history','player_war_history','player_timers'])if((await db.query(`SELECT 1 FROM ${table} WHERE player_tag=ANY($1::text[])`,[selected])).rowCount)throw Error('Synthetic war-preference data exists');
+  const endpoint=`http://127.0.0.1:${port}/v2/bot/players/war-status`;
+  const request=async(body,token=keys.API_BOT_TOKEN)=>fetch(endpoint,{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:JSON.stringify(body)});
+  const last=new Date(Date.now()-86400000),change=new Date(Date.now()-3600000),future=new Date(Date.now()+3600000);
+  try{
+   await db.query("INSERT INTO player_change_history(player_tag,event_time,change_type,previous_value,current_value) VALUES($1,$2,11,'0','1'),($1,$3,11,'1','0')",[tag,change,future]);
+   for(const type of ['random','friendly'])ids.push((await db.query("INSERT INTO wars(clan_tag,opponent_tag,prep_time,start_time,end_time,size,war_type,state) VALUES($1,'#PYLQGRJJ',$2,$2,$3,2,$4,'warEnded') RETURNING war_id",[group,new Date(+last-86400000),new Date(+last+(type==='friendly'?1000:0)),type])).rows[0].war_id);
+   await db.query('INSERT INTO player_war_history(player_tag,war_ids) VALUES($1,$2)',[tag,ids]);
+   for(const type of ['random','cwl'])await db.query("INSERT INTO war_schedule(schedule_key,source_clan_tag,opponent_tag,prep_time,end_time,next_run_at,war_type) VALUES($1,$2,'#PYLQGRJJ',$3,$4,now(),$5)",[key+type,group,last,future,type]);
+   await db.query("INSERT INTO player_timers(player_tag,event_type,event_key,expires_at) VALUES($1,'war',$2,$4),($1,'war',$3,$4),($5,'war',$2,$6),($5,'raid',$3,$4)",[tag,key+'random',key+'cwl',future,tags[1],last]);
+   const data=await (await request({tags:[tag,tag,tags[1]]})).json(),row=data.items?.find(x=>x.tag===tag);
+   if(data.items?.length!==2||row.lastPreferenceChange!==change.toISOString()||row.lastWarEnd!==last.toISOString()||row.timers.length!==2||!row.timers.some(x=>x.type==='cwl'))throw Error('Recorded history/timers mismatch: '+JSON.stringify(data));
+   if(data.items.find(x=>x.tag===tags[1]).timers.length)throw Error('Expired or raid timer included');
+   const clan={name:'clan',type:3,value:group};
+   const initial=await interact(command('clan','war-preference',[clan]));
+   if(!text(initial).includes('Opted in (1)')||!text(initial).includes('Opted out (1)'))throw Error('Preferences not split: '+text(initial));
+   const timer=await interact(command('clan','war-preference',[clan,{name:'view',type:3,value:'timer'}]));
+   if(!text(timer).includes('CWL')||!text(timer).includes('No recorded active timer'))throw Error('Timer labels missing');
+   const refresh=timer.components[0].components[0].custom_id;
+   if(!text(await interact({type:3,data:{custom_id:refresh,component_type:2}},other)).includes('CWL'))throw Error('Refresh did not preserve public timer view');
+   warPreferenceFailure=true;
+   const partial=await interact(command('clan','war-preference',[clan]));
+   if(!text(partial).includes('Preference unknown (1)')||text(partial).includes('Opted out (1)'))throw Error('Unavailable player counted as opted out');
+   if((await request({tags:[tag]},'invalid')).status!==401||(await request({tags:[]})).status!==400||(await request({tags:Array(101).fill(tag)})).status!==400)throw Error('War status validation failed');
+   for(const message of [initial,timer,partial])if(message.embeds.reduce((n,e)=>n+(e.title?.length??0)+(e.description?.length??0)+(e.footer?.text?.length??0),0)>6000)throw Error('Discord embed limit exceeded');
+   console.log(JSON.stringify({warPreference:'passed',checks:['real bot/API/SQL','latest nonfuture preference change','completed regular war excludes friendly','separate active regular/CWL timers','expired/raid timers excluded','null unknowns','unavailable profile stays unknown','public refresh preserves options','auth and bounds','Discord limits'],externalDiscordWrites:0}));
+  }finally{
+   warPreferenceFailure=false;
+   await db.query('DELETE FROM player_change_history WHERE player_tag=ANY($1::text[])',[selected]);
+   await db.query('DELETE FROM player_timers WHERE player_tag=ANY($1::text[])',[selected]);
+   await db.query('DELETE FROM war_schedule WHERE schedule_key=ANY($1::text[])',[[key+'random',key+'cwl']]);
+   await db.query('DELETE FROM player_war_history WHERE player_tag=ANY($1::text[])',[selected]);
+   await db.query('DELETE FROM wars WHERE war_id=ANY($1::int[])',[ids]);
+  }
+ }else if(summaryMode){
   const server='999999999999996510',summaryTags=[tag,tags[1]],warRows=[];
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM player_war_history WHERE player_tag=ANY($1::text[])',[summaryTags])).rowCount||(await db.query('SELECT 1 FROM battles_farming WHERE player_tag=ANY($1::text[])',[summaryTags])).rowCount||(await db.query('SELECT 1 FROM battles_ranked WHERE player_tag=ANY($1::text[])',[summaryTags])).rowCount||(await db.query('SELECT 1 FROM player_stat_changes WHERE player_tag=ANY($1::text[])',[summaryTags])).rowCount||(await db.query('SELECT 1 FROM leaderboard_history_player_home WHERE player_tag=ANY($1::text[])',[summaryTags])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic summary data exists');
   const getSummary=async()=>{const response=await fetch(`http://127.0.0.1:${port}/v2/bot/players/season-summary`,{method:'POST',headers:{Authorization:`Bearer ${keys.API_BOT_TOKEN}`,'Content-Type':'application/json'},body:JSON.stringify({tags:summaryTags,season:'2026-10'})});if(!response.ok)throw Error('Summary API '+response.status+' '+await response.text());return response.json();};

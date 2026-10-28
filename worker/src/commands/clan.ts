@@ -1,3 +1,4 @@
+import { warPreference, warPreferenceOptions } from "./war-preference";
 import { seasonSummary, seasonSummaryOptions } from "./season-summary";
 import { upgradeProgress, upgradeProgressOptions } from "./upgrade-progress";
 import { clanReports, capitalOptions, warLogOptions } from "./clan-reports";
@@ -21,6 +22,7 @@ const clanOption={name:"clan",description:"Clan tag or name",type:OptionType.Str
 export const clanCommand:Command={
  deferred:true,
  definition:{name:"clan",description:"Clan overview and season donations",type:1,integration_types:[0,1],contexts:[0,1,2],options:[
+  {name:"war-preference",description:"Current war preferences and recorded history/timers",type:OptionType.Subcommand,options:[clanOption,...warPreferenceOptions]},
   {name:"summary",description:"Season summary for current members",type:OptionType.Subcommand,options:[clanOption,...seasonSummaryOptions]},
   {name:"progress",description:"Observed unit upgrade changes and levels gained",type:OptionType.Subcommand,options:[clanOption,...upgradeProgressOptions]},
   {name:"capital",description:"Capital raid and recorded donation reports",type:OptionType.Subcommand,options:[clanOption,...capitalOptions]},
@@ -50,6 +52,7 @@ export const clanCommand:Command={
  },
  async execute(context){
   const ctx=subcommand(context);
+  if(ctx.path[0]==="war-preference")return warPreference(ctx);
   if(ctx.path[0]==="summary")return seasonSummary(ctx,"clan");
   if(ctx.path[0]==="progress")return upgradeProgress(ctx,"clan");
   if(["capital","war-log"].includes(ctx.path[0]??""))return clanReports(ctx);
