@@ -1190,6 +1190,21 @@ try{
    if((await db.query('SELECT cardinality(auto_role_triggers) AS n FROM servers WHERE id=$1',[roleServer])).rows[0].n!==0)throw Error('No-events selection failed');
    await interact(command('autorefresh','triggers',[{name:'mode',type:3,value:'all'}]),actor,'32');
    if((await db.query('SELECT auto_role_triggers FROM servers WHERE id=$1',[roleServer])).rows[0].auto_role_triggers!==null)throw Error('Unrestricted reset failed');
+   if(process.env.CLASHKING_E2E_DASHBOARD_REPO){
+    const dashboardRepo=resolve(process.env.CLASHKING_E2E_DASHBOARD_REPO),clientBundle=join(directory,'dashboard-roles-client.mjs');
+    await build({entryPoints:[join(dashboardRepo,'lib/api/clients/roles-client.ts')],outfile:clientBundle,bundle:true,platform:'node',format:'esm',alias:{'@':dashboardRepo},define:{'import.meta.env':JSON.stringify({DEV:true,VITE_CLASHKING_API_ORIGIN:`http://127.0.0.1:${port}`})},logLevel:'silent'});
+    const {RolesClient}=await import(pathToFileURL(clientBundle).href),{SignJWT}=await import(require.resolve('jose'));
+    const userToken=await new SignJWT({}).setProtectedHeader({alg:'HS256'}).setSubject(other).setAudience('clashking-web').setIssuedAt().setExpirationTime('10m').sign(new TextEncoder().encode(keys.JWT_ACCESS_SECRET));
+    const client=new RolesClient({baseUrl:`http://127.0.0.1:${port}`,accessToken:userToken});
+    const initial=await client.getRoleSettings(roleServer);if(initial.error||initial.data?.auto_eval_triggers!==null)throw Error('Dashboard default decode failed '+JSON.stringify(initial));
+    for(const value of [['league_change','member_join'],[],null]){
+     const updated=await client.updateRoleSettings(roleServer,{auto_eval_triggers:value});if(updated.error)throw Error('Dashboard save failed '+JSON.stringify(updated));
+     const loaded=await client.getRoleSettings(roleServer);if(loaded.error||JSON.stringify(loaded.data?.auto_eval_triggers)!==JSON.stringify(value))throw Error('Dashboard trigger round trip failed '+JSON.stringify(loaded));
+    }
+    client.setAccessToken(await new SignJWT({}).setProtectedHeader({alg:'HS256'}).setSubject(actor).setAudience('clashking-web').setIssuedAt().setExpirationTime('10m').sign(new TextEncoder().encode(keys.JWT_ACCESS_SECRET)));
+    const denied=await client.updateRoleSettings(roleServer,{auto_eval_triggers:[]});if(denied.status!==403)throw Error('Dashboard nonmanager changed triggers '+JSON.stringify(denied));
+    console.log(JSON.stringify({dashboardRoleTriggers:'passed',checks:['actual RolesClient with vendored contract','authenticated owner','selected/empty/null round trips','nonmanager rejected'],externalDiscordWrites:0}));
+   }
    console.log(JSON.stringify({automaticTriggers:'passed',checks:['manager-only command','selected boolean events','canonical storage','empty selection','reset default'],externalDiscordWrites:0}));
    const policyCommand=await interact(command('autorefresh','options',[{name:'state',type:5,value:true},{name:'nickname_change',type:5,value:false},{name:'role_treatment',type:3,value:'add'}]),actor,'32');
    if(!text(policyCommand).includes('Add only'))throw Error('Automatic settings command failed');
