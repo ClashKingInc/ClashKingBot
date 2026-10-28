@@ -15,7 +15,6 @@ import { dispatchRoster, rosterCommand } from "./roster";
 import { refreshCommand, mainAccountCommand, dispatchRefresh } from "./refresh";
 import { remindersCommand } from "./reminders";
 import { dashboardCommand } from "./dashboard";
-import { tournamentCommand } from "./tournament";
 import { ticketCommand } from "./ticket";
 import { warPanelComponentHandler } from "./war-panel";
 import { playerCommand } from "./player";
@@ -27,7 +26,7 @@ import { clanCommand } from "./clan";
 import { dispatchGamePage } from "./game-pages";
 import type { Command, CommandContext, CommandServices, ComponentHandler } from "./types";
 
-const commands: readonly Command[] = [baseCommand, linkCommand, unlinkCommand, rosterCommand, refreshCommand, mainAccountCommand, remindersCommand, dashboardCommand, tournamentCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand];
+const commands: readonly Command[] = [baseCommand, linkCommand, unlinkCommand, rosterCommand, refreshCommand, mainAccountCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand];
 const commandByName = new Map(commands.map((command) => [command.definition.name, command]));
 const componentHandlers = new Map<string, ComponentHandler>([
   ...baseComponentHandlers,
