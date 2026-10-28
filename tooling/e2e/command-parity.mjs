@@ -38,6 +38,7 @@ const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
 let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
+const todoMode=process.argv.includes("--todo-only");let legendFails=false;
 const sentReminders=[];
 const roleMode=process.argv.includes('--roles-only'),roleServer='999999999999996510';
 const botRole='999999999999996520',newRole='999999999999996521',oldRole='999999999999996522',unmanagedRole='999999999999996523';
@@ -65,11 +66,11 @@ const provider=createServer(async(req,res)=>{
  if(p==='/v1/clans/#PYLQGRJJ')return res.end(JSON.stringify({tag:opponent.tag,name:opponent.name,warLeague:{id:48000019,name:'Champion League I'},memberList:[]}));
  if(p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Reminder Clan',warLeague:{id:48000019,name:'Champion League I'},memberList:[{tag,name:'Missing Player',townHallLevel:16},{tag:tags[1],name:'Finished Player',townHallLevel:16}]}));
  if(p===`/v1/clans/${group}/capitalraidseasons`)return res.end(JSON.stringify({items:reminderRaidActive?[{state:'ongoing',endTime,members:[{tag:tags[1],attacks:6,attackLimit:5,bonusAttackLimit:1}]}]:[]}));
- if(url.pathname.startsWith('/v1/players/')){const playerTag=decodeURIComponent(url.pathname.split('/').at(-1));return res.end(JSON.stringify({tag:playerTag,name:playerTag===tag?'Current Player':`Account ${tags.indexOf(playerTag)+1}`,townHallLevel:16,trophies:5500,warStars:100,expLevel:250,donations:50,donationsReceived:40,currentLeagueGroupTag:group,currentLeagueSeasonId:currentSeason,leagueTier:{id:tier,name:'Current League'},
+ if(url.pathname.startsWith('/v1/players/')){const playerTag=decodeURIComponent(url.pathname.split('/').at(-1));return res.end(JSON.stringify({tag:playerTag,name:playerTag===tag?'Current Player':`Account ${tags.indexOf(playerTag)+1}`,townHallLevel:16,trophies:5500,warStars:100,expLevel:250,donations:50,donationsReceived:40,currentLeagueGroupTag:group,currentLeagueSeasonId:currentSeason,leagueTier:{id:todoMode&&playerTag===tags[0]?105000036:tier,name:'Current League'},...(todoMode?{clan:{tag:group,name:'Reminder Clan'}}:{}),
  // Deliberately synthetic name input exercises the normal lookup renderer; this is not real player data.
  ...(betaInventory?{heroes:[{name:'P.E.K.K.A.',level:15}]}:{})}));}
  if(url.pathname===`/v1/leaguegroup/${encodeURIComponent(group)}/${currentSeason}`||decodeURIComponent(url.pathname)===`/v1/leaguegroup/${group}/${currentSeason}`){
-  if(url.searchParams.get('playerTag')!==tag){res.statusCode=400;return res.end('{}');}
+  if(url.searchParams.get('playerTag')!==tag&&!(todoMode&&tags.includes(url.searchParams.get('playerTag')))){res.statusCode=400;return res.end('{}');}
   return res.end(JSON.stringify({members:Array.from({length:35},(_,i)=>({playerTag:i===0?tag:tags[i],playerName:`Current Member ${i+1}`,leagueTrophies:6000-i,attackWinCount:4,attackLoseCount:1,defenseWinCount:2,defenseLoseCount:3,clanName:null,clanTag:null}))}));
  }
  res.statusCode=404;res.end(JSON.stringify({reason:'notFound'}));
@@ -108,7 +109,7 @@ try{
  outboundService:async request=>{
   const url=new URL(request.url);
   if(url.hostname==='cdn.discordapp.com'&&url.pathname==='/attachments/local/evidence.png')return new Response(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXZkAAAAASUVORK5CYII=','base64'),{headers:{'Content-Type':'image/png'}});
-  if(url.hostname==='assets.clashk.ing'&&/^\/static_data\/(troops|spells|heroes|pets|equipment|buildings)\.json$/u.test(url.pathname))return new Response(readFileSync(join(assetsRepo,'assets',url.pathname)),{headers:{'Content-Type':'application/json'}});
+  if(url.hostname==='assets.clashk.ing'&&/^\/static_data\/(troops|spells|heroes|pets|equipment|buildings|league_tiers)\.json$/u.test(url.pathname))return new Response(readFileSync(join(assetsRepo,'assets',url.pathname)),{headers:{'Content-Type':'application/json'}});
   if(url.hostname==='discord.com'){
    if(roleMode){
     if(url.pathname==='/api/v10/users/@me')return Response.json({id:app});
@@ -134,6 +135,7 @@ try{
    const headers=new Headers(request.headers);headers.delete('content-length');
    return fetch(request.url,{method:'POST',headers,body:JSON.stringify(body)});
   }
+  if(todoMode&&legendFails&&url.pathname==='/v2/legends/days')return Response.json({message:'Temporarily unavailable'},{status:503});
   if(url.hostname==='127.0.0.1'&&url.port===String(port))return fetch(request.url,{method:request.method,headers:Object.fromEntries(request.headers),body:['GET','HEAD'].includes(request.method)?undefined:await request.arrayBuffer()});
   throw Error('External request blocked by local integration harness');
  }}]}));
@@ -142,7 +144,27 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(process.argv.includes('--wars-only')){
+ if(todoMode){
+  if((await db.query('SELECT 1 FROM player_stat_changes WHERE player_tag=ANY($1::text[])',[tags])).rowCount)throw Error('Synthetic task stats already exist');
+  try{
+   const now=new Date(),gamesAt=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),22,9));
+   await db.query("INSERT INTO player_stat_changes(player_tag,event_time,stat_type,previous_value,current_value,delta) VALUES($1,date_trunc('month',now())+interval '1 hour','season_pass',0,1200,1200),($1,date_trunc('month',now())-interval '1 day','season_pass',0,999,999),($2,date_trunc('month',now())+interval '1 hour','season_pass',0,4000,4000),($1,$3,'clan_games',0,1500,1500),($1,now()-interval '2 days','capital_gold_donated',0,100,100)",[tags[0],tags[1],gamesAt]);
+   const response=await fetch(`http://127.0.0.1:${port}/v2/bot/players/task-progress`,{method:'POST',headers:{Authorization:`Bearer ${keys.API_BOT_TOKEN}`,'Content-Type':'application/json'},body:JSON.stringify({tags:[tags[0],tags[2]]})});
+   const progress=await response.json();if(!response.ok||progress.items[0].seasonPoints!==1200||progress.items[1].seasonPoints!==null)throw Error('Calendar task progress failed '+text(progress));
+   if(gamesAt<now&&progress.items[0].clanGamesPoints!==1500)throw Error('Clan Games calendar window failed');
+   const todo=await interact(command('player','to-do',[{name:'season_goal',type:4,value:2000}]));
+   if(!text(todo).includes('1200/2000 observed points')||!text(todo).includes('Ranked attacks left')||!text(todo).includes('Legend attacks left')||!text(todo).includes('Last recorded capital donation'))throw Error('Expanded to-do failed '+text(todo));
+   const completed=await interact(command('player','to-do',[{name:'season_goal',type:4,value:2000},{name:'show_completed',type:5,value:true}]));
+   if(!text(completed).includes('0/2 war/CWL attacks left')||!text(completed).includes('0/6 raid attacks left')||!text(completed).includes('4000/2000 observed points'))throw Error('Completed goals were not retained when requested');
+   const next=todo.components.flatMap(row=>row.components??[]).find(item=>item.label==='Next'&&!item.disabled);
+   if(!next||!next.custom_id.includes(':2000:'))throw Error('To-do goal lost from controls');
+   await interact({type:3,data:{custom_id:next.custom_id,component_type:2}});
+   legendFails=true;
+   const degraded=await interact(command('player','to-do',[{name:'season_goal',type:4,value:2000}]));
+   if(!text(degraded).includes('Legend attacks unavailable')||!text(degraded).includes('raid attacks left')||!text(degraded).includes('1200/2000 observed points'))throw Error('Legend failure erased other tasks');
+   console.log(JSON.stringify({todo:'passed',checks:['calendar season points exclude earlier month','missing observations stay unknown','daily Legend vs weekly Ranked','explicit season target','capital donation age','goal survives pagination','Legend failure preserves other tasks'],externalDiscordWrites:0}));
+  }finally{await db.query('DELETE FROM player_stat_changes WHERE player_tag=ANY($1::text[])',[tags]);}
+ }else if(process.argv.includes('--wars-only')){
   const clan={name:'clan',type:3,value:group};
   const search=(name,opts=[])=>interact(command(name,'search',[clan,...opts]));
   const regular=await search('war');if(!text(regular).includes('Reminder Clan vs Other Clan')||!text(regular).includes('2/4'))throw Error('Regular war overview failed '+text(regular));

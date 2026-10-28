@@ -33,8 +33,13 @@ export async function dispatchGamePage(ctx: CommandContext, waitUntil?: (promise
     options.push(string("__members_only",String(parts[7]==="m")));
     options.push(string("type",parts[8]!));
     if(parts[2]!=="current")options.push(string("season",parts[2]!));
-  }else if((kind==="ac"||kind==="pt")&&parts.length===1&&/^\d{15,22}$/u.test(parts[0]!)){
+  }else if((kind==="ac"&&parts.length===1||kind==="pt"&&[1,4].includes(parts.length))&&/^\d{15,22}$/u.test(parts[0]!)){
     command=playerCommand;action=kind==="ac"?"accounts":"to-do";options=[string("discord_user",parts[0]!)];
+    if(kind==="pt"&&parts.length===4){
+      if(!["0","1"].includes(parts[3]!))throw new CommandInputError("Invalid to-do options.");
+      options.push({name:"clan_games_goal",type:OptionType.Integer,value:Number(parts[1])},{name:"show_completed",type:OptionType.Boolean,value:parts[3]==="1"});
+      if(parts[2]!=="none")options.push({name:"season_goal",type:OptionType.Integer,value:Number(parts[2])});
+    }
   }else if((kind==="rh"||kind==="rg")&&parts.length===(kind==="rh"?1:2)){
     command=rankedCommand;action=kind==="rh"?"history":"group";options=[string("player",tag(parts[0]))];
     if(kind==="rg"&&parts[1]!=="current"){
