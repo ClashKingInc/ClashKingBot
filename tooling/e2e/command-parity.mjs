@@ -1181,6 +1181,16 @@ try{
    memberRoles.delete(newRole);memberRoles.add(oldRole);nickname='Original nickname';
    const policyDenied=await interact(command('autorefresh','options',[]));
    if(!text(policyDenied).includes('Manage Server'))throw Error('Automatic settings permission bypass');
+   const triggersDenied=await interact(command('autorefresh','triggers',[]));if(!text(triggersDenied).includes('Manage Server'))throw Error('Trigger permission bypass');
+   const triggersSelected=await interact(command('autorefresh','triggers',[{name:'member_leave',type:5,value:false},{name:'townhall_change',type:5,value:false}]),actor,'32');
+   if(text(triggersSelected).includes('Member leave')||!text(triggersSelected).includes('League change'))throw Error('Trigger selection reply wrong');
+   const selectedTriggers=(await db.query('SELECT auto_role_triggers FROM servers WHERE id=$1',[roleServer])).rows[0].auto_role_triggers;
+   if(selectedTriggers.includes('member_leave')||selectedTriggers.includes('townhall_change')||selectedTriggers.length!==3)throw Error('Trigger selection not persisted');
+   await interact(command('autorefresh','triggers',[{name:'mode',type:3,value:'none'}]),actor,'32');
+   if((await db.query('SELECT cardinality(auto_role_triggers) AS n FROM servers WHERE id=$1',[roleServer])).rows[0].n!==0)throw Error('No-events selection failed');
+   await interact(command('autorefresh','triggers',[{name:'mode',type:3,value:'all'}]),actor,'32');
+   if((await db.query('SELECT auto_role_triggers FROM servers WHERE id=$1',[roleServer])).rows[0].auto_role_triggers!==null)throw Error('Unrestricted reset failed');
+   console.log(JSON.stringify({automaticTriggers:'passed',checks:['manager-only command','selected boolean events','canonical storage','empty selection','reset default'],externalDiscordWrites:0}));
    const policyCommand=await interact(command('autorefresh','options',[{name:'state',type:5,value:true},{name:'nickname_change',type:5,value:false},{name:'role_treatment',type:3,value:'add'}]),actor,'32');
    if(!text(policyCommand).includes('Add only'))throw Error('Automatic settings command failed');
    const autoLegacyClaim=await fetch(`http://127.0.0.1:${port}/v2/bot/role-refresh/claim`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({serverId:roleServer,includeRoster:true,includeRoleTreatment:true})});
