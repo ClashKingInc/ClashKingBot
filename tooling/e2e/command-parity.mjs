@@ -36,6 +36,8 @@ const codes=(JSON.parse(readFileSync(join(assetsRepo,'assets/static_data/league_
 const tier=codes.find(row=>row.name!=='Unranked')?._id??105000001;
 const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
+const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
+let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
 const sentReminders=[];
 const roleMode=process.argv.includes('--roles-only'),roleServer='999999999999996510';
 const botRole='999999999999996520',newRole='999999999999996521',oldRole='999999999999996522',unmanagedRole='999999999999996523';
@@ -50,13 +52,16 @@ const provider=createServer(async(req,res)=>{
  let text='';for await(const chunk of req)text+=chunk;
  const url=new URL(req.url,'http://provider');live.push(url.pathname+url.search);res.setHeader('Content-Type','application/json');
  if(roleMode&&url.pathname===`/api/v10/guilds/${roleServer}`)return res.end(JSON.stringify({id:roleServer,owner_id:other}));
- const p=decodeURIComponent(url.pathname),endTime=new Date(Date.now()+3600000).toISOString();
- const startTime=new Date(Date.now()+1800000).toISOString(),warState=reminderPreparation?'preparation':'inWar';
- const own={tag:group,name:'Reminder Clan',stars:5,members:[{tag,name:'Missing Player',townhallLevel:16,attacks:[]},{tag:tags[1],name:'Finished Player',townhallLevel:16,attacks:[{},{}]}]};
- const opponent={tag:'#PYLQGRJJ',name:'Other Clan',stars:3,members:[]};
- if(p===`/v1/clans/${group}/currentwar`)return res.end(JSON.stringify(reminderWarActive&&!reminderCwl?{state:warState,startTime:startTime.replace(/[-:]/g,''),endTime,attacksPerMember:2,clan:own,opponent}:{state:'notInWar'}));
- if(p===`/v1/clans/${group}/currentwar/leaguegroup`)return res.end(JSON.stringify({rounds:reminderCwl?[{warTags:['#PYLQGRJQ']}]:[]}));
- if(p==='/v1/clanwarleagues/wars/#PYLQGRJQ')return res.end(JSON.stringify({state:warState,startTime,endTime,clan:opponent,opponent:own}));
+ const p=decodeURIComponent(url.pathname),endTime=fixtureEnd;
+ const startTime=new Date(Date.now()+1800000).toISOString(),warState=warEnded?'warEnded':reminderPreparation?'preparation':'inWar';
+ const own={tag:group,name:'Reminder Clan',stars:5,destructionPercentage:80,members:[{tag,name:'Missing Player',townhallLevel:16,mapPosition:1,attacks:[]},{tag:tags[1],name:'Finished Player',townhallLevel:16,mapPosition:2,attacks:[{attackerTag:tags[1],defenderTag:'#PYLR',stars:3,destructionPercentage:100,order:1},{attackerTag:tags[1],defenderTag:'#PYLQ',stars:2,destructionPercentage:80,order:2}]}]};
+ const opponent={tag:'#PYLQGRJJ',name:'Other Clan',stars:3,destructionPercentage:50,members:[]};
+ const warBody={state:warState,teamSize:2,preparationStartTime:fixturePrep,startTime:startTime.replace(/[-:]/g,''),endTime,attacksPerMember:2,clan:own,opponent};
+ if(p===`/v1/clans/${group}/currentwar`&&privateWar){res.statusCode=403;return res.end('{}');}
+ if(p==='/v1/clans/#PYLQGRJJ/currentwar')return res.end(JSON.stringify({...warBody,endTime:opponentNextWar?new Date(fixtureNow+7200000).toISOString():endTime}));
+ if(p===`/v1/clans/${group}/currentwar`)return res.end(JSON.stringify(reminderWarActive&&!reminderCwl?warBody:{state:'notInWar'}));
+ if(p===`/v1/clans/${group}/currentwar/leaguegroup`)return res.end(JSON.stringify({state:reminderCwl?'inWar':'notInWar',season:new Date().toISOString().slice(0,7),clans:[{tag:group,name:own.name},{tag:opponent.tag,name:opponent.name}],rounds:reminderCwl?[...(cwlGap?[{warTags:['#0']}]:[]),{warTags:['#PYLQGRJQ']}]:[]}));
+ if(p==='/v1/clanwarleagues/wars/#PYLQGRJQ')return res.end(JSON.stringify({...warBody,attacksPerMember:1,clan:opponent,opponent:own}));
  if(p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Reminder Clan',memberList:[{tag,name:'Missing Player',townHallLevel:16},{tag:tags[1],name:'Finished Player',townHallLevel:16}]}));
  if(p===`/v1/clans/${group}/capitalraidseasons`)return res.end(JSON.stringify({items:reminderRaidActive?[{state:'ongoing',endTime,members:[{tag:tags[1],attacks:6,attackLimit:5,bonusAttackLimit:1}]}]:[]}));
  if(url.pathname.startsWith('/v1/players/')){const playerTag=decodeURIComponent(url.pathname.split('/').at(-1));return res.end(JSON.stringify({tag:playerTag,name:playerTag===tag?'Current Player':`Account ${tags.indexOf(playerTag)+1}`,townHallLevel:16,trophies:5500,warStars:100,expLevel:250,donations:50,donationsReceived:40,currentLeagueGroupTag:group,currentLeagueSeasonId:currentSeason,leagueTier:{id:tier,name:'Current League'},
@@ -136,7 +141,46 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(roleMode){
+ if(process.argv.includes('--wars-only')){
+  const clan={name:'clan',type:3,value:group};
+  const search=(name,opts=[])=>interact(command(name,'search',[clan,...opts]));
+  const regular=await search('war');if(!text(regular).includes('Reminder Clan vs Other Clan')||!text(regular).includes('2/4'))throw Error('Regular war overview failed '+text(regular));
+  const roster=await search('war',[{name:'view',type:3,value:'roster'}]);if(!text(roster).includes('Missing Player'))throw Error('War roster failed');
+  const attacks=await search('war',[{name:'view',type:3,value:'attacks'}]);if(!text(attacks).includes('No attacks used')||!text(attacks).includes('100%'))throw Error('War attacks failed');
+  const refresh=regular.components[0].components[0].custom_id;
+  const refreshed=await interact({type:3,data:{custom_id:refresh,component_type:2}},other);if(!text(refreshed).includes('Reminder Clan'))throw Error('Public war refresh failed');
+  if((await db.query('SELECT 1 FROM war_schedule WHERE source_clan_tag=$1 OR opponent_tag=$1',[group])).rowCount)throw Error('Synthetic war pointer already exists');
+  try{
+   await db.query("INSERT INTO war_schedule(schedule_key,source_clan_tag,opponent_tag,prep_time,end_time,next_run_at,war_type) VALUES('test-war-command',$1,'#PYLQGRJJ',$2,$3,now(),'random')",[group,fixturePrep,fixtureEnd]);
+   privateWar=true;
+   const discovered=await search('war');if(!text(discovered).includes('Reminder Clan vs Other Clan'))throw Error('Exact opponent discovery failed');
+   opponentNextWar=true;
+   const rejected=await search('war');if(!text(rejected).includes('war log is private'))throw Error('Stale opponent war was accepted');
+  }finally{await db.query("DELETE FROM war_schedule WHERE schedule_key='test-war-command'");}
+  reminderCwl=true;
+  const cwl=await search('war');if(!text(cwl).includes('CWL')||!text(cwl).includes('2/2'))throw Error('Private regular war blocked CWL '+text(cwl));
+  warEnded=true;
+  const standings=await search('cwl');if(!text(standings).includes('15')||!text(standings).includes('Other Clan'))throw Error('CWL win bonus/standings failed '+text(standings));
+  const round=await search('cwl',[{name:'round',type:4,value:1}]);if(!text(round).includes('Round 1'))throw Error('CWL round selection failed');
+  cwlGap=true;
+  const unavailable=await search('cwl',[{name:'round',type:4,value:1}]);if(!text(unavailable).includes('not available yet'))throw Error('Missing CWL round shifted numbering');
+  const secondRound=await search('cwl',[{name:'round',type:4,value:2}]);if(!text(secondRound).includes('Round 2'))throw Error('CWL round 2 was lost');
+  const oldEnd=new Date(fixtureNow-2*86400000).toISOString(),oldStart=new Date(fixtureNow-3*86400000).toISOString(),oldPrep=new Date(fixtureNow-4*86400000).toISOString();
+  const archivedSide=(sideTag,name,stars)=>({tag:sideTag,name,badgeToken:'',clanLevel:1,attacks:0,stars,destructionPercentage:stars?100:0,members:[]});
+  const archived={state:'warEnded',teamSize:2,attacksPerMember:2,preparationStartTime:oldPrep,startTime:oldStart,endTime:oldEnd,battleModifier:'none',clan:archivedSide(group,'Archived Clan',6),opponent:archivedSide('#PYLQGRJJ','Archived Opponent',0)};
+  const row=(await db.query("INSERT INTO wars(clan_tag,opponent_tag,prep_time,start_time,end_time,size,war_type,state) VALUES($1,'#PYLQGRJJ',$2,$3,$4,2,'random','warEnded') RETURNING war_id",[group,oldPrep,oldStart,oldEnd])).rows[0];
+  try{
+   await db.query('INSERT INTO war_archive_pending(war_id,end_time,payload) VALUES($1,$2,$3)',[row.war_id,oldEnd,JSON.stringify(archived)]);
+   const endCode=oldEnd.replace(/[-:]/g,'');
+   const history=await search('war',[{name:'war_end',type:3,value:endCode}]);
+   if(!text(history).includes('Archived Clan vs Archived Opponent'))throw Error('Explicit archived war did not load');
+   const suggestions=await interact({type:4,data:{name:'war',options:[{name:'search',type:1,options:[clan,{name:'war_end',type:3,value:'',focused:true}]}]}});
+   if(!suggestions.choices.some(choice=>choice.value===endCode))throw Error('Archived war autocomplete missing');
+   const missingSeason=await search('cwl',[{name:'season',type:3,value:'2000-01'}]);
+   if(!text(missingSeason).includes('No Clan War League group'))throw Error('Historical CWL silently selected current season');
+  }finally{await db.query('DELETE FROM wars WHERE war_id=$1 AND end_time=$2',[row.war_id,oldEnd]);}
+  console.log(JSON.stringify({warCommands:'passed',checks:['regular overview','roster and attacks','public refresh','private exact opponent discovery','stale opponent rejected','CWL despite private regular war','CWL win bonus and round selection','missing CWL round preserves numbering','stored war and autocomplete','explicit historical CWL never falls back to current'],externalDiscordWrites:0}));
+ }else if(roleMode){
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[roleServer])).rowCount)throw Error('Synthetic role server exists');
   if((await db.query('SELECT 1 FROM discord_cache.gateway_shards WHERE application_id=$1',[app])).rowCount)throw Error('Synthetic role application exists');
   await db.query("INSERT INTO servers(id,name) VALUES($1,'Role refresh integration')",[roleServer]);
