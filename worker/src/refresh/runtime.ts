@@ -5,7 +5,7 @@ import { planRefresh, type RefreshCategory, type RefreshData } from "./plan";
 
 export interface RefreshJob {
   id: string; server_id: string; user_id: string; request_id: string | null;
-  token: string; expires_at: string; preview: boolean; categories: RefreshCategory[]; roster_role_ids?: string[];
+  token: string; expires_at: string; preview: boolean; categories: RefreshCategory[]; roster_role_ids?: string[]; role_treatment?: "add" | "remove" | "both";
 }
 interface GuildState { roles: DiscordRole[]; bot: DiscordMember; owner: string }
 const permissions = (state: GuildState) => state.roles.filter(role => role.id === state.bot.user?.id || state.bot.roles.includes(role.id)
@@ -17,6 +17,8 @@ const topRole = (roles: DiscordRole[], member: DiscordMember) => roles.filter(ro
 
 export async function processRefreshJob(services: CommandServices, job: RefreshJob, state: GuildState) {
   const rest = services.discordRest;
+  const treatment = job.role_treatment ?? "both";
+  if (!["add", "remove", "both"].includes(treatment)) throw new Error("Invalid role treatment");
   let member: DiscordMember;
   try { member = await rest.getGuildMember(job.server_id, job.user_id); }
   catch (error) {
@@ -43,7 +45,10 @@ export async function processRefreshJob(services: CommandServices, job: RefreshJ
     }
     return true;
   };
-  const add = plan.add.filter(editable), remove = plan.remove.filter(editable);
+  // Role treatment never disables nickname updates. Filter before checking
+  // editable roles so a deliberately skipped direction is not reported blocked.
+  const add = (treatment === "remove" ? [] : plan.add).filter(editable);
+  const remove = (treatment === "add" ? [] : plan.remove).filter(editable);
   let nickname = plan.nickname;
   if (nickname !== undefined && (state.owner === job.user_id || !botTop || memberTop && !higher(botTop, memberTop)
     || !admin && (bits & (1n << 27n)) === 0n)) {
@@ -66,7 +71,7 @@ export async function processRefreshJob(services: CommandServices, job: RefreshJ
 
 export async function drainRefreshJobs(services: CommandServices, requestId?: string, serverId?: string) {
   const { jobs } = await services.api.post<{ jobs: RefreshJob[] }>("/v2/bot/role-refresh/claim", {
-    includeRoster: true, ...(requestId ? { requestId } : { includeTenure: true }), ...(serverId ? { serverId } : {}),
+    includeRoster: true, includeRoleTreatment: true, ...(requestId ? { requestId } : { includeTenure: true }), ...(serverId ? { serverId } : {}),
   });
   const states = new Map<string, Promise<GuildState>>();
   let botId: Promise<string> | undefined;

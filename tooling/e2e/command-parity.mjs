@@ -1091,6 +1091,38 @@ try{
    await db.query("INSERT INTO server_roles(server_id,type,option,role_id) VALUES($1,'townhall','16',$2),($1,'townhall','15',$3)",[roleServer,newRole,oldRole]);
    const preview=await interact({type:2,data:{name:'refresh',options:[{name:'test',type:5,value:true}]}});
    if(!text(preview).includes('1/1 refreshes completed')||roleWrites.length)throw Error('Refresh preview failed: '+text(preview));
+   const resetRoles=()=>{memberRoles.clear();memberRoles.add(oldRole);memberRoles.add(unmanagedRole);nickname='Original nickname';};
+   for(const treatment of ['add','remove']){
+    resetRoles();
+    const result=await interact({type:2,data:{name:'refresh',options:[{name:'role_treatment',type:3,value:treatment}]}});
+    if(!text(result).includes('1/1 refreshes completed'))throw Error('Restricted refresh did not finish '+text(result));
+    if(treatment==='add'&&(!memberRoles.has(newRole)||!memberRoles.has(oldRole)))throw Error('Add-only removed an existing role');
+    if(treatment==='remove'&&(memberRoles.has(oldRole)||memberRoles.has(newRole)))throw Error('Remove-only added a role');
+    if(!memberRoles.has(unmanagedRole)||nickname==='Original nickname')throw Error('Treatment changed unrelated roles or skipped independent nickname');
+    if(!(await db.query('SELECT 1 FROM role_refresh_jobs WHERE server_id=$1 AND role_treatment=$2 AND completed_at IS NOT NULL',[roleServer,treatment])).rowCount)throw Error('Treatment was not persisted');
+   }
+   resetRoles();
+   const advanced=await interact({type:2,data:{name:'refresh',options:[{name:'role_treatment',type:3,value:'remove'},{name:'advanced_mode',type:5,value:true}]}});
+   const choose=advanced.components?.[0]?.components?.[0]?.custom_id;
+   if(!choose?.endsWith(':remove'))throw Error('Advanced menu lost treatment');
+   await interact({type:3,data:{custom_id:choose,component_type:3,values:['townhall']}});
+   if(memberRoles.has(oldRole)||memberRoles.has(newRole))throw Error('Advanced remove-only did not survive the selection');
+   resetRoles();
+   await interact({type:3,data:{custom_id:`ck:refresh:choose:${actor}:user:${actor}:0`,component_type:3,values:['townhall']}});
+   if(!memberRoles.has(newRole)||memberRoles.has(oldRole))throw Error('Legacy menu must retain Both behavior');
+   resetRoles();
+   const pendingId=String(counter++);
+   const pending=await fetch(`http://127.0.0.1:${port}/v2/bot/role-refresh/${roleServer}/enqueue`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({actorId:actor,requestId:pendingId,roleTreatment:'add',preview:true})});
+   if(!pending.ok)throw Error('Restricted queue insertion failed');
+   const claim=async support=>{const response=await fetch(`http://127.0.0.1:${port}/v2/bot/role-refresh/claim`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({requestId:pendingId,serverId:roleServer,includeRoster:true,...(support?{includeRoleTreatment:true}:{})})});if(!response.ok)throw Error('Claim failed '+response.status);return response.json();};
+   if((await claim(false)).jobs.length)throw Error('Legacy worker claimed a restricted policy');
+   const supported=(await claim(true)).jobs;
+   if(supported.length!==1||supported[0].role_treatment!=='add')throw Error('Policy-aware consumer did not receive persisted treatment');
+   await db.query('DELETE FROM role_refresh_jobs WHERE request_id=$1',[pendingId]);
+   const invalid=await fetch(`http://127.0.0.1:${port}/v2/bot/role-refresh/${roleServer}/enqueue`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({actorId:actor,requestId:String(counter++),roleTreatment:'invalid'})});
+   if(invalid.status!==400)throw Error('Invalid treatment accepted');
+   console.log(JSON.stringify({roleTreatment:'passed',checks:['add-only','remove-only','nickname independence','persisted policy','advanced menu','legacy menu','legacy consumer gate','invalid value rejected']}));
+   resetRoles();
    const applied=await interact({type:2,data:{name:'refresh'}});
    if(!text(applied).includes('1/1 refreshes completed')||!memberRoles.has(newRole)||memberRoles.has(oldRole)||!memberRoles.has(unmanagedRole)||nickname==='Original nickname')throw Error('Role/nickname application failed: '+text(applied));
    const before=roleWrites.length;

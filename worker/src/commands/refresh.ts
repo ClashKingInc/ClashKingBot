@@ -8,6 +8,12 @@ import type { Command, CommandContext } from "./types";
 
 const labels: Record<RefreshCategory, string> = { roster: "Roster membership", tenure: "Discord tenure", family: "Family membership", clan: "Clan membership", leadership: "Clan leadership",
   townhall: "Town Hall", builderhall: "Builder Hall", league: "Home Village league", builder_league: "Builder Base league", category: "Clan category", nicknames: "Nickname" };
+type RoleTreatment = "add" | "remove" | "both";
+const roleTreatment = (value: string | undefined): RoleTreatment => {
+  if (value === undefined) return "both";
+  if (value !== "add" && value !== "remove" && value !== "both") throw new CommandInputError("Choose Add only, Remove only, or Both");
+  return value;
+};
 const bool = (ctx: CommandContext, name: string) => ctx.options.get(name)?.value === true;
 export const refreshCommand: Command = {
   deferred: true, ephemeral: true,
@@ -15,25 +21,35 @@ export const refreshCommand: Command = {
     options: [
       { name: "role_or_user", description: "Member or role to refresh (defaults to yourself)", type: OptionType.Mentionable },
       { name: "test", description: "Preview the changes without applying them", type: OptionType.Boolean },
+      { name: "role_treatment", description: "Only add roles, only remove roles, or both (nickname is independent)", type: OptionType.String,
+        choices: [{ name: "Both", value: "both" }, { name: "Add only", value: "add" }, { name: "Remove only", value: "remove" }] },
       { name: "advanced_mode", description: "Choose which role categories and nickname to refresh", type: OptionType.Boolean },
     ] },
   async execute(ctx) {
     requireGuildId(ctx);
+    const treatment = roleTreatment(stringOption(ctx, "role_treatment"));
     const target = stringOption(ctx, "role_or_user") ?? invokingUserId(ctx);
     const kind = ctx.interaction.data?.resolved?.roles?.[target] ? "role" : "user";
     if (bool(ctx, "advanced_mode")) return legacyMessage({ content: "Choose what to refresh. Other categories stay as they are.", components: [actionRow({
-      type: 3, custom_id: `ck:refresh:choose:${invokingUserId(ctx)}:${kind}:${target}:${bool(ctx, "test") ? "1" : "0"}`,
+      type: 3, custom_id: `ck:refresh:choose:${invokingUserId(ctx)}:${kind}:${target}:${bool(ctx, "test") ? "1" : "0"}:${treatment}`,
       min_values: 1, max_values: refreshCategories.length,
       options: refreshCategories.map(value => ({ label: labels[value], value })),
     })] }, { ephemeral: true });
-    return enqueue(ctx, kind, target, bool(ctx, "test"), [...refreshCategories]);
+    return enqueue(ctx, kind, target, bool(ctx, "test"), [...refreshCategories], treatment);
   },
 };
 
-async function enqueue(ctx: CommandContext, kind: string, target: string, preview: boolean, categories: RefreshCategory[]) {
+async function enqueue(ctx: CommandContext, kind: string, target: string, preview: boolean, categories: RefreshCategory[], treatment: RoleTreatment = "both") {
   const guild = requireGuildId(ctx), actor = invokingUserId(ctx);
+  if (treatment !== "both") {
+    // An older API ignores unknown body fields and would queue an unrestricted
+    // job. Check support before creating it, not after Discord work can begin.
+    let supported = false;
+    try { supported = (await ctx.services.api.get<{ roleTreatment?: boolean }>("/v2/bot/role-refresh/capabilities")).roleTreatment === true; } catch { /* unavailable support must not enqueue a broader job */ }
+    if (!supported) throw new CommandInputError("This refresh option is not available yet. Try Both or ask a server admin for help.");
+  }
   const result = await ctx.services.api.post<{ requestId: string; queued: number }>(`/v2/bot/role-refresh/${guild}/enqueue`, {
-    actorId: actor, requestId: ctx.interaction.id, targetId: target, targetKind: kind, preview, categories,
+    actorId: actor, requestId: ctx.interaction.id, targetId: target, targetKind: kind, preview, categories, roleTreatment: treatment,
   });
   // Durable insertion happens before any Discord work. An interrupted command
   // retains its jobs; the scheduled consumer picks them up on the next minute.
@@ -56,7 +72,7 @@ async function status(ctx: CommandContext, requestId: string) {
 
 export async function dispatchRefresh(ctx: CommandContext, waitUntil?: (promise: Promise<unknown>) => void) {
   if (ctx.interaction.type !== InteractionType.MessageComponent) throw new CommandInputError("Invalid refresh action");
-  const [, , action, actor, first, second, preview] = (ctx.interaction.data?.custom_id ?? "").split(":");
+  const [, , action, actor, first, second, preview, treatment] = (ctx.interaction.data?.custom_id ?? "").split(":");
   if (actor !== invokingUserId(ctx)) throw new CommandInputError("This refresh menu belongs to another person");
   const run = async () => {
     if (action === "status" && first && /^\d{15,20}$/u.test(first)) return status(ctx, first);
@@ -65,7 +81,7 @@ export async function dispatchRefresh(ctx: CommandContext, waitUntil?: (promise:
       || !["0", "1"].includes(preview ?? "") || !values.length || values.some(value => !refreshCategories.includes(value as RefreshCategory))) {
       throw new CommandInputError("Invalid refresh selection");
     }
-    return enqueue(ctx, first!, second!, preview === "1", values as RefreshCategory[]);
+    return enqueue(ctx, first!, second!, preview === "1", values as RefreshCategory[], roleTreatment(treatment));
   };
   if (!waitUntil) return run();
   waitUntil(run().then(response => ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token, response.data ?? {}),
