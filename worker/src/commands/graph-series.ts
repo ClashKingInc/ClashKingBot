@@ -1,6 +1,6 @@
 import { actionRow, legacyMessage } from "../discord/components";
 import { CommandInputError, invokingUserId, normalizeTag, requireGuildId, stringOption } from "./command-utils";
-import { graphMetrics } from "./graph";
+import { graphMetrics, graphTotal, graphBasis } from "./graph-data";
 import type { CommandContext } from "./types";
 type Metric=keyof typeof graphMetrics;
 interface Stats{season:string;truncated:boolean;items:Array<Record<Metric,number>>}
@@ -26,16 +26,16 @@ export async function graphSeries(ctx:CommandContext){
  // or treat an unfinished request as a season with zero recorded contributions.
  await Promise.all(Array.from({length:Math.min(5,jobs.length)},async()=>{
   while(next<jobs.length&&!deadline.aborted){const job=jobs[next++]!;try{
-   const data=await ctx.services.api.get<Stats>(`/v2/bot/clans/${encodeURIComponent(job.row.tag)}/season-stats`,{season:job.value},deadline);
-   const sum=data.items.reduce((total,item)=>total+item[metric],0);
-   if(data.season===job.value&&!data.truncated&&Number.isSafeInteger(sum)&&sum>=0){job.row.values[job.index]=sum;missing--;}
+   const data=await graphTotal(ctx,job.row.tag,job.value,metric,deadline);
+   const sum=data.value;
+   if(data.season===job.value&&sum!==null&&Number.isSafeInteger(sum)&&sum>=0){job.row.values[job.index]=sum;missing--;}
   }catch{/* The chart marks this observation unavailable. */}}
  }));
  const selected=rows.filter(row=>row.values[count-1]!==null).sort((a,b)=>b.values[count-1]!-a.values[count-1]!||a.tag.localeCompare(b.tag)).slice(0,limit);
  const largest=Math.max(1,...selected.flatMap(row=>row.values.filter((value):value is number=>value!==null)));
  const colors=["#55c8b0","#f6d882","#95b6ff","#f59ec7","#b8a0ef","#f6aa75","#91cf77","#71d7ed","#e69da4","#c6c4bc"];
  const {posterArtwork,renderPosterSvg}=await import("./legend-poster");
- let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100"><rect width="1600" height="1100" fill="#101923"/><image href="${posterArtwork.logo}" x="1280" y="45" width="230" height="85"/>`+text(75,100,graphMetrics[metric],42,"#f6d882")+text(75,150,`${seasons[0]} — ${season} · Recorded clan-attributed totals`,25);
+ let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100"><rect width="1600" height="1100" fill="#101923"/><image href="${posterArtwork.logo}" x="1280" y="45" width="230" height="85"/>`+text(75,100,graphMetrics[metric],42,"#f6d882")+text(75,150,`${seasons[0]} — ${season} · ${graphBasis(metric)}`,25);
  const x=(i:number)=>140+i*1300/(count-1),y=(value:number)=>780-value/largest*520;
  for(let n=0;n<=4;n++){const py=780-n*130;svg+=`<path d="M140 ${py}H1440" stroke="#344454"/>`+text(45,py+8,new Intl.NumberFormat("en",{notation:"compact"}).format(largest*n/4),18);}
  seasons.forEach((value,i)=>{svg+=text(x(i)-36,825,value,18);});
@@ -44,6 +44,6 @@ export async function graphSeries(ctx:CommandContext){
  svg+=text(75,1060,`${missing}/${jobs.length} observations unavailable · Gaps are unknown; zero means no recorded events`,22)+"</svg>";
  let details="",omitted=0;
  for(const row of selected){const line=`${row.name.replace(/[<@`*_~]/gu,"").slice(0,40)}: ${row.values.map(value=>value===null?"?":String(value)).join(" → ")}`;if(details.length+line.length+1>1650){omitted++;continue;}details+=(details?"\n":"")+line;}
- const response=legacyMessage({allowed_mentions:{parse:[]},content:`${graphMetrics[metric]} · ${seasons.join(", ")}\n${details}\n${missing} observations unavailable. Clans ranked by final-season total.${omitted?` ${omitted} text rows omitted; see chart.`:""}`,components:raw?[]:[actionRow({type:2,style:2,label:"Refresh",custom_id:`ck:page:gt:${invokingUserId(ctx)}:${metric}:${requested}:${count}:${limit}:0`})]});
+ const response=legacyMessage({allowed_mentions:{parse:[]},content:`${graphMetrics[metric]} · ${graphBasis(metric)} · ${seasons.join(", ")}\n${details}\n${missing} observations unavailable. Clans ranked by final-season total.${omitted?` ${omitted} text rows omitted; see chart.`:""}`,components:raw?[]:[actionRow({type:2,style:2,label:"Refresh",custom_id:`ck:page:gt:${invokingUserId(ctx)}:${metric}:${requested}:${count}:${limit}:0`})]});
  response.data!.attachments=[];response.data!.__files=[{name:"clan-contributions.png",bytes:await renderPosterSvg(svg)}];return response;
 }
