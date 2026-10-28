@@ -397,12 +397,34 @@ try{
    const addDenied=await interact(command('roster','add-player',[rosterOption,playerInput]),actor,'0');if(!text(addDenied).includes('Manage'))throw Error('Roster add permission bypass');
    const added=await interact(command('roster','add-player',[rosterOption,playerInput]),actor,'32');if(!text(added).includes('Added 1'))throw Error('Roster add failed '+text(added));
    const addedRow=(await db.query('SELECT name,townhall FROM roster_members WHERE roster_id=$1 AND tag=$2',[created.roster_id,tag])).rows[0];if(addedRow?.name!=='Current Player'||addedRow?.townhall!==16)throw Error('Added player snapshot not hydrated');
+   const groupAction=(action,extra=[])=>command('roster','groups',[{name:'action',type:3,value:action},...extra]);
+   const labelName={name:'name',type:3,value:'War starters'};
+   const labelDenied=await interact(groupAction('add',[labelName]),actor,'0');if(!text(labelDenied).includes('Manage'))throw Error('Label permission bypass');
+   const labelCreated=await interact(groupAction('add',[labelName]),actor,'32');if(!text(labelCreated).includes('Created'))throw Error('Label create failed '+text(labelCreated));
+   const label=(await db.query('SELECT id FROM roster_member_groups WHERE server_id=$1 AND name=$2',[server,'War starters'])).rows[0];
+   const labelOption={name:'group',type:3,value:label.id};
+   const assigned=await interact(command('roster','group-player',[rosterOption,playerInput,labelOption]),actor,'32');if(!text(assigned).includes('Updated'))throw Error('Label assign failed '+text(assigned));
+   const labeledView=await interact(command('roster','view',[rosterOption]),actor,'32');if(!text(labeledView).includes('War starters'))throw Error('Roster label absent from view');
+   const blockedDelete=await interact(groupAction('delete',[labelOption]),actor,'32');if(text(blockedDelete).includes('Deleted'))throw Error('Assigned label deletion accepted');
+   const foreignLabel=(await db.query("INSERT INTO roster_member_groups(server_id,name) VALUES($1,'Foreign label') RETURNING id",[elsewhere])).rows[0];
+   const crossLabel=await interact(command('roster','group-player',[rosterOption,playerInput,{...labelOption,value:foreignLabel.id}]),actor,'32');if(text(crossLabel).includes('Updated'))throw Error('Foreign label assignment accepted');
+   const invalidBatch=await interact(command('roster','group-player',[rosterOption,{...playerInput,value:`${tag} #QQQ`},labelOption]),actor,'32');if(text(invalidBatch).includes('Updated'))throw Error('Unknown member label assignment accepted');
+   const renamed=await interact(groupAction('rename',[labelOption,{...labelName,value:'First team'}]),actor,'32');if(!text(renamed).includes('Renamed'))throw Error('Label rename failed');
+   if(!text(await interact(command('roster','view',[rosterOption]),actor,'32')).includes('First team'))throw Error('Renamed label absent');
+   const main=await interact(command('roster','group-player',[rosterOption,playerInput]),actor,'32');if(!text(main).includes('to Main'))throw Error('Move to Main failed');
+   const labelDeleted=await interact(groupAction('delete',[labelOption]),actor,'32');if(!text(labelDeleted).includes('Deleted'))throw Error('Unused label deletion failed');
+   if((await db.query('SELECT member_group_id FROM roster_members WHERE roster_id=$1 AND tag=$2',[created.roster_id,tag])).rows[0].member_group_id!==null)throw Error('Main retained label');
+   await interact(groupAction('add',[{...labelName,value:'Preserved label'}]),actor,'32');
+   const preserved=(await db.query('SELECT id FROM roster_member_groups WHERE server_id=$1 AND name=$2',[server,'Preserved label'])).rows[0];
+   await interact(command('roster','group-player',[rosterOption,playerInput,{...labelOption,value:preserved.id}]),actor,'32');
    const moveOptions=[rosterOption,playerInput,{name:'destination',type:3,value:destination.roster_id}];
    const moved=await interact(command('roster','move-player',moveOptions),actor,'32');if(!text(moved).includes('Moved 1'))throw Error('Roster move failed '+text(moved));
    if((await db.query('SELECT 1 FROM roster_members WHERE roster_id=$1 AND tag=$2',[created.roster_id,tag])).rowCount||!(await db.query('SELECT 1 FROM roster_members WHERE roster_id=$1 AND tag=$2',[destination.roster_id,tag])).rowCount)throw Error('Move was not atomic');
+   if((await db.query('SELECT member_group_id FROM roster_members WHERE roster_id=$1 AND tag=$2',[destination.roster_id,tag])).rows[0]?.member_group_id!==preserved.id)throw Error('Move discarded label');
    const foreign=await interact(command('roster','move-player',[{...rosterOption,value:destination.roster_id},playerInput,{name:'destination',type:3,value:foreignRoster.roster_id}]),actor,'32');if(text(foreign).includes('Moved 1'))throw Error('Moved across server boundary');
    const copied=await interact(command('roster','copy',[{...rosterOption,value:destination.roster_id},{name:'name',type:3,value:'Copied roster'},{name:'members',type:5,value:true}]),actor,'32');if(!text(copied).includes('1 members copied'))throw Error('Copy failed '+text(copied));
    const copy=(await db.query("SELECT id FROM rosters WHERE server_id=$1 AND alias='Copied roster'",[server])).rows[0];
+   if((await db.query('SELECT member_group_id FROM roster_members WHERE roster_id=$1 AND tag=$2',[copy.id,tag])).rows[0]?.member_group_id!==preserved.id)throw Error('Copy discarded label');
    const copyOption={...rosterOption,value:copy.id};
    const notConfirmed=await interact(command('roster','delete',[copyOption,{name:'type',type:3,value:'roster'},{name:'confirm',type:5,value:false}]),actor,'32');if(!text(notConfirmed).includes('confirm'))throw Error('Delete lacked confirmation');
    const removed=await interact(command('roster','remove-player',[copyOption,playerInput]),actor,'32');if(!text(removed).includes('Removed 1'))throw Error('Remove failed '+text(removed));
@@ -412,7 +434,7 @@ try{
    if(!text(failedAdd).includes('no players were added')||(await db.query('SELECT 1 FROM roster_members WHERE roster_id=$1',[destination.roster_id])).rowCount)throw Error('Failed profile partially added roster batch');
    rosterProfileFailure=false;
    const deleted=await interact(command('roster','delete',[copyOption,{name:'type',type:3,value:'roster'},{name:'confirm',type:5,value:true}]),actor,'32');if(!text(deleted).includes('Deleted roster')||(await db.query('SELECT 1 FROM rosters WHERE id=$1',[copy.id])).rowCount)throw Error('Delete failed '+text(deleted));
-   console.log(JSON.stringify({rosterReads:'passed',checks:['actual API-created rosters','server-scoped list and selection','direct view','player and self search','search refresh','permission gate','failed profile retained','actual stored profile update','cooldown reuse','permission-checked add','hydrated profile','atomic move','foreign server move rejected','copy members','remove members','clear and delete confirmation'],externalDiscordWrites:0}));
+   console.log(JSON.stringify({rosterReads:'passed',checks:['label create/rename/assign/display','foreign label rejected','in-use deletion rejected','Main and unused label deletion','actual API-created rosters','server-scoped list and selection','direct view','player and self search','search refresh','permission gate','failed profile retained','actual stored profile update','cooldown reuse','permission-checked add','hydrated profile','atomic move','foreign server move rejected','copy members','remove members','clear and delete confirmation'],externalDiscordWrites:0}));
   }finally{await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,elsewhere]]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);}
  }else if(helpMode){
   const list=await interact({type:2,data:{name:'help'}});

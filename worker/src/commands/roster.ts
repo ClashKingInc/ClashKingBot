@@ -1,3 +1,4 @@
+import { rosterLabelOptions, rosterLabels, rosterLabelAutocomplete } from "./roster-labels";
 import { rosterAction, rosterActionNames, rosterActionOptions } from "./roster-actions";
 import { ClashKingApiError } from "../api/client";
 import { ApplicationEmojis } from "../discord/emojis";
@@ -18,7 +19,7 @@ export interface Roster {
   clanTag?: string | null;
   requireVerified?: boolean;
   questionnaire: { questions: Question[] };
-  members: Array<{ playerTag: string; playerName: string; townhall: number; clanName: string | null }>;
+  members: Array<{ playerTag: string; playerName: string; townhall: number; clanName: string | null; memberGroupId?: string | null; memberGroupName?: string | null }>;
 }
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PAGE_SIZE = 15;
@@ -52,6 +53,7 @@ export const rosterCommand: Command = {
     name_localizations: localizations("roster.name"), description: translate("roster.title"),
     description_localizations: localizations("roster.title"), options: [
       ...rosterActionOptions(rosterOption),
+      ...rosterLabelOptions(rosterOption),
       { name: "list", type: 1, description: "Browse this server's rosters" },
       { name: "view", type: 1, description: "View a roster's members", options: [rosterOption] },
       { name: "search", type: 1, description: "Find this server's rosters for a player or Discord user", options: [
@@ -73,6 +75,7 @@ export const rosterCommand: Command = {
     requireGuildId(ctx);
     const options = ctx.interaction.data?.options?.[0]?.options ?? [];
     const focused = options.find(option => option.focused);
+    if (focused?.name === "group") return rosterLabelAutocomplete(ctx,String(focused.value??""));
     if (focused?.name === "player") return playerAutocomplete({...ctx,options:new Map(options.map(option=>[option.name,option]))});
     if (!["roster","destination"].includes(focused?.name??"")) return [];
     const query = String(focused?.value ?? "").toLocaleLowerCase();
@@ -86,6 +89,7 @@ export const rosterCommand: Command = {
     if (sub?.name === "create") return createModal(ctx);
     requireManager(ctx);
     const options = new Map(sub?.options?.map(option => [option.name, option.value]));
+    if (sub?.name === "groups" || sub?.name === "group-player") return rosterLabels(ctx,sub.name,options);
     if (sub?.name === "list") return list(ctx,0);
     if (sub?.name === "search") {
       if (options.has("player") && options.has("user")) throw new CommandInputError("Choose either a player or a Discord user.");
@@ -114,6 +118,12 @@ async function guarded(ctx: CommandContext, run: () => Promise<DiscordInteractio
   try { requireGuildId(ctx); return await run(); }
   catch (error) {
     if (error instanceof CommandInputError) return reply(error.message);
+    if (error instanceof ClashKingApiError && [400,409].includes(error.status)) {
+      try {
+        const body = JSON.parse(error.body) as {message?:unknown};
+        if (typeof body.message === "string") return reply(clean(body.message,500));
+      } catch { /* Keep the ordinary failure message for malformed responses. */ }
+    }
     if (error instanceof ClashKingApiError && error.status === 404) return reply(t(ctx, "roster.notFound"));
     return reply(t(ctx, "roster.failed"));
   }
@@ -157,7 +167,7 @@ async function list(ctx: CommandContext, page: number): Promise<DiscordInteracti
 function rosterText(ctx: CommandContext, roster: Roster, page: number): string {
   const members = roster.members.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const digits = "⁰¹²³⁴⁵⁶⁷⁸⁹";
-  const lines = members.map(m => `${String(m.townhall).replace(/\d/g, n => digits[Number(n)] ?? n)}${clean(m.playerName, 30)} (${clean(m.playerTag, 15)}) | ${clean(m.clanName ?? "—", 25)}`);
+  const lines = members.map(m => `${String(m.townhall).replace(/\d/g, n => digits[Number(n)] ?? n)}${clean(m.playerName, 30)} (${clean(m.playerTag, 15)}) | ${clean(m.clanName ?? "—", 25)}${m.memberGroupName ? ` · ${clean(m.memberGroupName,49)}` : ""}`);
   return `**${clean(roster.alias, 100)}** · 👥 ${roster.members.length}\n${clean(roster.description ?? "", 300)}\n\n${lines.join("\n") || t(ctx, "roster.empty")}\n\n${page + 1}/${Math.max(1, Math.ceil(roster.members.length / PAGE_SIZE))}`;
 }
 async function view(ctx: CommandContext, id: string, page = 0) {
