@@ -1,7 +1,7 @@
 // Actual workerd -> local API -> local SQL/HTTP provider integration. No Discord network calls.
 import { createServer } from 'node:http';
 import { bundleWorker } from './bundle-worker.mjs';
-import { generateKeyPairSync, randomBytes, sign } from 'node:crypto';
+import { createHash, generateKeyPairSync, randomBytes, sign } from 'node:crypto';
 import { readFileSync, mkdtempSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -46,7 +46,8 @@ const warPanelMode=process.argv.includes("--war-panel-only");
 const roleUsersMode=process.argv.includes("--role-users-only");
 const boostsMode=process.argv.includes("--boosts-only");let boostFailure=false;
 const warStatsMode=process.argv.includes("--war-statistics-only");
-const verificationMode=process.argv.includes("--clan-verification-only");let verificationDescription="";
+const handoffMode=process.argv.includes("--roster-handoff-only");
+const verificationMode=process.argv.includes("--clan-verification-only")||handoffMode;let verificationDescription="";
 const rosterReadMode=process.argv.includes("--roster-commands-only");let rosterProfileFailure=false;
 const helpMode=process.argv.includes("--help-only");
 const warPreferenceMode=process.argv.includes("--war-preference-only");let warPreferenceFailure=false;
@@ -422,8 +423,37 @@ try{
    verificationDescription='Clan description '+value.marker;
    await db.query("UPDATE server_clan_verifications SET started_at=now()-interval '3 minutes',check_after=now()-interval '1 second',next_check_at=now()-interval '1 second' WHERE server_id=$1 AND clan_tag=$2",[server,group]);
    if((await call(server,'/check')).state!=='verified')throw Error('Description verification failed');
+   if(handoffMode){
+    await db.query("INSERT INTO auth_refresh_tokens(token_hash,user_id,device_id,expires_at) VALUES('local-handoff-refresh',$1,'',now()+interval '10 minutes')",[actor]);
+    const createRoster=async(serverId)=>{const response=await fetch(`http://127.0.0.1:${port}/v2/roster?server_id=${serverId}`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({alias:'Settings handoff',roster_type:'family'})});const value=await response.json();if(!response.ok)throw Error('Create handoff roster failed');return value.roster_id;};
+    const rosterId=await createRoster(server),foreignRoster=await createRoster(second);
+    const settingsOptions=[{name:'roster',type:3,value:rosterId}];
+    const denied=await interact(command('roster','settings',settingsOptions),actor,'0');if(!text(denied).includes('Manage'))throw Error('Settings handoff permission bypass');
+    const foreign=await interact(command('roster','settings',[{name:'roster',type:3,value:foreignRoster}]),actor,'32');if(text(foreign).includes('Open roster settings'))throw Error('Foreign roster got a handoff');
+    const settings=await interact(command('roster','settings',settingsOptions),actor,'32');
+    const destination=new URL(settings.components?.[0]?.components?.[0]?.url);
+    const params=new URLSearchParams(destination.hash.slice(1)),code=params.get('code');
+    if(destination.pathname!=='/access'||destination.search||params.get('roster')!==rosterId||!/^[a-f0-9]{64}$/u.test(code??''))throw Error('Settings handoff target invalid');
+    const digest=createHash('sha256').update(code).digest('hex');
+    const grant=(await db.query('SELECT user_id,server_id,expires_at FROM dashboard_access_grants WHERE token_hash=$1',[digest])).rows[0];
+    if(grant?.user_id!==actor||grant?.server_id!==server||+grant.expires_at>Date.now()+121000)throw Error('Grant owner/server/expiry mismatch');
+    const wrongToken=await new SignJWT({}).setProtectedHeader({alg:'HS256'}).setSubject(other).setAudience('clashking-web').setIssuedAt().setExpirationTime('10m').sign(new TextEncoder().encode(keys.JWT_ACCESS_SECRET));
+    const exchange=token=>fetch(`http://127.0.0.1:${port}/v2/auth/server-dashboard/exchange`,{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:JSON.stringify({code})});
+    if((await exchange(wrongToken)).status!==403)throw Error('Wrong user consumed grant');
+    const accepted=await exchange(verificationToken),session=await accepted.json();if(!accepted.ok||session.serverId!==server||!session.access_token)throw Error('Owner could not exchange grant');
+    if((await exchange(verificationToken)).status!==401)throw Error('One-use grant replay accepted');
+    const scoped=await fetch(`http://127.0.0.1:${port}/v2/server/${server}/rosters/${rosterId}`,{headers:{authorization:`Bearer ${session.access_token}`}});if(!scoped.ok)throw Error('Scoped session cannot open own roster');
+    const blocked=await fetch(`http://127.0.0.1:${port}/v2/server/${second}/rosters/${foreignRoster}`,{headers:{authorization:`Bearer ${session.access_token}`}});if(blocked.status!==403)throw Error('Scoped session escaped server');
+    const expired=await interact(command('roster','settings',settingsOptions),actor,'32');
+    const expiredCode=new URLSearchParams(new URL(expired.components[0].components[0].url).hash.slice(1)).get('code');
+    await db.query("UPDATE dashboard_access_grants SET expires_at=now()-interval '1 minute' WHERE token_hash=$1",[createHash('sha256').update(expiredCode).digest('hex')]);
+    const expiry=await fetch(`http://127.0.0.1:${port}/v2/auth/server-dashboard/exchange`,{method:'POST',headers:{authorization:`Bearer ${verificationToken}`,'content-type':'application/json'},body:JSON.stringify({code:expiredCode})});if(expiry.status!==401)throw Error('Expired grant accepted');
+    await db.query("DELETE FROM auth_refresh_tokens WHERE token_hash='local-handoff-refresh' AND user_id=$1",[actor]);
+    const revoked=await fetch(`http://127.0.0.1:${port}/v2/server/${server}/rosters/${rosterId}`,{headers:{authorization:`Bearer ${session.access_token}`}});if(revoked.status!==401)throw Error('Signed-out browser retained scoped access');
+    console.log(JSON.stringify({rosterHandoff:'passed' ,checks:['manager only','roster/server lookup','fragment target','grant ownership and expiry','wrong user rejected','one use only','scoped roster read','cross-server rejection','expired code rejected','parent session revocation'],browserNavigation:'not exercised'}));
+   }
    console.log(JSON.stringify({clanVerification:'passed',checks:['real API/SQL','random initial challenge','stable pending challenge','cross-server collision exclusion','full word rotation/wrap','description verification'],externalDiscordWrites:0}));
-  }finally{verificationDescription='';await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,second]]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);await db.query('DELETE FROM discord_cache.guilds WHERE id=ANY($1::text[])',[[server,second]]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);}
+  }finally{verificationDescription='';await db.query("DELETE FROM auth_refresh_tokens WHERE token_hash='local-handoff-refresh' AND user_id=$1",[actor]);await db.query('DELETE FROM dashboard_scoped_sessions WHERE server_id=ANY($1::text[])',[[server,second]]);await db.query('DELETE FROM dashboard_access_grants WHERE server_id=ANY($1::text[])',[[server,second]]);await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,second]]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);await db.query('DELETE FROM discord_cache.guilds WHERE id=ANY($1::text[])',[[server,second]]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);}
  }else if(rosterReadMode){
   const server='999999999999996510',elsewhere='999999999999996512';
   if((await db.query('SELECT 1 FROM servers WHERE id=ANY($1::text[])',[[server,elsewhere]])).rowCount)throw Error('Synthetic roster server exists');

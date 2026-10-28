@@ -1,3 +1,4 @@
+import { dashboardAccessLink } from "./dashboard";
 import { rosterLabelOptions, rosterLabels, rosterLabelAutocomplete } from "./roster-labels";
 import { rosterAction, rosterActionNames, rosterActionOptions } from "./roster-actions";
 import { ClashKingApiError } from "../api/client";
@@ -53,6 +54,7 @@ export const rosterCommand: Command = {
     name_localizations: localizations("roster.name"), description: translate("roster.title"),
     description_localizations: localizations("roster.title"), options: [
       ...rosterActionOptions(rosterOption),
+      {name:"settings",type:1,description:"Open this roster in the dashboard",options:[rosterOption]},
       ...rosterLabelOptions(rosterOption),
       { name: "list", type: 1, description: "Browse this server's rosters" },
       { name: "view", type: 1, description: "View a roster's members", options: [rosterOption] },
@@ -99,6 +101,10 @@ export const rosterCommand: Command = {
     const mode = String(options.get("type") ?? "");
     if (!uuid.test(id)) throw new CommandInputError(t(ctx, "error.invalidInteraction"));
     if (sub&&rosterActionNames.includes(sub.name)) return rosterAction(ctx,id,sub.name,options);
+    if (sub?.name === "settings") {
+      await load(ctx,id);
+      return legacyMessage({content:"Open this roster’s settings. The link expires in 2 minutes and can be used once.",components:[actionRow({type:2,style:5,label:"Open roster settings",url:await dashboardAccessLink(ctx,id)})]},{ephemeral:true});
+    }
     if (sub?.name === "view") return view(ctx,id);
     if (sub?.name === "refresh") {
       await load(ctx,id);
