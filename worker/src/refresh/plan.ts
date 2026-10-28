@@ -34,7 +34,9 @@ export function planRefresh(data: RefreshData, currentRoles: readonly string[], 
   const managed = new Set<string>();
   for (const rule of data.rules) {
     const category = ruleCategory(rule);
-    if (!category) continue; // Tenure, status, and achievement delivery are separate systems.
+    // This refresh does not implement tenure/status/achievement rules. Leave
+    // their roles untouched; do not imply another consumer delivers them.
+    if (!category) continue;
     if (categories.includes(category)) managed.add(rule.role_id);
     let earned = false;
     if (rule.type === "family") earned = data.accounts.length > 0 && (rule.option === "family" ? family : !family);

@@ -538,7 +538,21 @@ try{
    const cosmetic=await fetch(`http://127.0.0.1:${port}/v2/server/${roleServer}/settings`,{method:'PATCH',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({embed_color:123456})});
    if(!cosmetic.ok)throw Error('Cosmetic settings failed: '+await cosmetic.text());
    if((await db.query('SELECT revision FROM role_refresh_jobs WHERE id=$1',[jobId])).rows[0]?.revision!==revision)throw Error('Cosmetic settings unnecessarily queued roles');
-   console.log(JSON.stringify({roleRefresh:'passed',checks:['actual signed command/API/SQL flow','null nickname defaults','preview performs no Discord edits','role add/remove preserves unmanaged role','repeat no-op','role hierarchy protection','settings enable enqueues human members','unchanged settings no-op','leave grace retained','disabled settings do not enqueue','scheduled automatic job completion','completed job reopened','new nickname applied automatically','cosmetic settings do not enqueue'],externalDiscordWrites:0,localProviderWrites:roleWrites.length}));
+   const ruleRequest=async(method,path,body)=>{
+    const response=await fetch(`http://127.0.0.1:${port}/v2/server/${roleServer}/server-roles${path}`,{method,headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});
+    const value=await response.json();if(!response.ok)throw Error('Rule mutation failed: '+response.status+' '+JSON.stringify(value));return value;
+   };
+   const flushRuleChange=async()=>{await (await bot.getWorker()).scheduled({cron:'* * * * *'});await wait(async()=>Boolean((await db.query('SELECT completed_at FROM role_refresh_jobs WHERE id=$1',[jobId])).rows[0]?.completed_at),'rule change refresh');};
+   const created=await ruleRequest('POST','',{type:'family',option:'not_family',role_id:oldRole});
+   await flushRuleChange();if(!memberRoles.has(oldRole))throw Error('New role rule was not applied');
+   const ruleRevision=(await db.query('SELECT revision FROM role_refresh_jobs WHERE id=$1',[jobId])).rows[0].revision;
+   await ruleRequest('PATCH','/'+created.role.id,{option:'not_family'});
+   if((await db.query('SELECT revision FROM role_refresh_jobs WHERE id=$1',[jobId])).rows[0].revision!==ruleRevision)throw Error('Unchanged role rule requeued members');
+   await ruleRequest('PATCH','/'+created.role.id,{option:'family'});
+   await flushRuleChange();if(memberRoles.has(oldRole)||!memberRoles.has(newRole)||!memberRoles.has(unmanagedRole))throw Error('Updated rule did not reconcile or affected unrelated roles');
+   await ruleRequest('DELETE','/'+created.role.id);
+   await flushRuleChange();if(!memberRoles.has(newRole)||!memberRoles.has(unmanagedRole))throw Error('Deleted rule affected unrelated roles');
+   console.log(JSON.stringify({roleRefresh:'passed',checks:['actual signed command/API/SQL flow','null nickname defaults','preview performs no Discord edits','role add/remove preserves unmanaged role','repeat no-op','role hierarchy protection','settings enable enqueues human members','unchanged settings no-op','leave grace retained','disabled settings do not enqueue','scheduled automatic job completion','completed job reopened','new nickname applied automatically','cosmetic settings do not enqueue','created and updated rule application','unchanged rule no-op','deleted rule reconciliation'],externalDiscordWrites:0,localProviderWrites:roleWrites.length}));
   }finally{
    await db.query('DELETE FROM servers WHERE id=$1',[roleServer]);
    await db.query('DELETE FROM discord_cache.members WHERE guild_id=$1',[roleServer]);
