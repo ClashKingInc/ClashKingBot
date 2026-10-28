@@ -38,6 +38,7 @@ const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
 let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
+const roleUsersMode=process.argv.includes("--role-users-only");
 const boostsMode=process.argv.includes("--boosts-only");let boostFailure=false;
 const warStatsMode=process.argv.includes("--war-statistics-only");
 const verificationMode=process.argv.includes("--clan-verification-only");let verificationDescription="";
@@ -193,7 +194,32 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(boostsMode){
+ if(roleUsersMode){
+  const server='999999999999996510',role='999999999999996580',generation=randomBytes(16).toString('hex');
+  if((await db.query('SELECT 1 FROM discord_cache.guilds WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM discord_cache.gateway_shards WHERE application_id=$1',[app])).rowCount)throw Error('Synthetic role users scope exists');
+  try{
+   await db.query('INSERT INTO discord_cache.gateway_shards(application_id,shard_id,shard_count,generation,healthy,heartbeat_at) VALUES($1,0,1,$2,true,now())',[app,generation]);
+   await db.query('INSERT INTO discord_cache.guilds(id,data,application_id,shard_id,generation,available,metadata_complete,members_complete) VALUES($1,$2,$3,0,$4,true,true,true)',[server,JSON.stringify({owner_id:actor}),app,generation]);
+   for(const item of [{id:server,name:'@everyone'},{id:role,name:'Managed fixture',managed:true}])await db.query('INSERT INTO discord_cache.roles(guild_id,id,data) VALUES($1,$2,$3)',[server,item.id,JSON.stringify(item)]);
+   for(let i=0;i<35;i++){const id=String(999999999999995000n+BigInt(i));await db.query('INSERT INTO discord_cache.members(guild_id,user_id,data) VALUES($1,$2,$3)',[server,id,JSON.stringify({user:{id,username:'User '+String(i).padStart(2,'0')},roles:[role]})]);}
+   for(const id of [actor,other])await db.query('INSERT INTO discord_cache.members(guild_id,user_id,data) VALUES($1,$2,$3)',[server,id,JSON.stringify({user:{id,username:'Viewer'},roles:[]})]);
+   const first=await interact({type:2,data:{name:'role-users',options:[{name:'role',type:8,value:role}]}});
+   if(!text(first).includes('35 members')||!text(first).includes('User 19')||text(first).includes('User 20'))throw Error('Role members first page incorrect '+text(first));
+   const next=first.components[0].components.find(c=>c.label==='→');
+   const second=await interact({type:3,data:{custom_id:next.custom_id}},other);
+   if(!text(second).includes('User 34')||!text(second).includes('Page 2/2')||text(second).includes('User 00'))throw Error('Public member pagination failed '+text(second));
+   const all=await interact({type:2,data:{name:'role-users',options:[{name:'role',type:8,value:server}]}});
+   if(!text(all).includes('37 members'))throw Error('Implicit everyone membership missing '+text(all));
+   const api=async(id,query,status)=>{const response=await fetch(`http://127.0.0.1:${port}/v2/bot/servers/${server}/roles/${id}/members?`+new URLSearchParams(query),{headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`}});const value=await response.json();if(response.status!==status)throw Error('Role API '+response.status+' '+JSON.stringify(value));return value;};
+   const value=await api(role,{actorId:actor},200);
+   if(Object.keys(value.items[0]).sort().join(',')!=='id,name')throw Error('Role members expose excess fields');
+   await api(role,{actorId:'999999999999997999'},403);
+   await api('999999999999997888',{actorId:actor},404);
+   await db.query('UPDATE discord_cache.guilds SET members_complete=false WHERE id=$1',[server]);
+   await api(role,{actorId:actor},503);
+   console.log(JSON.stringify({roleUsers:'passed',checks:['managed role members','sorted pagination','another member can refresh','implicit everyone role','display fields only','nonmember forbidden','missing role rejected','incomplete cache unavailable'],externalDiscordWrites:0}));
+  }finally{await db.query('DELETE FROM discord_cache.members WHERE guild_id=$1',[server]);await db.query('DELETE FROM discord_cache.roles WHERE guild_id=$1',[server]);await db.query('DELETE FROM discord_cache.guilds WHERE id=$1',[server]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);}
+ }else if(boostsMode){
   const server='999999999999996510';
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic boosts scope exists');
   await db.query("INSERT INTO servers(id,name) VALUES($1,'Boosts')",[server]);
