@@ -90,6 +90,15 @@ try {
  assert((await request(path)).items.length===1,'List mismatch');
  await request(path+'/'+created.id,'DELETE');
  assert(!(await db.query('SELECT 1 FROM autoboard_farming_settings WHERE autoboard_id=$1',[created.id])).rowCount,'Settings not cascaded');
+ const donation={boardType:'donations',rowLimit:10,targetScope:'family',targets:[],deliveryMode:'refresh',channelId:channel,enabled:false,intervalMinutes:1};
+ const donationBoard=(await request(path,'POST',donation,201)).item;
+ assert(donationBoard.boardType==='donations'&&donationBoard.targetScope==='family'&&donationBoard.intervalMinutes===1,'Donation board persistence failed');
+ const donationEdited=(await request(path+'/'+donationBoard.id,'PUT',{...donation,rowLimit:30})).item;
+ assert(donationEdited.rowLimit===30,'Donation row limit edit failed');
+ assert((await request(path)).items.some(item=>item.id===donationBoard.id),'Donation board not listed');
+ await request(path+'/'+donationBoard.id,'DELETE');
+ await request(`/v2/server/${server}/logs`,'PUT',{log_types:['donation_log'],channel_id:channel,clan_tag:'#P09LP8CY'},400);
+ console.log('PASS donation autoboard create/edit/list/delete and retired donation-log setup rejection');
  const initial=await request('/v2/users/me/home-layout');assert(initial.revision===0&&initial.items.length===4,'Initial cards missing');
  const items=[initial.items[2],initial.items[3],initial.items[0],initial.items[1]];
  const saved=await request('/v2/users/me/home-layout','PUT',{revision:0,items});assert(saved.revision===1,'Layout not saved');
