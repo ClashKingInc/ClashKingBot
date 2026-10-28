@@ -38,6 +38,7 @@ const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
 let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
+const verificationMode=process.argv.includes("--clan-verification-only");let verificationDescription="";
 const rosterReadMode=process.argv.includes("--roster-commands-only");let rosterProfileFailure=false;
 const helpMode=process.argv.includes("--help-only");
 const warPreferenceMode=process.argv.includes("--war-preference-only");let warPreferenceFailure=false;
@@ -96,7 +97,7 @@ const provider=createServer(async(req,res)=>{
  if(p===`/v1/clans/${group}/currentwar/leaguegroup`||p==='/v1/clans/#PYLQGRJJ/currentwar/leaguegroup')return res.end(JSON.stringify({state:reminderCwl?'inWar':'notInWar',season:new Date().toISOString().slice(0,7),clans:[{tag:group,name:own.name},{tag:opponent.tag,name:opponent.name}],rounds:reminderCwl?[...(cwlGap?[{warTags:['#0']}]:[]),{warTags:['#PYLQGRJQ']}]:[]}));
  if(p==='/v1/clanwarleagues/wars/#PYLQGRJQ')return res.end(JSON.stringify({...warBody,attacksPerMember:1,clan:opponent,opponent:own}));
  if(p==='/v1/clans/#PYLQGRJJ')return res.end(JSON.stringify({tag:opponent.tag,name:opponent.name,warLeague:{id:48000019,name:'Champion League I'},memberList:[]}));
- if(p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Reminder Clan',warLeague:{id:48000019,name:'Champion League I'},memberList:[{tag,name:'Missing Player',townHallLevel:16},{tag:tags[1],name:'Finished Player',townHallLevel:16}]}));
+ if(p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Reminder Clan',description:verificationDescription,warLeague:{id:48000019,name:'Champion League I'},memberList:[{tag,name:'Missing Player',townHallLevel:16},{tag:tags[1],name:'Finished Player',townHallLevel:16}]}));
  if(p===`/v1/clans/${group}/capitalraidseasons`)return res.end(JSON.stringify({items:reminderRaidActive?[{state:'ongoing',endTime,members:[{tag:tags[1],attacks:6,attackLimit:5,bonusAttackLimit:1}]}]:[]}));
  if(url.pathname.startsWith('/v1/players/')){if((warPreferenceFailure||rosterProfileFailure)&&decodeURIComponent(url.pathname).endsWith(tags[1])){res.statusCode=503;return res.end('{}');}const playerTag=decodeURIComponent(url.pathname.split('/').at(-1));return res.end(JSON.stringify({tag:playerTag,name:playerTag===tag?'Current Player':`Account ${tags.indexOf(playerTag)+1}`,townHallLevel:memberMode&&playerTag===tags[1]?18:16,trophies:5500,warStars:100,expLevel:250,donations:50,donationsReceived:40,currentLeagueGroupTag:group,currentLeagueSeasonId:currentSeason,...(warPreferenceMode?{warPreference:playerTag===tag?'in':'out'}:{}),...(rosterReadMode?{troops:[],spells:[],heroes:[]}:{}),leagueTier:{id:todoMode&&playerTag===tags[0]?105000036:tier,name:'Current League'},...(todoMode?{clan:{tag:group,name:'Reminder Clan'}}:{}),
  // Deliberately synthetic name input exercises the normal lookup renderer; this is not real player data.
@@ -183,7 +184,35 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(rosterReadMode){
+ if(verificationMode){
+  const server='999999999999996510',second='999999999999996512';
+  if((await db.query('SELECT 1 FROM servers WHERE id=ANY($1::text[])',[[server,second]])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=$1',[group])).rowCount)throw Error('Synthetic verification fixture exists');
+  await db.query("INSERT INTO servers(id,name) VALUES($1,'Verification'),($2,'Other verification')",[server,second]);
+  const {SignJWT}=await import(require.resolve('jose'));
+  const verificationToken=await new SignJWT({}).setProtectedHeader({alg:'HS256'}).setSubject(actor).setAudience('clashking-web').setIssuedAt().setExpirationTime('10m').sign(new TextEncoder().encode(keys.JWT_ACCESS_SECRET));
+  try{
+   const generation=randomBytes(16).toString('hex');
+   await db.query('INSERT INTO discord_cache.gateway_shards(application_id,shard_id,shard_count,generation,healthy,heartbeat_at) VALUES($1,0,1,$2,true,now())',[app,generation]);
+   for(const id of [server,second])await db.query('INSERT INTO discord_cache.guilds(id,data,application_id,shard_id,generation,available,metadata_complete,members_complete) VALUES($1,$2,$3,0,$4,true,true,true)',[id,JSON.stringify({owner_id:actor}),app,generation]);
+   await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,'Verification',true,0,2,'',0,0)",[group]);
+   await db.query('INSERT INTO server_clans(server_id,tag) VALUES($1,$3),($2,$3)',[server,second,group]);
+   const call=async(id,suffix='')=>{const response=await fetch(`http://127.0.0.1:${port}/v2/server/${id}/clan/${encodeURIComponent(group)}/verification${suffix}`,{method:'POST',headers:{authorization:`Bearer ${verificationToken}`}});const value=await response.json();if(!response.ok)throw Error('Verification API '+response.status+' '+JSON.stringify(value));return value;};
+   let value=await call(server);if(value.state!=='pending'||!/^[a-z]+ck$/.test(value.marker))throw Error('Challenge not issued');
+   if((await call(server)).marker!==value.marker)throw Error('Pending challenge changed');
+   const otherChallenge=await call(second);if(otherChallenge.marker===value.marker)throw Error('Simultaneous challenge collision');
+   const seen=new Set();
+   for(let n=0;n<21;n++){
+    seen.add(value.marker);
+    await db.query("UPDATE server_clan_verifications SET state='expired',started_at=now()-interval '3 hours',check_after=now()-interval '2 hours',expires_at=now()-interval '1 minute' WHERE server_id=$1 AND clan_tag=$2",[server,group]);
+    const previous=value.marker;value=await call(server);if(value.marker===previous||value.marker===otherChallenge.marker)throw Error('Challenge rotation/collision failed');
+   }
+   if(seen.size!==19)throw Error('Rotation did not cover unreserved word choices');
+   verificationDescription='Clan description '+value.marker;
+   await db.query("UPDATE server_clan_verifications SET started_at=now()-interval '3 minutes',check_after=now()-interval '1 second',next_check_at=now()-interval '1 second' WHERE server_id=$1 AND clan_tag=$2",[server,group]);
+   if((await call(server,'/check')).state!=='verified')throw Error('Description verification failed');
+   console.log(JSON.stringify({clanVerification:'passed',checks:['real API/SQL','random initial challenge','stable pending challenge','cross-server collision exclusion','full word rotation/wrap','description verification'],externalDiscordWrites:0}));
+  }finally{verificationDescription='';await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,second]]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);await db.query('DELETE FROM discord_cache.guilds WHERE id=ANY($1::text[])',[[server,second]]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);}
+ }else if(rosterReadMode){
   const server='999999999999996510',elsewhere='999999999999996512';
   if((await db.query('SELECT 1 FROM servers WHERE id=ANY($1::text[])',[[server,elsewhere]])).rowCount)throw Error('Synthetic roster server exists');
   if((await db.query('SELECT 1 FROM basic_clan WHERE tag=$1',[group])).rowCount)throw Error('Synthetic roster clan exists');
