@@ -1,3 +1,4 @@
+import { pepeCommand } from "./pepe";
 import { buttonsCommand, quickMemberAction } from "./buttons";
 import { botInfoCommand } from "./bot-info";
 import { giveawayCommand } from "./giveaway";
@@ -39,7 +40,7 @@ import { clanCommand } from "./clan";
 import { dispatchGamePage } from "./game-pages";
 import type { Command, CommandContext, CommandServices, ComponentHandler } from "./types";
 
-const commands: readonly Command[] = [buttonsCommand,botInfoCommand,giveawayCommand,rolesCommand,graphCommand,roleUsersCommand,boostsCommand,statsCommand,helpCommand,baseCommand, linkCommand, rosterCommand, refreshCommand, mainAccountCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand, familyCommand, banCommand, strikeCommand, warCommand, cwlCommand];
+const commands: readonly Command[] = [pepeCommand,buttonsCommand,botInfoCommand,giveawayCommand,rolesCommand,graphCommand,roleUsersCommand,boostsCommand,statsCommand,helpCommand,baseCommand, linkCommand, rosterCommand, refreshCommand, mainAccountCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand, familyCommand, banCommand, strikeCommand, warCommand, cwlCommand];
 const commandByName = new Map(commands.map((command) => [command.definition.name, command]));
 // Retain cached legacy invocations without registering a separate slash root.
 commandByName.set("unlink", unlinkCommand);
@@ -95,6 +96,7 @@ async function executeCommand(
   if (!command) {
     return unknownInteraction(context.locale);
   }
+  const ephemeral = typeof command.ephemeral === "function" ? command.ephemeral(context) : command.ephemeral;
   const deferred = typeof command.deferred === "function" ? command.deferred(context) : command.deferred;
   if (!deferred || !waitUntil) {
     return command.execute(context);
@@ -103,7 +105,7 @@ async function executeCommand(
     async (response) => {
       // Discord fixes visibility at acknowledgement time. A private result
       // after a public defer needs its own follow-up, not an ignored flag edit.
-      if(!command.ephemeral&&typeof response.data?.flags==="number"&&(response.data.flags&MessageFlags.Ephemeral)){
+      if(!ephemeral&&typeof response.data?.flags==="number"&&(response.data.flags&MessageFlags.Ephemeral)){
         await context.services.discordRest.createInteractionFollowup(context.interaction.token,response.data??{});
         await context.services.discordRest.deleteOriginalInteractionResponse(context.interaction.token);
       }else await context.services.discordRest.editOriginalInteractionResponse(context.interaction.token, response.data ?? {});
@@ -114,7 +116,7 @@ async function executeCommand(
     }),
   ));
   return {
-    data: command.ephemeral ? { flags: MessageFlags.Ephemeral } : {},
+    data: ephemeral ? { flags: MessageFlags.Ephemeral } : {},
     type: InteractionResponseType.DeferredChannelMessageWithSource,
   };
 }

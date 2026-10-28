@@ -65,6 +65,7 @@ let raidSkip=false,raidFailure=false;
 const raidFriday=new Date();raidFriday.setUTCDate(raidFriday.getUTCDate()-(raidFriday.getUTCDay()+2)%7);raidFriday.setUTCHours(7,0,0,0);if(raidFriday>new Date())raidFriday.setUTCDate(raidFriday.getUTCDate()-7);
 const raidDate=raidFriday.toISOString().slice(0,10);
 const streakMode=process.argv.includes("--streaks-only");
+const pepeMode=process.argv.includes("--pepe-only"),pepeAcks=[];
 const posterMode=process.argv.includes("--poster-only");
 const memberMode=process.argv.includes("--members-only");
 const todoMode=process.argv.includes("--todo-only");let legendFails=false;
@@ -192,7 +193,9 @@ try{
     const form=await request.formData();data=JSON.parse(form.get('payload_json'));
     const file=form.get('files[0]');if(!file)throw Error('Missing poster attachment');
     const bytes=Buffer.from(await file.arrayBuffer());
-    if(bytes.subarray(0,8).toString('hex')!=='89504e470d0a1a0a'||bytes.readUInt32BE(16)!==1600||bytes.readUInt32BE(20)!==1100)throw Error('Invalid poster PNG');
+    const dimension=pepeMode?250:1600,height=pepeMode?250:1100;
+    if(bytes.subarray(0,8).toString('hex')!=='89504e470d0a1a0a'||bytes.readUInt32BE(16)!==dimension||bytes.readUInt32BE(20)!==height)throw Error('Invalid rendered PNG');
+    if(pepeMode){data.imageHash=createHash('sha256').update(bytes).digest('hex');data.imageName=file.name;}
     data.posterBytes=bytes.length;
    }else data=await request.json();replies.set(token,data);return Response.json({id:'999999999999996999'});
   }
@@ -212,11 +215,21 @@ try{
   throw Error('External request blocked by local integration harness');
  }}]}));
  const origin=new URL('/interactions',String(await bot.ready)).href;
- async function interact(data,who=actor,permissions='0'){const token=String(counter++);const rawBody=JSON.stringify({id:token,application_id:app,guild_id:'999999999999996510',channel_id:'999999999999996511',member:{user:{id:who,username:'Local'},roles:[],permissions},version:1,token,...data});const timestamp=String(Math.floor(Date.now()/1000));const response=await fetch(origin,{method:'POST',headers:{'Content-Type':'application/json','X-Signature-Timestamp':timestamp,'X-Signature-Ed25519':sign(null,Buffer.from(timestamp+rawBody),privateKey).toString('hex')},body:rawBody});const initial=await response.json();if(response.status!==200)throw Error(`Bot HTTP ${response.status}`);const result=[5,6].includes(initial.type)?await wait(()=>replies.get(token),'deferred reply'):initial.data;return result;}
+ async function interact(data,who=actor,permissions='0'){const token=String(counter++);const rawBody=JSON.stringify({id:token,application_id:app,guild_id:'999999999999996510',channel_id:'999999999999996511',member:{user:{id:who,username:'Local'},roles:[],permissions},version:1,token,...data});const timestamp=String(Math.floor(Date.now()/1000));const response=await fetch(origin,{method:'POST',headers:{'Content-Type':'application/json','X-Signature-Timestamp':timestamp,'X-Signature-Ed25519':sign(null,Buffer.from(timestamp+rawBody),privateKey).toString('hex')},body:rawBody});const initial=await response.json();if(pepeMode)pepeAcks.push(initial);if(response.status!==200)throw Error(`Bot HTTP ${response.status}`);const result=[5,6].includes(initial.type)?await wait(()=>replies.get(token),'deferred reply'):initial.data;return result;}
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(botInfoMode){
+ if(pepeMode){
+  const run=(value,hidden)=>interact({type:2,data:{name:'pepe',options:[{name:'sign_text',type:3,value},...(hidden?[{name:'hidden',type:3,value:hidden}]:[])]}});
+  const privateImage=await run('Hello clan');
+  if(pepeAcks.at(-1).data.flags!==64||privateImage.flags!==64||privateImage.imageName!=='pepe.png'||privateImage.posterBytes<10000)throw Error('Private image visibility or PNG missing');
+  const publicImage=await run('Hello clan','No');
+  if(pepeAcks.at(-1).data.flags||publicImage.flags||publicImage.imageHash!==privateImage.imageHash)throw Error('Public acknowledgement or render changed');
+  const long=await run('W'.repeat(40),'Yes');if(long.imageHash===privateImage.imageHash)throw Error('Text not rendered');
+  const escaped=await run('<image href="https://example.com"/>','Yes');if(!escaped.posterBytes)throw Error('Escaped sign not rendered');
+  for(const value of [' ', '\u0000', 'W'.repeat(41)]){const invalid=await run(value);if(invalid.posterBytes||!text(invalid).includes('1–40'))throw Error('Invalid sign accepted');}
+  console.log(JSON.stringify({pepe:'passed',checks:['actual bundled PNG and font rendering','250px PNG attachment','private acknowledgement by default','public acknowledgement when requested','40-character unbroken text','XML escaped input','empty and over-limit rejection'],externalDiscordWrites:0}));
+ }else if(botInfoMode){
   const servers=['999999999999996510','999999999999996512','999999999999996513'],clans=[group,'#PYLQGRJJ'];
   if((await db.query('SELECT 1 FROM servers WHERE id=ANY($1::text[])',[servers])).rowCount||(await db.query('SELECT 1 FROM discord_cache.gateway_shards WHERE application_id=$1',[app])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[clans])).rowCount)throw Error('Bot status fixture exists');
   const get=()=>fetch(`http://127.0.0.1:${port}/v2/bot/status`,{headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`}}).then(response=>response.json());

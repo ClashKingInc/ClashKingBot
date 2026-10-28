@@ -54,7 +54,7 @@ export interface Command {
   autocomplete?(context: CommandContext): Promise<AutocompleteChoice[]>;
   deferred?: boolean | ((context: CommandContext) => boolean);
   definition: ApplicationCommandDefinition;
-  ephemeral?: boolean;
+  ephemeral?: boolean | ((context: CommandContext) => boolean);
   execute(context: CommandContext): Promise<DiscordInteractionResponse>;
 }
 

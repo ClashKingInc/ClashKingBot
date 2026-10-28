@@ -42,10 +42,10 @@ async function remoteImage(raw:string|undefined){
 export const posterRemoteImage=remoteImage;
 export const posterArtwork={...images,heart:dataUri(heart)};
 export const posterTownHall=(level:number)=>posterTownHalls[level-1]?dataUri(posterTownHalls[level-1]!):undefined;
-export async function renderPosterSvg(svg:string){
+export async function renderPosterSvg(svg:string,extraFonts:readonly ArrayBuffer[]=[]){
   initialized??=initWasm(wasm);
   await initialized;
-  const renderer=new Resvg(svg,{font:{fontBuffers:[new Uint8Array(blogger),new Uint8Array(clash)],defaultFontFamily:"Blogger Sans"},fitTo:{mode:"original"}});
+  const renderer=new Resvg(svg,{font:{fontBuffers:[new Uint8Array(blogger),new Uint8Array(clash),...extraFonts.map(font=>new Uint8Array(font))],defaultFontFamily:"Blogger Sans"},fitTo:{mode:"original"}});
   try{const result=renderer.render();try{return new Uint8Array(result.asPng());}finally{result.free();}}finally{renderer.free();}
 }
 
