@@ -1,3 +1,4 @@
+import { clanReports, capitalOptions, warLogOptions } from "./clan-reports";
 import { memberReport, memberReportOptions } from "./member-reports";
 import { contributionOptions, contributionReport } from "./contribution-report";
 import { actionRow, legacyMessage } from "../discord/components";
@@ -18,6 +19,8 @@ const clanOption={name:"clan",description:"Clan tag or name",type:OptionType.Str
 export const clanCommand:Command={
  deferred:true,
  definition:{name:"clan",description:"Clan overview and season donations",type:1,integration_types:[0,1],contexts:[0,1,2],options:[
+  {name:"capital",description:"Capital raid and recorded donation reports",type:OptionType.Subcommand,options:[clanOption,...capitalOptions]},
+  {name:"war-log",description:"Official/stored wars and CWL season history",type:OptionType.Subcommand,options:[clanOption,...warLogOptions]},
   {name:"compo",description:"Group clan members by Town Hall, role, league and more",type:OptionType.Subcommand,options:[clanOption,...memberReportOptions("compo")]},
   {name:"sorted",description:"Rank current clan members by a selected statistic",type:OptionType.Subcommand,options:[clanOption,...memberReportOptions("sorted")]},
   {name:"games",description:"Current Clan Games points for clan members",type:OptionType.Subcommand,options:[clanOption,...contributionOptions]},
@@ -43,6 +46,7 @@ export const clanCommand:Command={
  },
  async execute(context){
   const ctx=subcommand(context);
+  if(["capital","war-log"].includes(ctx.path[0]??""))return clanReports(ctx);
   if(["compo","sorted"].includes(ctx.path[0]??""))return memberReport(ctx,"clan");
   const raw=stringOption(ctx,"clan");if(!raw)throw new CommandInputError("Choose a clan or enter its tag.");
   const tag=normalizeTag(raw,ctx.locale),view=ctx.path[0]==="donations"?"d":"o";

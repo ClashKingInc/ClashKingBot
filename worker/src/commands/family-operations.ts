@@ -1,3 +1,4 @@
+import { currentRaidWeekend, validateRaidWeekend, loadRaidWeekend } from "./raid-data";
 import { actionRow, legacyMessage } from "../discord/components";
 import { CommandInputError, OptionType, invokingUserId, requireGuildId, stringOption } from "./command-utils";
 import { compact, emojis, escapeMarkdown } from "./game-common";
@@ -18,25 +19,14 @@ export const familyWarOptions: ApplicationCommandOption[] = [
   {name:"include_ended",description:"Include the most recently returned ended war (default false)",type:OptionType.Boolean},
 ];
 interface ClanRef {tag:string;name:string}
-interface Raid {
-  state:string;startTime:string;endTime:string;totalAttacks:number;capitalTotalLoot:number;
-  raidsCompleted:number;enemyDistrictsDestroyed:number;
-  members?: Array<{tag:string}>;
-}
 interface Row {clan:ClanRef;detail?:string;status:"shown"|"inactive"|"private"|"unavailable"}
-function currentWeekend(){
-  const now=new Date(),friday=new Date(now);
-  friday.setUTCDate(now.getUTCDate()-(now.getUTCDay()+2)%7);friday.setUTCHours(7,0,0,0);
-  if(friday>now)friday.setUTCDate(friday.getUTCDate()-7);
-  return friday.toISOString().slice(0,10);
-}
 export async function familyOperations(ctx:CommandContext){
   const guild=requireGuildId(ctx),action=ctx.path[0];
   const limit=Number(ctx.options.get("limit")?.value??30),order=stringOption(ctx,"sort_order")??"asc";
-  const explicitWeekend=stringOption(ctx,"weekend"),weekend=explicitWeekend??currentWeekend();
+  const explicitWeekend=stringOption(ctx,"weekend"),weekend=explicitWeekend??currentRaidWeekend();
   const includeEnded=ctx.options.get("include_ended")?.value===true;
   if(!["wars","raids"].includes(action??"")||!Number.isInteger(limit)||limit<1||limit>50||!["asc","desc"].includes(order))throw new CommandInputError("Choose valid family report options.");
-  if(action==="raids"&&(!/^\d{4}-\d{2}-\d{2}$/u.test(weekend)||!Number.isFinite(Date.parse(weekend))||new Date(weekend).toISOString().slice(0,10)!==weekend||new Date(weekend).getUTCDay()!==5||weekend>currentWeekend()))throw new CommandInputError("Choose a Friday on or before the most recent raid weekend.");
+  if(action==="raids")validateRaidWeekend(weekend);
   const refs=await ctx.services.api.get<ClanRef[]>(`/v2/server/${guild}/clans-basic`);
   const clans=[...new Map(refs.map(clan=>[clan.tag,clan])).values()];
   if(!clans.length)throw new CommandInputError("No family clans are linked to this server. Add clans in the dashboard first.");
@@ -46,10 +36,7 @@ export async function familyOperations(ctx:CommandContext){
     rows.push(...await Promise.all(clans.slice(offset,offset+4).map(async(clan):Promise<Row>=>{
       try{
         if(action==="raids"){
-          const result=await ctx.services.api.get<{items:Raid[]}>(`/v2/bot/clash/clans/${encodeURIComponent(clan.tag)}/capitalraidseasons`,{limit:10},AbortSignal.timeout(15000));
-          // A clan may skip weekends. Never relabel its previous raid as the
-          // requested Friday, even if that is the first returned API entry.
-          const raid=result.items.find(item=>{const time=warTime(item.startTime);return Number.isFinite(time)&&new Date(time).toISOString().slice(0,10)===weekend;});
+          const raid=await loadRaidWeekend(ctx,clan.tag,weekend);
           if(!raid)return {clan,status:"inactive"};
           return {clan,status:"shown",detail:`${raid.state==="ongoing"?"Ongoing":"Ended"} · ${raid.totalAttacks} attacks · ${raid.members?`${raid.members.length} participants`:"Participants unavailable"}\n${emoji.get("capital_gold")} ${compact(raid.capitalTotalLoot)} looted · ${raid.enemyDistrictsDestroyed} districts · ${raid.raidsCompleted} raids completed`};
         }

@@ -38,6 +38,7 @@ const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
 let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
+const clanReportMode=process.argv.includes("--clan-reports-only");
 const familyOpsMode=process.argv.includes("--family-ops-only");
 let raidSkip=false,raidFailure=false;
 const raidFriday=new Date();raidFriday.setUTCDate(raidFriday.getUTCDate()-(raidFriday.getUTCDay()+2)%7);raidFriday.setUTCHours(7,0,0,0);if(raidFriday>new Date())raidFriday.setUTCDate(raidFriday.getUTCDate()-7);
@@ -63,12 +64,16 @@ const provider=createServer(async(req,res)=>{
  const p=decodeURIComponent(url.pathname),endTime=fixtureEnd;
  if(memberMode&&(p===`/v1/clans/${group}`||p==='/v1/clans/#PYLQGRJJ'))return res.end(JSON.stringify({tag:p.split('/').at(-1),name:'Report Clan',memberList:[{tag,name:'Member Sixteen',townHallLevel:16,trophies:6000,role:'leader',leagueTier:{name:'Legend I'}},...(p.endsWith(group)?[{tag:tags[1],name:'Member Eighteen',townHallLevel:18,trophies:5000,role:'member',leagueTier:{name:'Legend II'}}]:[])]}));
 
- if(familyOpsMode&&p.endsWith('/capitalraidseasons')){
+ if((familyOpsMode||clanReportMode)&&p.endsWith('/capitalraidseasons')){
   if(raidFailure&&p.includes('#PYLQGRJJ')){res.statusCode=503;return res.end('{}');}
   const raid=(start,loot)=>({state:'ended',startTime:start.toISOString(),endTime:new Date(+start+3*86400000).toISOString(),capitalTotalLoot:loot,totalAttacks:6,raidsCompleted:2,enemyDistrictsDestroyed:4,offensiveReward:100,defensiveReward:20,members:[{tag, name:'Raider',attacks:6,attackLimit:5,bonusAttackLimit:1,capitalResourcesLooted:loot}]});
   return res.end(JSON.stringify({items:[raid(new Date(+raidFriday-7*86400000),999999),...(!raidSkip?[raid(raidFriday,12345)]:[])]}));
  }
- if(familyOpsMode&&(p===`/v1/clans/${group}`||p==='/v1/clans/#PYLQGRJJ'))return res.end(JSON.stringify({tag:p.split('/').at(-1),name:p.endsWith(group)?'Alpha Clan':'Beta Clan',members:20,clanPoints:p.endsWith(group)?1000:2000,clanBuilderBasePoints:500,clanCapitalPoints:300,requiredTownhallLevel:16,warLeague:{name:'Champion League I'},capitalLeague:{name:'Titan'},location:{name:'International'},memberList:[]}));
+ if((familyOpsMode||clanReportMode)&&(p===`/v1/clans/${group}`||p==='/v1/clans/#PYLQGRJJ'))return res.end(JSON.stringify({tag:p.split('/').at(-1),name:p.endsWith(group)?'Alpha Clan':'Beta Clan',members:20,clanPoints:p.endsWith(group)?1000:2000,clanBuilderBasePoints:500,clanCapitalPoints:300,requiredTownhallLevel:16,warLeague:{name:'Champion League I'},capitalLeague:{name:'Titan'},location:{name:'International'},memberList:[]}));
+ if(clanReportMode&&p.endsWith('/warlog')){
+  if(privateWar){res.statusCode=403;return res.end('{}');}
+  return res.end(JSON.stringify({items:[{result:'win',endTime:fixturePrep,teamSize:2,attacksPerMember:2,clan:{tag:group,name:'Alpha Clan',stars:5,destructionPercentage:90,attacks:3},opponent:{tag:'#PYLQGRJJ',name:'Official Opponent',stars:4,destructionPercentage:85}}]}));
+ }
  const startTime=new Date(Date.now()+1800000).toISOString(),warState=warEnded?'warEnded':reminderPreparation?'preparation':'inWar';
  const own={tag:group,name:'Reminder Clan',stars:5,destructionPercentage:80,members:[{tag,name:'Missing Player',townhallLevel:16,mapPosition:1,attacks:[]},{tag:tags[1],name:'Finished Player',townhallLevel:16,mapPosition:2,attacks:[{attackerTag:tags[1],defenderTag:'#PYLR',stars:3,destructionPercentage:100,order:1},{attackerTag:tags[1],defenderTag:'#PYLQ',stars:2,destructionPercentage:80,order:2}]}]};
  const opponent={tag:'#PYLQGRJJ',name:'Other Clan',stars:3,destructionPercentage:50,members:[]};
@@ -167,7 +172,50 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(familyOpsMode){
+ if(clanReportMode){
+  const clanOption={name:'clan',type:3,value:group},cwlId='E2Eclan00001';
+  if((await db.query('SELECT 1 FROM cwl_groups WHERE cwl_id=$1',[cwlId])).rowCount)throw Error('Synthetic CWL group exists');
+  if((await db.query('SELECT 1 FROM player_stat_changes WHERE player_tag=$1',[tag])).rowCount)throw Error('Synthetic contributions exist');
+  const end=new Date(+raidFriday+7*86400000),before=new Date(+raidFriday-1000);
+  const oldEnd=new Date(fixtureNow-2*86400000).toISOString(),oldStart=new Date(fixtureNow-3*86400000).toISOString(),oldPrep=new Date(fixtureNow-4*86400000).toISOString();
+  let warRow;
+  try{
+   const side=(sideTag,name,stars)=>({tag:sideTag,name,badgeToken:'',clanLevel:1,attacks:2,stars,destructionPercentage:stars?100:0,members:[]});
+   const archived={state:'warEnded',teamSize:2,attacksPerMember:2,preparationStartTime:oldPrep,startTime:oldStart,endTime:oldEnd,battleModifier:'none',clan:side(group,'Alpha Clan',6),opponent:side('#PYLQGRJJ','Archived Opponent',0)};
+   warRow=(await db.query("INSERT INTO wars(clan_tag,opponent_tag,prep_time,start_time,end_time,size,war_type,state) VALUES($1,'#PYLQGRJJ',$2,$3,$4,2,'random','warEnded') RETURNING war_id",[group,oldPrep,oldStart,oldEnd])).rows[0];
+   await db.query('INSERT INTO war_archive_pending(war_id,end_time,payload) VALUES($1,$2,$3)',[warRow.war_id,oldEnd,JSON.stringify(archived)]);
+   const guardedHistory=`http://127.0.0.1:${port}/v2/clan/${encodeURIComponent(group)}/warlog`;
+   if((await fetch(guardedHistory)).status!==401)throw Error('Stored war history became anonymous');
+   if((await fetch(`http://127.0.0.1:${port}/v2/player/${encodeURIComponent(tag)}/last-activity`,{headers:{Authorization:`Bearer ${keys.API_BOT_TOKEN}`}})).status!==401)throw Error('Bot accessed private user activity');
+   const official=await interact(command('clan','war-log',[clanOption]));
+   if(!text(official).includes('Official Opponent')||!text(official).includes('3/4 attacks'))throw Error('Official war log failed '+text(official));
+   privateWar=true;const stored=await interact(command('clan','war-log',[clanOption]));
+   if(!text(stored).includes('Archived Opponent')||!text(stored).includes('official log is private'))throw Error('Private stored history failed');privateWar=false;
+   await db.query("INSERT INTO cwl_groups(cwl_id,season,rounds,state,war_size) VALUES($1,'2026-09','[]','ended',15)",[cwlId]);
+   await db.query("INSERT INTO cwl_group_clans(cwl_id,clan_tag,name) VALUES($1,$2,'Alpha Clan')",[cwlId,group]);
+   const cwl=await interact(command('clan','war-log',[clanOption,{name:'view',type:3,value:'cwl'}]));
+   if(!text(cwl).includes('2026-09')||!text(cwl).includes('Rank unavailable'))throw Error('Partial CWL history fabricated a rank '+text(cwl));
+   const overview=await interact(command('clan','capital',[clanOption]));
+   if(!text(overview).includes('12.3K')||!text(overview).includes('4 districts'))throw Error('Capital overview failed');
+   const raiders=await interact(command('clan','capital',[clanOption,{name:'view',type:3,value:'raiders'}]));
+   if(!text(raiders).includes('Raider')||!text(raiders).includes('6/6 attacks'))throw Error('Capital raiders failed');
+   await db.query("INSERT INTO player_stat_changes(player_tag,clan_tag,event_time,stat_type,previous_value,current_value,delta) VALUES($1,$2,$3,'capital_gold_donated',0,321,321),($1,$2,$4,'capital_gold_donated',0,999,999),($1,$2,$5,'capital_gold_donated',0,888,888),($1,'#PYLQGRJJ',$6,'capital_gold_donated',0,777,777)",[tag,group,raidFriday,end,before,new Date(+raidFriday+1000)]);
+   raidSkip=true;
+   const donations=await interact(command('clan','capital',[clanOption,{name:'view',type:3,value:'donations'},{name:'weekend',type:3,value:raidDate}]));
+   if(!JSON.stringify(donations.embeds).includes('321')||/999|888|777/.test(JSON.stringify(donations.embeds)))throw Error('Capital week/clan boundaries failed '+text(donations));
+   const refresh=donations.components[0].components[0].custom_id;
+   if(!refresh.includes(raidDate)||!text(await interact({type:3,data:{custom_id:refresh,component_type:2}},other)).includes('321'))throw Error('Capital refresh lost view/date');
+   const filtered=await interact(command('clan','capital',[clanOption,{name:'view',type:3,value:'donations'},{name:'current_members',type:5,value:true}]));
+   if(JSON.stringify(filtered.embeds).includes('321'))throw Error('Current-member filter ignored');
+   const endpoint=`http://127.0.0.1:${port}/v2/bot/clans/${encodeURIComponent(group)}/capital-contributions?weekend=${raidDate}`;
+   if((await fetch(endpoint)).status!==401)throw Error('Capital contributions lost bot auth');
+   console.log(JSON.stringify({clanReports:'passed',checks:['official war log','history authentication and private activity guard','private-log archived fallback','partial CWL history','capital overview and raiders','Friday boundaries','clan attribution','donations without raid','current members filter','refresh','bot authentication'],externalDiscordWrites:0}));
+  }finally{
+   if(warRow)await db.query('DELETE FROM wars WHERE war_id=$1 AND end_time=$2',[warRow.war_id,oldEnd]);
+   await db.query('DELETE FROM cwl_groups WHERE cwl_id=$1',[cwlId]);
+   await db.query('DELETE FROM player_stat_changes WHERE player_tag=$1',[tag]);
+  }
+ }else if(familyOpsMode){
   const server='999999999999996510',statTime=new Date().toISOString();
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic family operations data exists');
   await db.query("INSERT INTO servers(id,name) VALUES($1,'Family operations')",[server]);
