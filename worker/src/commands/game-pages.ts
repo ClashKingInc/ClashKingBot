@@ -1,3 +1,4 @@
+import { graphCommand } from "./graph";
 import { roleUsersCommand } from "./role-users";
 import { boostsCommand } from "./boosts";
 import { statsCommand } from "./stats";
@@ -24,7 +25,9 @@ export async function dispatchGamePage(ctx: CommandContext, waitUntil?: (promise
   let command:Command,action:string,options:InteractionOption[];
   const string=(name:string,value:string):InteractionOption=>({name,type:OptionType.String,value});
   const tag=(value:string|undefined)=>{if(!value||!/^#[0289PYLQGRJCUV]+$/u.test(value))throw new CommandInputError("Invalid player tag.");return value;};
-  if(kind==="ru"&&parts.length===1&&/^\d{15,20}$/u.test(parts[0]!)){
+  if(kind==="gm"&&parts.length===4){
+    command=graphCommand;action="month";options=[string("attribute",parts[0]!),string("season",parts[1]!),{name:"limit",type:OptionType.Integer,value:Number(parts[2])},string("sort_order",parts[3]!)];
+  }else if(kind==="ru"&&parts.length===1&&/^\d{15,20}$/u.test(parts[0]!)){
     command=roleUsersCommand;action="";options=[string("role",parts[0]!)];
   }else if(kind==="bs"&&parts.length===4){
     command=boostsCommand;action="";
