@@ -375,7 +375,7 @@ try{
    await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,'Roster clan',true,0,2,'',0,0)",[group]);
    await db.query('INSERT INTO server_clans(server_id,tag) VALUES($1,$3),($2,$3)',[server,elsewhere,group]);
    const created=await request('/v2/roster?server_id='+server,{alias:'Visible roster',roster_type:'family',members:[{tag:tags[1],name:'Stored member',townhall:15,trophies:1}]});
-   await request('/v2/roster?server_id='+elsewhere,{alias:'Other server secret',roster_type:'family',members:[{tag:tags[1],name:'Stored member',townhall:15}]});
+   const foreignRoster=await request('/v2/roster?server_id='+elsewhere,{alias:'Other server secret',roster_type:'family',members:[{tag:tags[1],name:'Stored member',townhall:15}]});
    const list=await interact(command('roster','list'),actor,'32');if(!text(list).includes('Visible roster')||text(list).includes('Other server secret'))throw Error('Roster list scope failed: '+text(list));
    const selection=await interact({type:3,data:{custom_id:'ck:roster:select',component_type:3,values:[created.roster_id]}},actor,'32');if(!text(selection).includes('Stored member'))throw Error('Roster selection failed');
    const view=await interact(command('roster','view',[{name:'roster',type:3,value:created.roster_id}]),actor,'32');if(!text(view).includes('Stored member'))throw Error('Roster view failed');
@@ -391,7 +391,28 @@ try{
    const refresh=await interact(command('roster','refresh',[{name:'roster',type:3,value:created.roster_id}]),actor,'32');if(!text(refresh).includes('Roster data refreshed: 1'))throw Error('Data refresh failed: '+text(refresh));
    const row=(await db.query('SELECT townhall,trophies FROM roster_members WHERE roster_id=$1 AND tag=$2',[created.roster_id,tags[1]])).rows[0];if(row.townhall!==16||row.trophies!==5500)throw Error('Data refresh did not persist profile');
    const reused=await interact(command('roster','refresh',[{name:'roster',type:3,value:created.roster_id}]),actor,'32');if(!text(reused).includes('Recent roster data reused'))throw Error('Cooldown incorrectly reported new refresh');
-   console.log(JSON.stringify({rosterReads:'passed',checks:['actual API-created rosters','server-scoped list and selection','direct view','player and self search','search refresh','permission gate','failed profile retained','actual stored profile update','cooldown reuse'],externalDiscordWrites:0}));
+   const rosterOption={name:'roster',type:3,value:created.roster_id};
+   const destination=await request('/v2/roster?server_id='+server,{alias:'Destination',roster_type:'family'});
+   const playerInput={name:'players',type:3,value:tag};
+   const addDenied=await interact(command('roster','add-player',[rosterOption,playerInput]),actor,'0');if(!text(addDenied).includes('Manage'))throw Error('Roster add permission bypass');
+   const added=await interact(command('roster','add-player',[rosterOption,playerInput]),actor,'32');if(!text(added).includes('Added 1'))throw Error('Roster add failed '+text(added));
+   const addedRow=(await db.query('SELECT name,townhall FROM roster_members WHERE roster_id=$1 AND tag=$2',[created.roster_id,tag])).rows[0];if(addedRow?.name!=='Current Player'||addedRow?.townhall!==16)throw Error('Added player snapshot not hydrated');
+   const moveOptions=[rosterOption,playerInput,{name:'destination',type:3,value:destination.roster_id}];
+   const moved=await interact(command('roster','move-player',moveOptions),actor,'32');if(!text(moved).includes('Moved 1'))throw Error('Roster move failed '+text(moved));
+   if((await db.query('SELECT 1 FROM roster_members WHERE roster_id=$1 AND tag=$2',[created.roster_id,tag])).rowCount||!(await db.query('SELECT 1 FROM roster_members WHERE roster_id=$1 AND tag=$2',[destination.roster_id,tag])).rowCount)throw Error('Move was not atomic');
+   const foreign=await interact(command('roster','move-player',[{...rosterOption,value:destination.roster_id},playerInput,{name:'destination',type:3,value:foreignRoster.roster_id}]),actor,'32');if(text(foreign).includes('Moved 1'))throw Error('Moved across server boundary');
+   const copied=await interact(command('roster','copy',[{...rosterOption,value:destination.roster_id},{name:'name',type:3,value:'Copied roster'},{name:'members',type:5,value:true}]),actor,'32');if(!text(copied).includes('1 members copied'))throw Error('Copy failed '+text(copied));
+   const copy=(await db.query("SELECT id FROM rosters WHERE server_id=$1 AND alias='Copied roster'",[server])).rows[0];
+   const copyOption={...rosterOption,value:copy.id};
+   const notConfirmed=await interact(command('roster','delete',[copyOption,{name:'type',type:3,value:'roster'},{name:'confirm',type:5,value:false}]),actor,'32');if(!text(notConfirmed).includes('confirm'))throw Error('Delete lacked confirmation');
+   const removed=await interact(command('roster','remove-player',[copyOption,playerInput]),actor,'32');if(!text(removed).includes('Removed 1'))throw Error('Remove failed '+text(removed));
+   const cleared=await interact(command('roster','delete',[{...rosterOption,value:destination.roster_id},{name:'type',type:3,value:'members'},{name:'confirm',type:5,value:true}]),actor,'32');if(!text(cleared).includes('Cleared members'))throw Error('Clear failed '+text(cleared));
+   rosterProfileFailure=true;
+   const failedAdd=await interact(command('roster','add-player',[{...rosterOption,value:destination.roster_id},{name:'players',type:3,value:`${tag} ${tags[1]}`}]),actor,'32');
+   if(!text(failedAdd).includes('no players were added')||(await db.query('SELECT 1 FROM roster_members WHERE roster_id=$1',[destination.roster_id])).rowCount)throw Error('Failed profile partially added roster batch');
+   rosterProfileFailure=false;
+   const deleted=await interact(command('roster','delete',[copyOption,{name:'type',type:3,value:'roster'},{name:'confirm',type:5,value:true}]),actor,'32');if(!text(deleted).includes('Deleted roster')||(await db.query('SELECT 1 FROM rosters WHERE id=$1',[copy.id])).rowCount)throw Error('Delete failed '+text(deleted));
+   console.log(JSON.stringify({rosterReads:'passed',checks:['actual API-created rosters','server-scoped list and selection','direct view','player and self search','search refresh','permission gate','failed profile retained','actual stored profile update','cooldown reuse','permission-checked add','hydrated profile','atomic move','foreign server move rejected','copy members','remove members','clear and delete confirmation'],externalDiscordWrites:0}));
   }finally{await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,elsewhere]]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);}
  }else if(helpMode){
   const list=await interact({type:2,data:{name:'help'}});

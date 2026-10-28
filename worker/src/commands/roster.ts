@@ -1,3 +1,4 @@
+import { rosterAction, rosterActionNames, rosterActionOptions } from "./roster-actions";
 import { ClashKingApiError } from "../api/client";
 import { ApplicationEmojis } from "../discord/emojis";
 import { actionRow, legacyMessage, type ButtonComponent } from "../discord/components";
@@ -50,6 +51,7 @@ export const rosterCommand: Command = {
   definition: { name: "roster", type: 1, contexts: [0], integration_types: [0], default_member_permissions: "32",
     name_localizations: localizations("roster.name"), description: translate("roster.title"),
     description_localizations: localizations("roster.title"), options: [
+      ...rosterActionOptions(rosterOption),
       { name: "list", type: 1, description: "Browse this server's rosters" },
       { name: "view", type: 1, description: "View a roster's members", options: [rosterOption] },
       { name: "search", type: 1, description: "Find this server's rosters for a player or Discord user", options: [
@@ -72,8 +74,8 @@ export const rosterCommand: Command = {
     const options = ctx.interaction.data?.options?.[0]?.options ?? [];
     const focused = options.find(option => option.focused);
     if (focused?.name === "player") return playerAutocomplete({...ctx,options:new Map(options.map(option=>[option.name,option]))});
-    if (focused?.name !== "roster") return [];
-    const query = String(focused.value ?? "").toLocaleLowerCase();
+    if (!["roster","destination"].includes(focused?.name??"")) return [];
+    const query = String(focused?.value ?? "").toLocaleLowerCase();
     const { items } = await ctx.services.api.get<{ items: Roster[] }>(endpoint(ctx), {}, AbortSignal.timeout(1500));
     return items.filter(r => r.serverId === requireGuildId(ctx) && uuid.test(r.id) && `${r.alias} ${r.clanTag ?? ""}`.toLocaleLowerCase().includes(query))
       .sort((a, b) => a.alias.localeCompare(b.alias)).slice(0, 25)
@@ -92,6 +94,7 @@ export const rosterCommand: Command = {
     const id = String(options.get("roster") ?? "");
     const mode = String(options.get("type") ?? "");
     if (!uuid.test(id)) throw new CommandInputError(t(ctx, "error.invalidInteraction"));
+    if (sub&&rosterActionNames.includes(sub.name)) return rosterAction(ctx,id,sub.name,options);
     if (sub?.name === "view") return view(ctx,id);
     if (sub?.name === "refresh") {
       await load(ctx,id);
