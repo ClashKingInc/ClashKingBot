@@ -692,7 +692,7 @@ try{
    rosterProfileFailure=false;
    const deleted=await interact(command('roster','delete',[copyOption,{name:'type',type:3,value:'roster'},{name:'confirm',type:5,value:true}]),actor,'32');if(!text(deleted).includes('Deleted roster')||(await db.query('SELECT 1 FROM rosters WHERE id=$1',[copy.id])).rowCount)throw Error('Delete failed '+text(deleted));
    console.log(JSON.stringify({rosterReads:'passed',checks:['label create/rename/assign/display','foreign label rejected','in-use deletion rejected','Main and unused label deletion','actual API-created rosters','server-scoped list and selection','direct view','player and self search','search refresh','permission gate','failed profile retained','actual stored profile update','cooldown reuse','permission-checked add','hydrated profile','atomic move','foreign server move rejected','copy members','remove members','clear and delete confirmation'],externalDiscordWrites:0}));
-  }finally{if(quickPanelMode){await db.query('DELETE FROM discord_cache.guilds WHERE id=$1',[server]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);}await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,elsewhere]]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);}
+  }finally{if(quickPanelMode){await db.query('DELETE FROM discord_cache.members WHERE guild_id=$1',[server]);await db.query('DELETE FROM discord_cache.guilds WHERE id=$1',[server]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);}await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,elsewhere]]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);}
  }else if(helpMode){
   const list=await interact({type:2,data:{name:'help'}});
   if(!text(list).includes('/clan')||!text(list).includes('/link')||!text(list).includes('/help'))throw Error('Help missing current command roots');
@@ -1106,6 +1106,21 @@ try{
     const response=await fetch(`http://127.0.0.1:${port}/v2/server/${roleServer}/role-settings`,{method:'PATCH',headers:{authorization:`Bearer ${credential}`,'content-type':'application/json'},body:JSON.stringify(body)});
     const value=await response.json();if(response.status!==200)throw Error('Settings update failed: '+response.status+' '+JSON.stringify(value));return value;
    };
+   const whitelist=async(value)=>{
+    const response=await fetch(`http://127.0.0.1:${port}/v2/server/${roleServer}/settings`,{method:'PATCH',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({full_whitelist_role:value})});
+    if(!response.ok)throw Error('Whitelist settings failed '+response.status+' '+await response.text());
+   };
+   await whitelist(unmanagedRole);
+   await db.query("UPDATE discord_cache.members SET data=jsonb_set(data,'{roles}',$3::jsonb) WHERE guild_id=$1 AND user_id=$2",[roleServer,actor,JSON.stringify([unmanagedRole])]);
+   const whitelistedRequest=String(counter++),revokedRequest=String(counter++);
+   const delegate=requestId=>fetch(`http://127.0.0.1:${port}/v2/bot/role-refresh/${roleServer}/enqueue`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({actorId:actor,requestId,targetId:other,targetKind:'user',preview:true})});
+   if(!(await delegate(whitelistedRequest)).ok)throw Error('Configured whitelist did not grant delegated refresh');
+   await whitelist(null);
+   const cleared=(await db.query('SELECT full_whitelist_role_id FROM servers WHERE id=$1',[roleServer])).rows[0];
+   if(cleared.full_whitelist_role_id!==null||(await delegate(revokedRequest)).status!==403)throw Error('Clearing whitelist failed to revoke delegated refresh');
+   await db.query('DELETE FROM role_refresh_jobs WHERE request_id=ANY($1::text[])',[[whitelistedRequest,revokedRequest]]);
+   await db.query("UPDATE discord_cache.members SET data=jsonb_set(data,'{roles}','[]'::jsonb) WHERE guild_id=$1 AND user_id=$2",[roleServer,actor]);
+   console.log(JSON.stringify({whitelistClear:'passed',checks:['settings endpoint accepts explicit null','SQL role cleared','previous delegate denied on next request'],externalDiscordWrites:0}));
    // Exercise the actual settings endpoint, not a direct queue fixture. Enabling
    // automatic evaluation must reconcile existing members without a game event.
    await db.query('INSERT INTO discord_cache.members(guild_id,user_id,data) VALUES($1,$2,$3)',[roleServer,app,JSON.stringify({user:{id:app,bot:true},roles:[]})]);
