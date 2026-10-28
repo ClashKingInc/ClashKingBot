@@ -66,7 +66,7 @@ export async function dispatchGamePage(ctx: CommandContext, waitUntil?: (promise
   }else if(kind==="lp"&&parts.length===2&&(parts[1]==="today"||/^\d{4}-\d{2}-\d{2}$/u.test(parts[1]!))){
     command=legendsCommand;action="poster";options=[string("player",tag(parts[0]))];
     if(parts[1]!=="today")options.push(string("day",parts[1]!));
-  }else if(kind==="lg"&&parts.length===2&&["cutoffs","buckets","winners","daily"].includes(parts[0]!)&&/^[1-9][0-9]?$/u.test(parts[1]!)&&Number(parts[1])<=50){
+  }else if(kind==="lg"&&parts.length===2&&["cutoffs","buckets","winners","daily","streaks"].includes(parts[0]!)&&/^[1-9][0-9]?$/u.test(parts[1]!)&&Number(parts[1])<=50){
     command=legendsCommand;action="stats";options=[string("type",parts[0]!),{name:"limit",type:OptionType.Integer,value:Number(parts[1])}];
   }else if((kind==="lh"&&(parts.length===1||parts.length===2))||(kind==="lc"&&parts.length===1)){
     command=legendsCommand;action=kind==="lh"?"history":"clan";options=[string(kind==="lh"?"player":"clan",tag(parts[0]))];

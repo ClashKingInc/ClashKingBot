@@ -8,10 +8,17 @@ interface Daily { day:string;attacks:number;players:number;starCounts:{zero:numb
 const count=(n:number)=>n.toLocaleString("en");
 export async function globalLegendStats(ctx:CommandContext){
   const type=stringOption(ctx,"type")??"cutoffs",limit=Number(ctx.options.get("limit")?.value??50),emoji=await emojis(ctx);
-  if(!["cutoffs","buckets","winners","daily"].includes(type)||!Number.isSafeInteger(limit)||limit<1||limit>50)throw new CommandInputError("Choose a valid statistic and a limit from 1 to 50.");
+  if(!["cutoffs","buckets","winners","daily","streaks"].includes(type)||!Number.isSafeInteger(limit)||limit<1||limit>50)throw new CommandInputError("Choose a valid statistic and a limit from 1 to 50.");
   const trophy=emoji.get("trophy"),star=emoji.get("star")||emoji.get("attack_star");
   let title="Legend Statistics",description="",entries:string[]|undefined;
-  if(type==="cutoffs"||type==="buckets"){
+  if(type==="streaks"){
+    title="Legend Triple Streaks";
+    const result=await ctx.services.api.get<{items:Array<{tag:string;name:string;streak:number;observedSince:string;lastAttackAt:string;resetObserved:boolean}>}>("/v2/bot/legends/stats",{type:"streaks",limit});
+    // These are consecutive recorded attacks, not proof that every game attack
+    // was observed. Never present a retained-history bootstrap as lifetime data.
+    description="No recorded triple streaks yet.";
+    entries=result.items.map((row,index)=>`**#${index+1} · ${star} ${count(row.streak)}** [${escapeMarkdown(row.name)}](${playerUrl(row.tag)})\n-# Recorded attacks · last attack <t:${Math.floor(Date.parse(row.lastAttackAt)/1000)}:R>${row.resetObserved?"":" · start not observed"}`);
+  }else if(type==="cutoffs"||type==="buckets"){
     const cutoff=await ctx.services.api.get<Cutoffs>("/v2/bot/legends/stats",{type:"cutoffs"});
     description=cutoff.day?`**Ranking snapshot: ${cutoff.day}**\n`:"No stored ranking snapshot is available.";
     if(type==="cutoffs"){

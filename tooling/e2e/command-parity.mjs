@@ -38,6 +38,7 @@ const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
 let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
+const streakMode=process.argv.includes("--streaks-only");
 const posterMode=process.argv.includes("--poster-only");
 const memberMode=process.argv.includes("--members-only");
 const todoMode=process.argv.includes("--todo-only");let legendFails=false;
@@ -155,7 +156,22 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(posterMode){
+ if(streakMode){
+  const streakTags=[tag,tags[1],tags[2]];
+  if((await db.query('SELECT 1 FROM legend_attack_streaks WHERE player_tag=ANY($1::text[])',[streakTags])).rowCount)throw Error('Synthetic streak rows already exist');
+  try{
+   await db.query("INSERT INTO legend_attack_streaks(player_tag,current_streak,observed_since,last_attack_at,last_non_triple_at) VALUES($1,100000003,now()-interval '3 days',now(),now()-interval '2 days'),($2,100000002,now()-interval '3 days',now(),NULL),($3,0,now(),now(),now())",streakTags);
+   const response=await interact(command('legends','stats',[{name:'type',type:3,value:'streaks'},{name:'limit',type:4,value:2}]));
+   if(!text(response).includes('100,000,003')||!text(response).includes('start not observed')||text(response).includes(tags[2]))throw Error('Streak order/limit/provenance failed '+text(response));
+   const refresh=response.components.flatMap(row=>row.components??[]).find(item=>item.custom_id)?.custom_id;
+   if(!refresh)throw Error('Streak refresh missing');
+   const updated=await interact({type:3,data:{custom_id:refresh,component_type:2}},other);
+   if(!text(updated).includes('100,000,003'))throw Error('Streak refresh failed');
+   const denied=await fetch(`http://127.0.0.1:${port}/v2/bot/legends/stats?type=streaks`);
+   if(denied.status!==401)throw Error('Streak API exposed without bot auth');
+   console.log(JSON.stringify({streaks:'passed',checks:['actual API/SQL response','leader order and limit','unknown start label','zero streak excluded','public refresh','bot authentication'],externalDiscordWrites:0}));
+  }finally{await db.query('DELETE FROM legend_attack_streaks WHERE player_tag=ANY($1::text[])',[streakTags]);}
+ }else if(posterMode){
   if((await db.query('SELECT 1 FROM battles_ranked WHERE player_tag=$1',[tag])).rowCount)throw Error('Synthetic Legend rows already exist');
   try{
    const missing=await interact(command('legends','poster',[player]));

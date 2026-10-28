@@ -21,7 +21,7 @@ export const legendsCommand: Command = {
     ]},
     {name:"stats",description:"Global Legend rankings, trophy buckets, season winners and daily stats",type:OptionType.Subcommand,options:[
       {name:"type",description:"Global statistic to display",type:OptionType.String,required:true,choices:[
-        {name:"Rank Cutoff",value:"cutoffs"},{name:"Trophy Buckets",value:"buckets"},{name:"EOS Finishers",value:"winners"},{name:"Daily Performance",value:"daily"},
+        {name:"Triple Streaks",value:"streaks"},{name:"Rank Cutoff",value:"cutoffs"},{name:"Trophy Buckets",value:"buckets"},{name:"EOS Finishers",value:"winners"},{name:"Daily Performance",value:"daily"},
       ]},
       {name:"limit",description:"Maximum entries (default 50)",type:OptionType.Integer,min_value:1,max_value:50},
     ]},
