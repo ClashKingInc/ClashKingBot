@@ -85,6 +85,7 @@ try{
  bindings:{APP_ENV:'dev',LOCAL_TEST_USER_ID:'',DASHBOARD_BASE_URL:'https://dash.clashk.ing',CLASHKING_API_BASE_URL:`http://127.0.0.1:${port}`,CLASHKING_API_TOKEN:keys.API_BOT_TOKEN,DISCORD_APPLICATION_ID:app,DISCORD_BOT_TOKEN:`${Buffer.from(app).toString('base64')}.local.token`,DISCORD_PUBLIC_KEY:publicHex},
  outboundService:async request=>{
   const url=new URL(request.url);
+  if(url.hostname==='cdn.discordapp.com'&&url.pathname==='/attachments/local/evidence.png')return new Response(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXZkAAAAASUVORK5CYII=','base64'),{headers:{'Content-Type':'image/png'}});
   if(url.hostname==='assets.clashk.ing'&&/^\/static_data\/(troops|spells|heroes|pets|equipment|buildings)\.json$/u.test(url.pathname))return new Response(readFileSync(join(assetsRepo,'assets',url.pathname)),{headers:{'Content-Type':'application/json'}});
   if(url.hostname==='discord.com'){
    if(request.method==='GET'&&url.pathname.endsWith('/emojis')){emojiInventoryRequests++;return Response.json({items:emojiItems});}
@@ -100,6 +101,52 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
+ if(process.argv.includes('--moderation-only')){
+  const server='999999999999996510';
+  if((await db.query('SELECT player_tag FROM server_bans WHERE server_id=$1 UNION ALL SELECT tag FROM strikes WHERE server_id=$1',[server])).rowCount)throw Error('Synthetic moderation server already has records');
+  if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount)throw Error('Synthetic moderation server already exists');
+  await db.query('INSERT INTO servers(id,name) VALUES($1,$2)',[server,'Local moderation integration']);
+  try{
+   const reason={name:'reason',type:3,value:'Local moderation integration check'};
+   const denied=await interact(command('ban','add',[player,reason]));
+   if(!text(denied).includes('Manage Server permission is required'))throw Error('Moderation permission gate failed');
+   const attachment={id:'999999999999996599',filename:'evidence.png',content_type:'image/png',size:68,url:'https://cdn.discordapp.com/attachments/local/evidence.png'};
+   const add=command('ban','add',[player,reason,{name:'image',type:11,value:attachment.id}]);add.data.resolved={attachments:{[attachment.id]:attachment}};
+   const saved=await interact(add,actor,'32');
+   if(!text(saved).includes('Ban record saved'))throw Error('Ban save failed: '+text(saved));
+   const row=(await db.query('SELECT reason,added_by,image FROM server_bans WHERE server_id=$1 AND player_tag=$2',[server,tag])).rows[0];
+   if(row?.reason!==reason.value||row.added_by!==actor||!row.image?.startsWith(`http://127.0.0.1:${port}/v2/media/`))throw Error('Ban record or durable evidence not saved');
+   const media=await fetch(row.image);if(!media.ok||(await media.arrayBuffer()).byteLength!==68)throw Error('Durable evidence unavailable');
+   const updatedBan=await interact(command('ban','add',[player,reason]),actor,'32');
+   if(!text(updatedBan).includes('Ban record saved')||(await db.query('SELECT image FROM server_bans WHERE server_id=$1 AND player_tag=$2',[server,tag])).rows[0]?.image!==row.image)throw Error('Ban edit discarded evidence');
+   const list=await interact(command('ban','list'),actor,'32');
+   const refresh=list.components?.[0]?.components?.[0]?.custom_id;
+   if(!refresh||!text(list).includes(reason.value)||list.flags!==64)throw Error('Private ban list failed');
+   const otherClick=await interact({type:3,data:{custom_id:refresh,component_type:2}},other,'32');
+   if(!text(otherClick).includes('belongs to another user'))throw Error('Private moderation control crossed users');
+   const updated=await interact({type:3,data:{custom_id:refresh,component_type:2}},actor,'32');
+   if(!text(updated).includes(reason.value))throw Error('Moderation refresh failed');
+   await interact(command('ban','remove',[player]),actor,'32');
+   if((await db.query('SELECT 1 FROM server_bans WHERE server_id=$1',[server])).rowCount)throw Error('Ban was not removed');
+   const strike=await interact(command('strike','add',[player,reason,{name:'weight',type:4,value:3},{name:'expires_in',type:4,value:2}]),actor,'32');
+   const strikeRow=(await db.query('SELECT id,strike_weight,rollover_date FROM strikes WHERE server_id=$1',[server])).rows[0];
+   if(!text(strike).includes('Strike added')||strikeRow?.strike_weight!==3||!strikeRow.rollover_date)throw Error('Weighted expiring strike failed: '+text(strike));
+   await interact(command('strike','remove',[{name:'strike_id',type:3,value:strikeRow.id}]),actor,'32');
+   if((await db.query('SELECT 1 FROM strikes WHERE server_id=$1',[server])).rowCount)throw Error('Strike was not removed');
+   const links=await interact(command('link','list'));
+   if(!text(links).includes('Account'))throw Error('Grouped link list failed: '+text(links));
+   const modal=await interact(command('link','add'));
+   // interact returns response data; a modal has a custom_id instead of a message.
+   if(modal.custom_id!=='ck:link:submit')throw Error('Link add did not open modal');
+   await interact(command('link','remove',[player]));
+   if((await db.query('SELECT 1 FROM player_links WHERE user_id=$1 AND tag=$2',[actor,tag])).rowCount)throw Error('Grouped link removal did not unlink account');
+   console.log(JSON.stringify({moderation:'passed',checks:['signed permission gate','ban create/list/refresh/remove','durable image upload and retrieval','private refresh owner','weighted expiring strike create/remove','grouped link list and modal'],discordWrites:0}));
+  }finally{
+   await db.query('DELETE FROM server_bans WHERE server_id=$1',[server]);
+   await db.query('DELETE FROM strikes WHERE server_id=$1',[server]);
+   await db.query('DELETE FROM servers WHERE id=$1',[server]);
+  }
+ }else{
  const deniedReminder=await interact({type:2,data:{name:'reminders',options:[{name:'type',type:3,value:'War'},{name:'clan',type:3,value:group}]}});
  if(deniedReminder.flags!==64||!text(deniedReminder).includes('Manage Server permission is required'))throw Error('Manual reminder lost its signed Discord permission gate');
  const remind=(type)=>interact({type:2,data:{name:'reminders',options:[{name:'type',type:3,value:type},{name:'clan',type:3,value:group}]}},actor,'32');
@@ -170,6 +217,9 @@ try{
  console.log(JSON.stringify({checks:['manual reminder denied without Manage Server','current tournament from official profile and group','current group page2','other viewer public pagination and dropdown','35 retained seasons paginated','explicit historical season preserved','35 accounts paginated','30 saved armies paginated','page2 army selected without duplicate library'],providerRequests:live.length,ports:{api:port,bot:new URL(origin).port}}));
  }
  }
+ }
+}catch(error){
+ console.error(logs.slice(-8000));throw error;
 }finally{
  if(bot)await bot.dispose().catch(()=>{});if(api&&api.exitCode===null){api.kill('SIGTERM');await Promise.race([new Promise(r=>api.once('exit',r)),new Promise(r=>setTimeout(r,5000))]);}
  if(ownsRecords){await db.query('DELETE FROM ranked_league_group_members WHERE player_tag=$1',[tag]);await db.query('DELETE FROM player_links WHERE user_id=ANY($1::text[])',[[actor,other]]);await db.query('DELETE FROM auth_users WHERE user_id=ANY($1::text[])',[[actor,other]]);}await db.end();await new Promise(r=>provider.close(r));

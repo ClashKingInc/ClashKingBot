@@ -3,6 +3,8 @@ import { actionRow, legacyMessage } from "../discord/components";
 import { InteractionResponseType, InteractionType } from "../discord/types";
 import { localizations, translate } from "../localization/catalog";
 import { CommandInputError, OptionType, invokingUserId, normalizeTag, requireGuildId, stringOption } from "./command-utils";
+import { emojis, linkedAccounts, subcommand } from "./game-common";
+import { playerAccountsReply } from "./player-profile";
 import { modalFields, textField } from "./modals";
 import type { Command, CommandContext, ComponentHandler } from "./types";
 
@@ -11,12 +13,29 @@ interface LinksResponse { items: Array<{ player_tag: string; is_verified: boolea
 
 export const linkCommand: Command = {
   ephemeral: true,
+  deferred: (context) => [...context.options.values()].some(option => option.name === "remove" || option.name === "list"),
   definition: {
     contexts: [0], integration_types: [0], name: "link", type: 1,
     name_localizations: localizations("link.name"),
     description: translate("link.description"), description_localizations: localizations("link.description"),
+    options: [
+      { name: "add", description: "Verify and link a Clash of Clans account", type: OptionType.Subcommand },
+      { name: "remove", description: "Remove one of your linked accounts", type: OptionType.Subcommand, options: [
+        { name: "player", description: "Your linked player", type: OptionType.String, required: true, autocomplete: true },
+      ] },
+      { name: "list", description: "List your linked accounts", type: OptionType.Subcommand },
+    ],
   },
-  async execute(context) { return linkModal(context); },
+  async autocomplete(context) { return unlinkCommand.autocomplete!(subcommand(context)); },
+  async execute(context) {
+    // Old cached /link invocations and persistent Link buttons still open the
+    // modal. Only data-fetching subcommands defer; modals must answer promptly.
+    if (!context.options.size) return linkModal(context);
+    const ctx = subcommand(context);
+    if (ctx.path[0] === "remove") return unlinkCommand.execute(ctx);
+    if (ctx.path[0] === "list") return playerAccountsReply(ctx, (await linkedAccounts(ctx)).filter(account=>!account.hidden), await emojis(ctx));
+    return linkModal(ctx);
+  },
 };
 
 function linkModal(context: CommandContext) {

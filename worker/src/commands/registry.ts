@@ -22,13 +22,16 @@ import { rankedCommand } from "./ranked";
 import { legendsCommand } from "./legends";
 import { leaderboardCommand } from "./leaderboard";
 import { armyCommand } from "./army";
+import { banCommand, strikeCommand, dispatchModeration } from "./moderation";
 import { familyCommand } from "./family";
 import { clanCommand } from "./clan";
 import { dispatchGamePage } from "./game-pages";
 import type { Command, CommandContext, CommandServices, ComponentHandler } from "./types";
 
-const commands: readonly Command[] = [baseCommand, linkCommand, unlinkCommand, rosterCommand, refreshCommand, mainAccountCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand, familyCommand];
+const commands: readonly Command[] = [baseCommand, linkCommand, rosterCommand, refreshCommand, mainAccountCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand, familyCommand, banCommand, strikeCommand];
 const commandByName = new Map(commands.map((command) => [command.definition.name, command]));
+// Retain cached legacy invocations without registering a separate slash root.
+commandByName.set("unlink", unlinkCommand);
 const componentHandlers = new Map<string, ComponentHandler>([
   ...baseComponentHandlers,
   ...linkComponentHandlers,
@@ -81,7 +84,8 @@ async function executeCommand(
   if (!command) {
     return unknownInteraction(context.locale);
   }
-  if (!command.deferred || !waitUntil) {
+  const deferred = typeof command.deferred === "function" ? command.deferred(context) : command.deferred;
+  if (!deferred || !waitUntil) {
     return command.execute(context);
   }
   waitUntil(command.execute(context).then(
@@ -118,6 +122,7 @@ async function executePersistentHandler(
       data: { ...context.interaction.data, custom_id: `ck:page:lh:${invokingUserId(context)}:${tag}:0` },
     } }, waitUntil);
   }
+  if(customId.startsWith("ck:moderation:"))return dispatchModeration(context,waitUntil);
   if(customId.startsWith("ck:page:"))return dispatchGamePage(context,waitUntil);
   if (customId.startsWith("ck:refresh:")) return dispatchRefresh(context, waitUntil);
   if (customId.startsWith("ck:roster:")) return dispatchRoster(context, waitUntil);
