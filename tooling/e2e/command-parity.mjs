@@ -502,14 +502,43 @@ try{
    if(!text(blocked).includes('blocked change')||memberRoles.has(newRole))throw Error('Role hierarchy was bypassed');
    roleDefinitions.find(role=>role.id===newRole).position=2;
    memberRoles.add(oldRole);
-   await db.query('UPDATE servers SET autoeval_enabled=true,auto_eval_nickname=false WHERE id=$1',[roleServer]);
+   const settings=async(body,credential=keys.API_BOT_TOKEN)=>{
+    const response=await fetch(`http://127.0.0.1:${port}/v2/server/${roleServer}/role-settings`,{method:'PATCH',headers:{authorization:`Bearer ${credential}`,'content-type':'application/json'},body:JSON.stringify(body)});
+    const value=await response.json();if(response.status!==200)throw Error('Settings update failed: '+response.status+' '+JSON.stringify(value));return value;
+   };
+   // Exercise the actual settings endpoint, not a direct queue fixture. Enabling
+   // automatic evaluation must reconcile existing members without a game event.
+   await db.query('INSERT INTO discord_cache.members(guild_id,user_id,data) VALUES($1,$2,$3)',[roleServer,app,JSON.stringify({user:{id:app,bot:true},roles:[]})]);
+   await settings({auto_eval_status:true,auto_eval_nickname:false});
    const jobId=`auto:${roleServer}:${actor}`;
-   await db.query('INSERT INTO role_refresh_jobs(id,server_id,user_id) VALUES($1,$2,$3)',[jobId,roleServer,actor]);
+   let queued=(await db.query('SELECT revision,grace_until FROM role_refresh_jobs WHERE id=$1',[jobId])).rows[0];
+   if(!queued||(await db.query('SELECT 1 FROM role_refresh_jobs WHERE server_id=$1 AND user_id=$2',[roleServer,app])).rowCount)throw Error('Settings did not queue humans only');
+   await settings({auto_eval_status:true,auto_eval_nickname:false});
+   if((await db.query('SELECT revision FROM role_refresh_jobs WHERE id=$1',[jobId])).rows[0]?.revision!==queued.revision)throw Error('Unchanged settings requeued members');
+   await db.query("UPDATE role_refresh_jobs SET grace_until=now()+interval '10 minutes',due_at=now()+interval '10 minutes' WHERE id=$1",[jobId]);
+   await settings({nickname_rule:'Test {player_name}',non_family_nickname_rule:'Test {player_name}'});
+   queued=(await db.query('SELECT revision,grace_until,due_at FROM role_refresh_jobs WHERE id=$1',[jobId])).rows[0];
+   if(Number(queued.revision)!==2||!queued.grace_until||new Date(queued.due_at).getTime()!==new Date(queued.grace_until).getTime())throw Error('Settings bypassed pending leave grace');
+   await settings({auto_eval_status:false});
+   if((await db.query('SELECT revision FROM role_refresh_jobs WHERE id=$1',[jobId])).rows[0]?.revision!==queued.revision)throw Error('Disabled automation queued work');
+   await settings({auto_eval_status:true});
+   await db.query('UPDATE role_refresh_jobs SET grace_until=NULL,due_at=now() WHERE id=$1',[jobId]);
    const scheduled=await (await bot.getWorker()).scheduled({cron:'* * * * *'});
    console.log('Scheduled response',scheduled);
    await wait(async()=>Boolean((await db.query('SELECT completed_at FROM role_refresh_jobs WHERE id=$1',[jobId])).rows[0]?.completed_at),'automatic refresh completion').catch(async error=>{console.log('Synthetic job status',(await db.query('SELECT attempts,completed_at,result,due_at FROM role_refresh_jobs WHERE id=$1',[jobId])).rows);throw error;});
    if(!memberRoles.has(newRole)||memberRoles.has(oldRole)||scheduled.outcome!=='ok')throw Error('Scheduled role refresh failed');
-   console.log(JSON.stringify({roleRefresh:'passed',checks:['actual signed command/API/SQL flow','null nickname defaults','preview performs no Discord edits','role add/remove preserves unmanaged role','repeat no-op','role hierarchy protection','scheduled automatic job completion'],externalDiscordWrites:0,localProviderWrites:roleWrites.length}));
+   const previousNickname=nickname;
+   await settings({auto_eval_nickname:true});
+   const renewed=(await db.query('SELECT completed_at,grace_until FROM role_refresh_jobs WHERE id=$1',[jobId])).rows[0];
+   if(renewed.completed_at||renewed.grace_until)throw Error('Completed refresh was not reopened');
+   await (await bot.getWorker()).scheduled({cron:'* * * * *'});
+   await wait(async()=>Boolean((await db.query('SELECT completed_at FROM role_refresh_jobs WHERE id=$1',[jobId])).rows[0]?.completed_at),'automatic nickname completion');
+   if(nickname===previousNickname||!nickname.startsWith('Test '))throw Error('Changed nickname settings were not applied by scheduled consumer');
+   const revision=(await db.query('SELECT revision FROM role_refresh_jobs WHERE id=$1',[jobId])).rows[0].revision;
+   const cosmetic=await fetch(`http://127.0.0.1:${port}/v2/server/${roleServer}/settings`,{method:'PATCH',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({embed_color:123456})});
+   if(!cosmetic.ok)throw Error('Cosmetic settings failed: '+await cosmetic.text());
+   if((await db.query('SELECT revision FROM role_refresh_jobs WHERE id=$1',[jobId])).rows[0]?.revision!==revision)throw Error('Cosmetic settings unnecessarily queued roles');
+   console.log(JSON.stringify({roleRefresh:'passed',checks:['actual signed command/API/SQL flow','null nickname defaults','preview performs no Discord edits','role add/remove preserves unmanaged role','repeat no-op','role hierarchy protection','settings enable enqueues human members','unchanged settings no-op','leave grace retained','disabled settings do not enqueue','scheduled automatic job completion','completed job reopened','new nickname applied automatically','cosmetic settings do not enqueue'],externalDiscordWrites:0,localProviderWrites:roleWrites.length}));
   }finally{
    await db.query('DELETE FROM servers WHERE id=$1',[roleServer]);
    await db.query('DELETE FROM discord_cache.members WHERE guild_id=$1',[roleServer]);
