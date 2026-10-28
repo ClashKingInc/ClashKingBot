@@ -4,6 +4,7 @@ import { playerCommand } from "./player";
 import { rankedCommand } from "./ranked";
 import { legendsCommand } from "./legends";
 import { leaderboardCommand } from "./leaderboard";
+import { familyCommand } from "./family";
 import { clanCommand } from "./clan";
 import type { Command, CommandContext } from "./types";
 
@@ -19,7 +20,14 @@ export async function dispatchGamePage(ctx: CommandContext, waitUntil?: (promise
   let command:Command,action:string,options:InteractionOption[];
   const string=(name:string,value:string):InteractionOption=>({name,type:OptionType.String,value});
   const tag=(value:string|undefined)=>{if(!value||!/^#[0289PYLQGRJCUV]+$/u.test(value))throw new CommandInputError("Invalid player tag.");return value;};
-  if(kind==="cl"&&parts.length===9&&["o","d","O","D","vo","vd"].includes(parts[1]!)&&["m","a"].includes(parts[7]!)&&["d","b","m"].includes(parts[8]!)){
+  if((kind==="fm"&&parts.length===7)||(kind==="cg"&&parts.length===8)){
+    const values=kind==="cg"?parts.slice(1):parts;
+    if(!["donations","games"].includes(values[0]!)||!["asc","desc"].includes(values[3]!)||!["m","a"].includes(values[6]!))throw new CommandInputError("Invalid contribution report.");
+    command=kind==="fm"?familyCommand:clanCommand;action=values[0]==="games"?"games":"donations";
+    options=[{name:"limit",type:OptionType.Integer,value:Number(values[2])},string("sort_order",values[3]!),{name:"townhall",type:OptionType.Integer,value:Number(values[4])},string("sort_by",values[5]!),{name:"current_members",type:OptionType.Boolean,value:values[6]==="m"}];
+    if(kind==="cg")options.push(string("clan",tag(parts[0])));
+    if(values[1]!=="current")options.push(string("season",values[1]!));
+  }else if(kind==="cl"&&parts.length===9&&["o","d","O","D","vo","vd"].includes(parts[1]!)&&["m","a"].includes(parts[7]!)&&["d","b","m"].includes(parts[8]!)){
     command=clanCommand;action=parts[1]!.toLowerCase().endsWith("d")?"donations":"search";
     options=[string("clan",tag(parts[0])),string("sort_by",parts[5]!),string("sort_order",parts[6]!),{name:"townhall",type:OptionType.Integer,value:Number(parts[3])},{name:"limit",type:OptionType.Integer,value:Number(parts[4])}];
     options.push(string("__members_only",String(parts[7]==="m")));

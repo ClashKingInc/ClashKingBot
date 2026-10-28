@@ -1,3 +1,4 @@
+import { contributionOptions, contributionReport } from "./contribution-report";
 import { actionRow, legacyMessage } from "../discord/components";
 import { CommandInputError, invokingUserId, normalizeTag, OptionType, stringOption } from "./command-utils";
 import { compact, emojis, escapeMarkdown, fetchPlayer, subcommand } from "./game-common";
@@ -16,6 +17,7 @@ const clanOption={name:"clan",description:"Clan tag or name",type:OptionType.Str
 export const clanCommand:Command={
  deferred:true,
  definition:{name:"clan",description:"Clan overview and season donations",type:1,integration_types:[0,1],contexts:[0,1,2],options:[
+  {name:"games",description:"Current Clan Games points for clan members",type:OptionType.Subcommand,options:[clanOption,...contributionOptions]},
   {name:"search",description:"View a clan overview",type:OptionType.Subcommand,options:[clanOption,{name:"type",description:"Overview style (default Detailed)",type:OptionType.String,choices:[{name:"Detailed",value:"d"},{name:"Basic",value:"b"},{name:"Minimalistic",value:"m"}]}]},
   {name:"donations",description:"View current or historical clan donations",type:OptionType.Subcommand,options:[clanOption,
    {name:"season",description:"Season YYYY-MM (defaults to current)",type:OptionType.String},
@@ -39,6 +41,7 @@ export const clanCommand:Command={
  async execute(context){
   const ctx=subcommand(context),raw=stringOption(ctx,"clan");if(!raw)throw new CommandInputError("Choose a clan or enter its tag.");
   const tag=normalizeTag(raw,ctx.locale),view=ctx.path[0]==="donations"?"d":"o";
+  if(ctx.path[0]==="games")return contributionReport(ctx,[await ctx.services.api.get<Clan>(`/v2/bot/clash/clans/${encodeURIComponent(tag)}`)],"games",false);
   const membersOnly=ctx.options.get("current_members")?.value===true||stringOption(ctx,"__members_only")==="true";
   const style=stringOption(ctx,"type")??"d";
   if(!["d","b","m"].includes(style))throw new CommandInputError("Choose a valid overview style.");
