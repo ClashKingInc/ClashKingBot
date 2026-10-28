@@ -173,6 +173,7 @@ export function latestWar(wars: War[], tag: string) {
 export async function loadCurrentWar(
   ctx: CommandContext,
   tag: string,
+  warCache = new Map<string, Promise<War[]>>(),
 ): Promise<{ war?: War; privateLog: boolean; cwl: boolean }> {
   let current: War | null = null,
     privateLog = false;
@@ -220,7 +221,7 @@ export async function loadCurrentWar(
         return { war: candidate, privateLog, cwl: false };
     }
   }
-  const cwl = await loadCwl(ctx, tag),
+  const cwl = await loadCwl(ctx, tag, undefined, warCache),
     war = cwl && latestWar(cwl.wars, tag);
   return { war: war || undefined, privateLog, cwl: !!war };
 }

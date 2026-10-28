@@ -20,7 +20,18 @@ export async function dispatchGamePage(ctx: CommandContext, waitUntil?: (promise
   let command:Command,action:string,options:InteractionOption[];
   const string=(name:string,value:string):InteractionOption=>({name,type:OptionType.String,value});
   const tag=(value:string|undefined)=>{if(!value||!/^#[0289PYLQGRJCUV]+$/u.test(value))throw new CommandInputError("Invalid player tag.");return value;};
-  if((kind==="fm"&&parts.length===7)||(kind==="cg"&&parts.length===8)){
+  if(kind==="fd"&&parts.length===5&&["clans","stats"].includes(parts[0]!)){
+    command=familyCommand;action=parts[0]!;
+    options=[string("type",parts[1]!),{name:"limit",type:OptionType.Integer,value:Number(parts[2])},string("sort_order",parts[3]!)];
+    if(parts[4]!=="current")options.push(string("season",parts[4]!));
+  }else if(kind==="fo"&&parts.length===4&&["wars","raids"].includes(parts[0]!)){
+    command=familyCommand;action=parts[0]!;
+    options=[{name:"limit",type:OptionType.Integer,value:Number(parts[1])},string("sort_order",parts[2]!)];
+    if(action==="wars"){
+      if(!["yes","no"].includes(parts[3]!))throw new CommandInputError("Invalid war report.");
+      options.push({name:"include_ended",type:OptionType.Boolean,value:parts[3]==="yes"});
+    }else if(parts[3]!=="current")options.push(string("weekend",parts[3]!));
+  }else if((kind==="fm"&&parts.length===7)||(kind==="cg"&&parts.length===8)){
     const values=kind==="cg"?parts.slice(1):parts;
     if(!["donations","games"].includes(values[0]!)||!["asc","desc"].includes(values[3]!)||!["m","a"].includes(values[6]!))throw new CommandInputError("Invalid contribution report.");
     command=kind==="fm"?familyCommand:clanCommand;action=values[0]==="games"?"games":"donations";
