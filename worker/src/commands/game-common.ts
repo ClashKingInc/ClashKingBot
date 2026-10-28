@@ -128,5 +128,5 @@ export async function pagedGameReply(ctx: CommandContext, title: string, entries
   return response;
 }
 export const emojis = (ctx: CommandContext) => applicationEmojis(ctx.services.discordRest);
-/** Legend days reset at 05:10 UTC, independent of the user's timezone. */
-export function legendDay(now = Date.now()): string { return new Date(now - (5 * 60 + 10) * 60_000).toISOString().slice(0, 10); }
+/** Legend days reset at 05:00 UTC, independent of the user's timezone. */
+export function legendDay(now = Date.now()): string { return new Date(now - 5 * 60 * 60_000).toISOString().slice(0, 10); }
