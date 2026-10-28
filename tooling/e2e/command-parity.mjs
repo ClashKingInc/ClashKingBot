@@ -38,6 +38,7 @@ const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
 let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
+const giveawayMode=process.argv.includes("--giveaway-only");
 const graphMode=process.argv.includes("--graph-month-only");let graphFailure=false,graphGap=false;
 const warPanelMode=process.argv.includes("--war-panel-only");
 const roleUsersMode=process.argv.includes("--role-users-only");
@@ -198,7 +199,45 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(graphMode){
+ if(giveawayMode){
+  const server='999999999999996510',foreign='999999999999996512',id='local-reroll-fixture',outsider='local-reroll-foreign';
+  const eligible='999999999999996504',zero='999999999999996505';
+  if((await db.query('SELECT 1 FROM servers WHERE id=ANY($1::text[])',[[server,foreign]])).rowCount)throw Error('Giveaway test scope exists');
+  await db.query("INSERT INTO servers(id,name) VALUES($1,'Giveaway fixture'),($2,'Foreign giveaway')",[server,foreign]);
+  try{
+   await db.query(`INSERT INTO giveaways(id,server_id,prize,status,start_time,end_time,winners,entries,winners_list,channel_id,message_id)
+    VALUES($1,$2,'Local prize','ended',now()-interval '2 hours',now()-interval '1 hour',1,$3::jsonb,$4::jsonb,'999999999999996511','999999999999996599')`,[id,server,JSON.stringify([actor,eligible,zero]),JSON.stringify([{user_id:actor,status:'winner'}])]);
+   await db.query(`INSERT INTO giveaway_outcome_runs(giveaway_id,server_id,channel_id,start_time,end_time,source_updated_at,winner_count,boosters,entry_count,cursor,state)
+    SELECT id,server_id,channel_id,start_time,end_time,updated_at,winners,'[]'::jsonb,3,3,'completed' FROM giveaways WHERE id=$1`,[id]);
+   await db.query(`INSERT INTO giveaway_outcome_entries(run_id,user_id,ordinal,weight,score)
+    SELECT id,x.user_id,x.ordinal,x.weight,0 FROM giveaway_outcome_runs CROSS JOIN (VALUES($2::text,1,5),($3::text,2,2),($4::text,3,0)) x(user_id,ordinal,weight) WHERE giveaway_id=$1`,[id,actor,eligible,zero]);
+   await db.query(`INSERT INTO giveaway_publication_effects(effect_id,giveaway_id,server_id,channel_id,kind,start_time,source_updated_at,payload_version,payload,state)
+    SELECT encode(sha256(id::bytea),'hex'),id,server_id,channel_id,'end',start_time,updated_at,1,'{}'::jsonb,'succeeded' FROM giveaways WHERE id=$1`,[id]);
+   await db.query(`INSERT INTO giveaways(id,server_id,prize,status,start_time,end_time,winners,entries,winners_list)
+    VALUES($1,$2,'Foreign prize','ended',now()-interval '2 hours',now()-interval '1 hour',1,$3::jsonb,$4::jsonb)`,[outsider,foreign,JSON.stringify([actor,eligible]),JSON.stringify([{user_id:actor,status:'winner'}])]);
+   const opts=[{name:'giveaway',type:3,value:id},{name:'winners',type:3,value:`<@${actor}>`},{name:'reason',type:3,value:'Winner could not claim prize'}];
+   const denied=await interact(command('giveaway','reroll',opts),actor,'0');if(!text(denied).includes('Manage Server'))throw Error('Giveaway permission bypass');
+   const invalid=await interact(command('giveaway','reroll',[opts[0],{name:'winners',type:3,value:`<@${actor}> <@${actor}>`}]),actor,'32');if(!text(invalid).includes('distinct'))throw Error('Duplicate replacement accepted');
+   const cross=await interact(command('giveaway','reroll',[{...opts[0],value:outsider},opts[1]]),actor,'32');if(!text(cross).includes('not found'))throw Error('Cross-server reroll accepted '+text(cross));
+   const replaced=await interact(command('giveaway','reroll',opts),actor,'32');if(!text(replaced).includes(eligible)||text(replaced).includes(`<@${zero}>`))throw Error('Weighted reroll failed '+text(replaced));
+   const winners=(await db.query('SELECT winners_list FROM giveaways WHERE id=$1',[id])).rows[0].winners_list;
+   if(winners.find(x=>x.user_id===actor)?.reason!=='Winner could not claim prize'||winners.find(x=>x.user_id===eligible)?.status!=='winner')throw Error('Reroll history not persisted');
+   const effects=(await db.query("SELECT payload FROM giveaway_publication_effects WHERE giveaway_id=$1 AND kind='reroll'",[id])).rows;
+   if(effects.length!==1||effects[0].payload.reason!=='Winner could not claim prize'||effects[0].payload.actor_label!=='Discord')throw Error('Reroll publication missing reason/source');
+   const repeat=await interact(command('giveaway','reroll',opts),actor,'32');if(!text(repeat).includes('not a current winner'))throw Error('Repeat rerolled old winner');
+   const counts=(await db.query("SELECT count(*)::int n FROM giveaway_publication_effects WHERE giveaway_id=$1 AND kind='reroll'",[id])).rows[0].n;if(counts!==1)throw Error('Repeat queued duplicate announcement');
+   const imported='local-reroll-imported';
+   await db.query(`INSERT INTO giveaways(id,server_id,prize,status,start_time,end_time,winners,entries,winners_list,boosters)
+    VALUES($1,$2,'Imported prize','ended',now()-interval '2 hours',now()-interval '1 hour',1,$3::jsonb,$4::jsonb,$5::jsonb)`,[imported,server,JSON.stringify([actor,eligible]),JSON.stringify([{user_id:actor}]),JSON.stringify([{roles:['999999999999996599'],value:2}])]);
+   const importedOptions=[{...opts[0],value:imported},opts[1]];
+   const noWeights=await interact(command('giveaway','reroll',importedOptions),actor,'32');if(!text(noWeights).includes('no recorded booster weights'))throw Error('Imported boosted odds silently discarded '+text(noWeights));
+   await db.query("UPDATE giveaways SET boosters='[]'::jsonb WHERE id=$1",[imported]);
+   const fallback=await interact(command('giveaway','reroll',importedOptions),actor,'32');if(!text(fallback).includes(eligible))throw Error('Legacy winner without status not supported '+text(fallback));
+   await db.query("UPDATE giveaways SET status='ongoing' WHERE id=$1",[imported]);
+   const ongoing=await interact(command('giveaway','reroll',[{...opts[0],value:imported},{...opts[1],value:eligible}]),actor,'32');if(!text(ongoing).includes('ended giveaway'))throw Error('Ongoing reroll accepted');
+   console.log(JSON.stringify({giveawayReroll:'passed',checks:['manager permission','duplicate and foreign rejection','recorded positive weights','zero weight excluded','reason and history persisted','announcement queued','stale retry rejected','missing imported booster odds rejected','legacy unweighted import','ongoing rejected'],externalDiscordWrites:0}));
+  }finally{await db.query('DELETE FROM giveaway_publication_effects WHERE server_id=ANY($1::text[]) AND giveaway_id=ANY($2::text[])',[[server,foreign],[id,outsider,'local-reroll-imported']]);await db.query('DELETE FROM giveaways WHERE server_id=ANY($1::text[])',[[server,foreign]]);await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,foreign]]);}
+ }else if(graphMode){
   const server='999999999999996510',season='2025-01';
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic graph scope exists');
   await db.query("INSERT INTO servers(id,name) VALUES($1,'Graph fixture')",[server]);
