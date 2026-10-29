@@ -65,7 +65,7 @@ export async function familyOperations(ctx:CommandContext){
   const id=["ck","page","fo",invokingUserId(ctx),action,String(limit),order,action==="raids"?explicitWeekend??"current":includeEnded?"yes":"no","0"].join(":");
   return legacyMessage({allowed_mentions:{parse:[]},embeds:[{
     title:action==="raids"?`Family Raids · ${weekend}`:"Family Wars",color:await serverEmbedColor(ctx),
-    description:description||(action==="raids"?"No matching raid returned for this weekend.":"No active wars returned for these clans."),
-    footer:{text:`${shown}/${visible.length} report rows · ${clans.length} linked clans · ${inactive} ${action==="raids"?"without a matching recent raid":"without an included war"}${action==="raids"?" · Latest 10 API weekends checked":""}`},
+    description:description||(action==="raids"?"No raid data is available for this weekend.":"No active wars in these clans."),
+    footer:{text:`${shown}/${visible.length} clans${inactive?` · ${inactive} ${action==="raids"?"without raid data":"not in war"}`:""}`},
   }],components:[actionRow({type:2,style:2,label:"Refresh",custom_id:id})]});
 }

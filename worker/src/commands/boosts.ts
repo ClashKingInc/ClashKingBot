@@ -33,7 +33,7 @@ async function activeBoosts(ctx: CommandContext) {
   const report = await currentReportMembers(ctx, scope);
   const clanNames = new Map(report.clans.map(clan => [clan.tag, clan.name]));
   const rows: Array<{ tag: string; name: string; clan: string; troops: string[] }> = [];
-  let next = 0, checked = 0, unavailable = 0;
+  let next = 0, unavailable = 0;
   const deadline = AbortSignal.timeout(12_000);
   // Snapshot membership can lag a transfer. Only a current profile in one of
   // the requested clans establishes an active boost; failures never mean none.
@@ -43,7 +43,6 @@ async function activeBoosts(ctx: CommandContext) {
       try {
         const player = await ctx.services.api.get<{ tag: string; name: string; clan?: { tag: string; name: string }; troops?: Array<{ name: string; superTroopIsActive?: boolean }> }>(`/v2/bot/clash/players/${encodeURIComponent(member.tag)}`, {}, deadline);
         if (!Array.isArray(player.troops)) { unavailable++; continue; }
-        checked++;
         if (!player.clan || !clanNames.has(player.clan.tag)) continue;
         const active = [...new Set(player.troops.filter(unit => unit.superTroopIsActive === true && (!troop || unit.name.toLowerCase() === troop.toLowerCase())).map(unit => unit.name))].sort();
         if (active.length) rows.push({ tag: player.tag, name: player.name, clan: player.clan.name, troops: active });
@@ -64,6 +63,6 @@ async function activeBoosts(ctx: CommandContext) {
   return legacyMessage({ allowed_mentions: { parse: [] }, embeds: [{
     title: `${scope === "clan" ? clean(report.clans[0]?.name ?? "Clan") : "Family"} · ${troop ? clean(troop) : "Active Super Troops"}`,
     color, description: description || (unavailable || report.failedClans ? "No active boosts found in the available profiles. Coverage is incomplete." : "No active boosts found."),
-    footer: { text: `${shown}/${rows.length} boosted players shown · ${checked}/${report.members.length} profiles checked${unavailable ? ` · ${unavailable} unavailable` : ""}${report.failedClans ? ` · ${report.failedClans} clans unavailable` : ""}` },
+    footer: { text: `${shown}/${rows.length} players${unavailable || report.failedClans ? " · Some player data unavailable" : ""}` },
   }], components: [actionRow({ type: 2, style: 2, label: "Refresh", custom_id: customId })] });
 }

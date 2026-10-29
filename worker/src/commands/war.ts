@@ -334,7 +334,7 @@ async function warReply(
       .sort((a, b) => a.mapPosition - b.mapPosition)
       .slice(0, settings.limit)
       .map((member) => {
-        const head = `**#${member.mapPosition} ${escapeMarkdown(member.name)}** · TH${member.townhallLevel}`;
+        const head = `**#${member.mapPosition}** ${emoji.get(member.townhallLevel)} ${escapeMarkdown(member.name)}`;
         if (["roster", "opponent"].includes(settings.view)) return head;
         const attacks =
           settings.view === "attacks"
@@ -369,14 +369,14 @@ async function warReply(
     allowed_mentions: { parse: [] },
     embeds: [
       {
-        title: `${cwl ? "CWL" : "War"} · ${settings.view}`,
+        title: `${cwl ? "CWL" : "War"} · ${{overview:"Overview",attacks:"Attacks",defenses:"Defenses",roster:"Roster",opponent:"Opponent roster"}[settings.view] ?? settings.view}`,
         description,
         color: await serverEmbedColor(ctx),
         ...(own.badgeUrls?.large
           ? { thumbnail: { url: own.badgeUrls.large } }
           : {}),
         footer: {
-          text: `${war.teamSize}v${war.teamSize} · ${war.state}${round ? ` · Round ${round}` : ""}`,
+          text: `${war.teamSize}v${war.teamSize} · ${{preparation:"Preparation",inWar:"Battle day",warEnded:"War ended"}[war.state] ?? war.state}${round ? ` · Round ${round}` : ""}`,
         },
       },
     ],

@@ -39,5 +39,5 @@ export async function warPreference(ctx:CommandContext){
  }
  // Unknown profiles stay unknown, never silently counted as opted out. Stored
  // timers/history are observations; their absence does not establish eligibility.
- return legacyMessage({allowed_mentions:{parse:[]},content:view==="timer"?"Recorded war/CWL timers only. No timer does not prove a player is free to war.":undefined,embeds,components:[actionRow({type:2,style:2,label:"Refresh",custom_id:["ck","page","wp",invokingUserId(ctx),tag,view,status,String(hall),"0"].join(":")})]});
+ return legacyMessage({allowed_mentions:{parse:[]},content:view==="timer"?"Missing timers do not confirm war availability.":undefined,embeds,components:[actionRow({type:2,style:2,label:"Refresh",custom_id:["ck","page","wp",invokingUserId(ctx),tag,view,status,String(hall),"0"].join(":")})]});
 }

@@ -19,6 +19,6 @@ export const roleUsersCommand:Command={
   const controls=[button("Refresh",current)];
   if(current>0)controls.push(button("←",current-1));
   if(current<last)controls.push(button("→",current+1));
-  return legacyMessage({allowed_mentions:{parse:[]},embeds:[{title:`${clean(result.role.name)} · ${result.total} members`,color:await serverEmbedColor(ctx),description:result.items.map(member=>`${clean(member.name)} · <@${member.id}>`).join("\n")||"No members have this role.",footer:{text:`Page ${current+1}/${last+1} · Current Discord cache`}}],components:[actionRow(...controls)]});
+  return legacyMessage({allowed_mentions:{parse:[]},embeds:[{title:`${clean(result.role.name)} · ${result.total} members`,color:await serverEmbedColor(ctx),description:result.items.map(member=>`${clean(member.name)} · <@${member.id}>`).join("\n")||"No members have this role.",footer:{text:`Page ${current+1}/${last+1}`}}],components:[actionRow(...controls)]});
  },
 };

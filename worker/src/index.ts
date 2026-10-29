@@ -1,3 +1,4 @@
+import { normalizeMessageControls } from "./discord/message-controls";
 import { createServices } from "./services";
 import { drainRefreshJobs } from "./refresh/runtime";
 import { Effect } from "effect";
@@ -107,7 +108,7 @@ export default {
           try: () => dispatchInteraction(interaction, env, services, (promise) => executionContext.waitUntil(promise)),
         });
       }));
-      return json(response);
+      return json(response.data ? { ...response, data: await normalizeMessageControls(response.data, createServices(env).discordRest) } : response);
     } catch (error) {
       console.error("Interaction handler failed", {
         command: interaction.data?.name,

@@ -1,4 +1,4 @@
-import { warEvents, warEventsOptions } from "./war-events";
+import { withClanSelector } from "./clan-controls";
 import { activityOptions, activityReport } from "./activity";
 import { warPreference, warPreferenceOptions } from "./war-preference";
 import { seasonSummary, seasonSummaryOptions } from "./season-summary";
@@ -10,7 +10,6 @@ import { actionRow, legacyMessage } from "../discord/components";
 import { CommandInputError, invokingUserId, normalizeTag, OptionType, stringOption } from "./command-utils";
 import { compact, emojis, escapeMarkdown, fetchPlayer, subcommand } from "./game-common";
 import { serverEmbedColor } from "./embed-color";
-import { displayNameColumn } from "./display-width";
 import type { Command } from "./types";
 
 interface Member {tag:string;name:string;role?:string;townHallLevel?:number;donations?:number;donationsReceived?:number}
@@ -24,7 +23,6 @@ const clanOption={name:"clan",description:"Clan tag or name",type:OptionType.Str
 export const clanCommand:Command={
  deferred:true,
  definition:{name:"clan",description:"Clan overview and season donations",type:1,integration_types:[0,1],contexts:[0,1,2],options:[
-  {name:"war-events",description:"Configure automatic Discord events for clan wars",type:OptionType.Subcommand,options:[clanOption,...warEventsOptions]},
   {name:"activity",description:"Recorded activity and current-season last online",type:OptionType.Subcommand,options:[clanOption,...activityOptions]},
   {name:"war-preference",description:"Current war preferences and recorded history/timers",type:OptionType.Subcommand,options:[clanOption,...warPreferenceOptions]},
   {name:"summary",description:"Season summary for current members",type:OptionType.Subcommand,options:[clanOption,...seasonSummaryOptions]},
@@ -54,12 +52,14 @@ export const clanCommand:Command={
   const result=await ctx.services.api.get<{items:Array<{name:string;tag:string;clanLevel:number}>}>("/v2/clan/search",{query,limit:25});
   return result.items.map(clan=>({name:`${clan.name} | Lv${clan.clanLevel} | ${clan.tag}`.slice(0,100),value:clan.tag}));
  },
- async execute(context){
+ async execute(context){ return withClanSelector(context, await renderClan(context)); },
+};
+async function renderClan(context: Parameters<Command["execute"]>[0]){
   const ctx=subcommand(context);
   // Discord can retain removed command definitions until registration updates.
   // Reject unknown subcommands instead of falling through to a clan overview.
+  if(ctx.path[0]==="war-events")throw new CommandInputError("War event setup is managed in /dashboard.");
   if(ctx.path[0]&&!clanCommand.definition.options?.some(option=>option.name===ctx.path[0]))throw new CommandInputError("This clan command is no longer available.");
-  if(ctx.path[0]==="war-events")return warEvents(ctx);
   if(ctx.path[0]==="activity")return activityReport(ctx,"clan");
   if(ctx.path[0]==="war-preference")return warPreference(ctx);
   if(ctx.path[0]==="summary")return seasonSummary(ctx,"clan");
@@ -121,13 +121,16 @@ export const clanCommand:Command={
    const currentTags=new Set(clan.memberList.map(member=>member.tag));
    const filtered=all.filter(row=>(!hall||row.townHallLevel===hall)&&(!membersOnly||currentTags.has(row.tag)));
    filtered.sort((a,b)=>{const cmp=sort==="name"?a.name.localeCompare(b.name):Number(a[sort as "donated"|"received"|"townHallLevel"])-Number(b[sort as "donated"|"received"|"townHallLevel"]);return (order==="asc"?cmp:-cmp)||a.tag.localeCompare(b.tag);});
-   const selected=filtered.slice(0,limit);displayed=selected.length;
-   // Keep the Town Hall column before the name, using normal monospace digits.
-   description=selected.length?"` #  DON   REC  TH NAME         `\n"+selected.map((row,index)=>{
-    const name=displayNameColumn(row.name,13);
-    return `\u2066\`${String(index+1).padStart(2)} ${compact(row.donated).padStart(5)} ${compact(row.received).padStart(5)} ${(row.townHallLevel?String(row.townHallLevel):"?").padStart(2)} \u2068${name}\u2069\`\u2069`;
-   }).join("\n"):"No recorded donations for this season and filter.";
-   footer=`▲ ${compact(filtered.reduce((sum,row)=>sum+row.donated,0))}  ▼ ${compact(filtered.reduce((sum,row)=>sum+row.received,0))} · ${stats.season}${stats.truncated?" · Partial recorded data":""}`;
+   const rows: string[] = [];
+   for (const row of filtered.slice(0,limit)) {
+    const line = `**${rows.length+1}.** ${emoji.get(row.townHallLevel)} ${safe(row.name)} · ↑ **${compact(row.donated)}**  ↓ **${compact(row.received)}**`;
+    if (rows.join("\n").length + line.length + 1 > 3500) break;
+    rows.push(line);
+   }
+   displayed=rows.length;
+   description=rows.join("\n")||"No donations match this season and filter.";
+   footer=`${stats.season} · ${displayed}/${filtered.length} players · ↑ ${compact(filtered.reduce((sum,row)=>sum+row.donated,0))}  ↓ ${compact(filtered.reduce((sum,row)=>sum+row.received,0))}${membersOnly?" · Current members":""}${stats.truncated?" · Partial data":""}`;
+
   }
   const id=(mode:string,index:number,only=membersOnly)=>["ck","page","cl",invokingUserId(ctx),tag,mode,season,hall,limit,sort,order,only?"m":"a",style,index].join(":");
   const refresh=emoji.component("refresh");
@@ -135,6 +138,5 @@ export const clanCommand:Command={
    {type:2,style:2,...(refresh?{emoji:{id:refresh.id,name:refresh.name}}:{label:"Refresh"}),custom_id:id(view.toUpperCase(),0)},
    ...(view==="o"?[{type:2 as const,style:5 as const,label:"Open In-Game",url:clanUrl(tag)}]:[]),
   )];
-  return legacyMessage({allowed_mentions:{parse:[]},embeds:[{...(view==="o"?{title:clan.name}:{author:{name:`${clan.name} Top ${displayed} Donators`,...(clan.badgeUrls?.small?{icon_url:clan.badgeUrls.small}:{})}}),...(view==="o"&&clan.badgeUrls?.large?{thumbnail:{url:clan.badgeUrls.large}}:{}),color,description,...(fields.length?{fields}:{}),footer:{text:footer}}],components});
- },
-};
+  return legacyMessage({allowed_mentions:{parse:[]},embeds:[{...(view==="o"?{title:clan.name}:{author:{name:`${clan.name} · Donations`,...(clan.badgeUrls?.small?{icon_url:clan.badgeUrls.small}:{})}}),...(view==="o"&&clan.badgeUrls?.large?{thumbnail:{url:clan.badgeUrls.large}}:{}),color,description,...(fields.length?{fields}:{}),footer:{text:footer}}],components});
+}

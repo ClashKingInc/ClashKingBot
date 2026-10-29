@@ -1,3 +1,4 @@
+import { normalizeMessageControls } from "./message-controls";
 import type {
   DiscordApplicationEmoji,
   DiscordChannel,
@@ -90,7 +91,7 @@ export class DiscordRestClient {
     interactionToken: string,
     data: NonNullable<DiscordInteractionResponse["data"]>,
   ): Promise<void> {
-    const { __files, ...payload } = data;
+    const { __files, ...payload } = await normalizeMessageControls(data, this);
     let body: BodyInit = JSON.stringify(payload);
     if (Array.isArray(__files) && __files.length) {
       // Files are internal command output, never Discord JSON fields. Replace
@@ -113,7 +114,7 @@ export class DiscordRestClient {
 
   async createInteractionFollowup(interactionToken: string, data: NonNullable<DiscordInteractionResponse["data"]>): Promise<void> {
     await this.request<unknown>(`/webhooks/${this.#applicationId}/${interactionToken}`, {
-      body: JSON.stringify(data), method: "POST",
+      body: JSON.stringify(await normalizeMessageControls(data, this)), method: "POST",
     }, false);
   }
 
@@ -127,7 +128,7 @@ export class DiscordRestClient {
     data: Record<string, unknown>,
   ): Promise<void> {
     await this.request<unknown>(`/channels/${channelId}/messages/${messageId}`, {
-      body: JSON.stringify(data),
+      body: JSON.stringify(await normalizeMessageControls(data, this)),
       method: "PATCH",
     });
   }

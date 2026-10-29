@@ -3,8 +3,8 @@ import { actionRow, legacyMessage } from "../discord/components";
 import { InteractionResponseType, InteractionType } from "../discord/types";
 import { localizations, translate } from "../localization/catalog";
 import { CommandInputError, OptionType, invokingUserId, normalizeTag, requireGuildId, stringOption } from "./command-utils";
-import { emojis, linkedAccounts, subcommand } from "./game-common";
-import { playerAccountsReply } from "./player-profile";
+import { subcommand } from "./game-common";
+import { clanLinkList, clanLinksAutocomplete } from "./link-list";
 import { modalFields, textField } from "./modals";
 import type { Command, CommandContext, ComponentHandler } from "./types";
 
@@ -12,7 +12,7 @@ interface LinkResponse { account: { is_verified: boolean; tag: string } }
 interface LinksResponse { items: Array<{ player_tag: string; is_verified: boolean; player_name?: string; town_hall?: number }> }
 
 export const linkCommand: Command = {
-  ephemeral: true,
+  ephemeral: (context) => subcommand(context).path[0] !== "list",
   deferred: (context) => [...context.options.values()].some(option => option.name === "remove" || option.name === "list"),
   definition: {
     contexts: [0], integration_types: [0], name: "link", type: 1,
@@ -23,17 +23,19 @@ export const linkCommand: Command = {
       { name: "remove", description: "Remove one of your linked accounts", type: OptionType.Subcommand, options: [
         { name: "player", description: "Your linked player", type: OptionType.String, required: true, autocomplete: true },
       ] },
-      { name: "list", description: "List your linked accounts", type: OptionType.Subcommand },
+      { name: "list", description: "See a clan’s Discord links and unlinked members", type: OptionType.Subcommand, options: [
+        { name: "clan", description: "A clan linked to this server", type: OptionType.String, autocomplete: true },
+      ] },
     ],
   },
-  async autocomplete(context) { return unlinkCommand.autocomplete!(subcommand(context)); },
+  async autocomplete(context) { const ctx = subcommand(context); return ctx.path[0] === "list" ? clanLinksAutocomplete(ctx) : unlinkCommand.autocomplete!(ctx); },
   async execute(context) {
     // Old cached /link invocations and persistent Link buttons still open the
     // modal. Only data-fetching subcommands defer; modals must answer promptly.
     if (!context.options.size) return linkModal(context);
     const ctx = subcommand(context);
     if (ctx.path[0] === "remove") return unlinkCommand.execute(ctx);
-    if (ctx.path[0] === "list") return playerAccountsReply(ctx, (await linkedAccounts(ctx)).filter(account=>!account.hidden), await emojis(ctx));
+    if (ctx.path[0] === "list") return clanLinkList(ctx);
     return linkModal(ctx);
   },
 };

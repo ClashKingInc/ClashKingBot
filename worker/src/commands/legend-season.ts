@@ -64,7 +64,7 @@ export async function legendSeasonReply(ctx:CommandContext,player:Pick<Player,"n
       if(table.length+line.length>900){fields.push({name:"\u200b",value:`\`\`\`ansi\n${table}\`\`\``,inline:false});table="Day  Off   Def   Net\n";}
       table+=line;
     }
-    fields.push({name:"\u200b",value:days.length?`\`\`\`ansi\n${table}\`\`\``:"No tracked days yet.",inline:false});
+    fields.push({name:"\u200b",value:days.length?`\`\`\`ansi\n${table}\`\`\``:"No recorded days yet.",inline:false});
   }
   if(details){
     const hits=(items:LegendDayBattle[],icon:string)=>items.length?items.slice(0,8).map(hit=>{

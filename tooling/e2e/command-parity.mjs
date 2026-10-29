@@ -54,12 +54,15 @@ const warEventMode=process.argv.includes("--war-events-only");
 const quickPanelMode=process.argv.includes("--quick-panel-only");
 const rosterReadMode=process.argv.includes("--roster-commands-only")||quickPanelMode||warEventMode;let rosterProfileFailure=false;
 const helpMode=process.argv.includes("--help-only");
+const linksMode=process.argv.includes("--links-only");
 const warPreferenceMode=process.argv.includes("--war-preference-only");let warPreferenceFailure=false;
 const activityMode=process.argv.includes("--activity-only");
 const summaryMode=process.argv.includes("--summary-only");
 let summaryRaidStart=new Date();
 const progressMode=process.argv.includes("--progress-only");
 const clanReportMode=process.argv.includes("--clan-reports-only");
+const selectorControlsMode=process.argv.includes("--selector-controls-only");
+const pickerTags=[group,...tags.slice(0,30)];
 const familyOpsMode=process.argv.includes("--family-ops-only");
 let raidSkip=false,raidFailure=false;
 const raidFriday=new Date();raidFriday.setUTCDate(raidFriday.getUTCDate()-(raidFriday.getUTCDay()+2)%7);raidFriday.setUTCHours(7,0,0,0);if(raidFriday>new Date())raidFriday.setUTCDate(raidFriday.getUTCDate()-7);
@@ -91,6 +94,7 @@ const provider=createServer(async(req,res)=>{
   giveawayMessages.push(JSON.parse(text));return res.end(JSON.stringify({id:'999999999999996589',channel_id:'999999999999996511',timestamp:new Date().toISOString(),content:'',embeds:[]}));
  }
 
+ if(selectorControlsMode&&/^\/v1\/clans\/#[0289PYLQGRJCUV]+$/u.test(p)){const selected=p.split('/').at(-1);return res.end(JSON.stringify({tag:selected,name:'Picker Clan '+String(pickerTags.indexOf(selected)+1).padStart(2,'0'),clanLevel:18,members:0,clanPoints:0,memberList:[]}));}
  if(boostsMode&&p.startsWith('/v1/clans/'))return res.end(JSON.stringify({tag:p.split('/').at(-1),name:'Boost Clan',memberList:[{tag,name:'First',townHallLevel:16},{tag:tags[1],name:'Second',townHallLevel:16},{tag:tags[2],name:'Moved',townHallLevel:16}]}));
  if(boostsMode&&p.startsWith('/v1/players/')){
   const who=p.split('/').at(-1);
@@ -205,8 +209,10 @@ try{
     const form=await request.formData();data=JSON.parse(form.get('payload_json'));
     const file=form.get('files[0]');if(!file)throw Error('Missing poster attachment');
     const bytes=Buffer.from(await file.arrayBuffer());
-    const dimension=pepeMode?250:1600,height=pepeMode?250:1100;
+    const dimension=pepeMode?250:graphMode?1280:1600,height=pepeMode?250:graphMode?bytes.readUInt32BE(20):1100;
     if(bytes.subarray(0,8).toString('hex')!=='89504e470d0a1a0a'||bytes.readUInt32BE(16)!==dimension||bytes.readUInt32BE(20)!==height)throw Error('Invalid rendered PNG');
+    if(graphMode&&height<350)throw Error("Graph PNG is too short");
+    if(graphMode){data.imageHash=createHash("sha256").update(bytes).digest("hex");await (await import("node:fs/promises")).writeFile(`/private/tmp/clashking-graph-${token}.png`,bytes);}
     if(pepeMode){data.imageHash=createHash('sha256').update(bytes).digest('hex');data.imageName=file.name;}
     data.posterBytes=bytes.length;
    }else data=await request.json();replies.set(token,data);return Response.json({id:'999999999999996999'});
@@ -236,11 +242,11 @@ try{
   const run=query=>interact({type:2,data:{name:'fankit',options:[{name:'query',type:3,value:query}]}});
   const first=await run('archer & queen');
   if(first.embeds?.[0]?.title!=='Archer'||!first.embeds[0].footer.text.startsWith('1/2')||fankitQueries.at(-1)!=='archer & queen')throw Error('Fan-kit query encoding/filter mismatch '+text(first));
-  const controls=first.components[0].components;
-  if(!controls[0].disabled||controls[1].disabled||!controls[2].url.startsWith('https://media.ffycdn.net/'))throw Error('Fan-kit controls invalid');
-  const second=await interact({type:3,data:{custom_id:controls[1].custom_id,component_type:2}},other);
-  if(second.embeds?.[0]?.title!=='Queen'||!second.components[0].components[1].disabled)throw Error('Public fan-kit paging failed');
-  const emoji=second.components[0].components[3].custom_id;
+  const selector=first.components[0].components[0],controls=first.components[1].components;
+  if(selector.type!==3||selector.options.length!==2||!controls[0].url.startsWith('https://media.ffycdn.net/'))throw Error('Fan-kit controls invalid');
+  const second=await interact({type:3,data:{custom_id:selector.custom_id,component_type:3,values:['102']}},other);
+  if(second.embeds?.[0]?.title!=='Queen'||!second.components[0].components[0].options.find(item=>item.value==='102')?.default)throw Error('Public fan-kit selection failed');
+  const emoji=second.components[1].components[1].custom_id;
   const denied=await interact({type:3,data:{custom_id:emoji,component_type:2}},other,'0');if(!text(denied).includes('Create Expressions')||fankitWrites.length)throw Error('Emoji permission bypass');
   const created=await interact({type:3,data:{custom_id:emoji,component_type:2}},other,String(1n<<43n));
   if(created.flags!==64||!text(created).includes('Emoji added')||fankitWrites.length!==1||!fankitWrites[0].image.startsWith('data:image/png;base64,'))throw Error('Emoji upload failed '+text(created));
@@ -248,8 +254,8 @@ try{
   const missing=await interact({type:3,data:{custom_id:emoji.replace(/:102$/,':103'),component_type:2}},actor,'8');if(!text(missing).includes('no longer available')||fankitWrites.length!==1)throw Error('Unverified asset uploaded');
   fankitEmojiFailure=true;const failed=await interact({type:3,data:{custom_id:emoji,component_type:2}},actor,'8');if(!text(failed).includes('Could not add')||fankitWrites.length!==2)throw Error('Failed upload retried or hidden');fankitEmojiFailure=false;
   const empty=await run('empty');if(!text(empty).includes('No fan-kit images'))throw Error('Fan-kit empty state missing');
-  fankitFailure=true;const upstream=await interact({type:3,data:{custom_id:controls[1].custom_id,component_type:2}},other);if(upstream.flags!==64||upstream.embeds||!text(upstream).includes('unavailable'))throw Error('Upstream failure overwrote results');
-  console.log(JSON.stringify({fankit:'passed',checks:['actual Worker integration','encoded search','untrusted URLs excluded','public persistent paging','download URL','current clicker permission','canonical result verified before upload','emoji image bytes','256KiB streamed bound','no retry on uncertain creation','empty and failure states'],externalDiscordWrites:0}));
+  fankitFailure=true;const upstream=await interact({type:3,data:{custom_id:selector.custom_id,component_type:3,values:['102']}},other);if(upstream.flags!==64||upstream.embeds||!text(upstream).includes('unavailable'))throw Error('Upstream failure overwrote results');
+  console.log(JSON.stringify({fankit:'passed',checks:['actual Worker integration','encoded search','untrusted URLs excluded','public persistent image selector','download URL','current clicker permission','canonical result verified before upload','emoji image bytes','256KiB streamed bound','no retry on uncertain creation','empty and failure states'],externalDiscordWrites:0}));
  }else if(pepeMode){
   const run=(value,hidden)=>interact({type:2,data:{name:'pepe',options:[{name:'sign_text',type:3,value},...(hidden?[{name:'hidden',type:3,value:hidden}]:[])]}});
   const privateImage=await run('Hello clan');
@@ -260,6 +266,32 @@ try{
   const escaped=await run('<image href="https://example.com"/>','Yes');if(!escaped.posterBytes)throw Error('Escaped sign not rendered');
   for(const value of [' ', '\u0000', 'W'.repeat(41)]){const invalid=await run(value);if(invalid.posterBytes||!text(invalid).includes('1–40'))throw Error('Invalid sign accepted');}
   console.log(JSON.stringify({pepe:'passed',checks:['actual bundled PNG and font rendering','250px PNG attachment','private acknowledgement by default','public acknowledgement when requested','40-character unbroken text','XML escaped input','empty and over-limit rejection'],externalDiscordWrites:0}));
+ }else if(selectorControlsMode){
+  const server='999999999999996510';
+  if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[pickerTags])).rowCount)throw Error('Selector fixture already exists');
+  await db.query("INSERT INTO servers(id,name) VALUES($1,'Selector controls')",[server]);
+  try{
+   for(const [index,clan] of pickerTags.entries()){
+    await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,$2,true,0,0,'',0,0)",[clan,'Picker Clan '+String(index+1).padStart(2,'0')]);
+    await db.query('INSERT INTO server_clans(server_id,tag) VALUES($1,$2)',[server,clan]);
+   }
+   const initial=await interact(command('clan','donations',[{name:'clan',type:3,value:group},{name:'season',type:3,value:'2024-01'},{name:'current_members',type:5,value:true},{name:'townhall',type:4,value:18},{name:'limit',type:4,value:7},{name:'sort_by',type:3,value:'received'},{name:'sort_order',type:3,value:'asc'}]));
+   const picker=result=>result.components.flatMap(row=>row.components).find(control=>control.custom_id==='ck:clans:select');
+   const first=picker(initial);if(!first||first.options.length>25||!first.options.some(option=>option.value==='page:1'))throw Error('Clan selector has no bounded next page');
+   const click=(message,value)=>interact({type:3,message:{id:'999999999999997100',components:message.components},data:{custom_id:'ck:clans:select',component_type:3,values:[value]}},other);
+   const next=await click(initial,'page:1');const second=picker(next);if(second.options.length>25||!second.options.some(option=>option.value===pickerTags.at(-1)))throw Error('Clan selector lost clans after 25');
+   const switched=await click({...initial,components:next.components},pickerTags.at(-1));
+   const refresh=switched.components.flatMap(row=>row.components).find(control=>control.custom_id?.startsWith('ck:page:cl:'))?.custom_id;
+   if(!text(switched).includes('Picker Clan 31')||!refresh?.includes(':2024-01:18:7:received:asc:m:'))throw Error('Clan switch lost selected filters '+JSON.stringify(switched));
+   if(!picker(switched).options.some(option=>option.value===pickerTags.at(-1)&&option.default))throw Error('Selected clan page was reset');
+   await db.query('DELETE FROM server_clans WHERE server_id=$1 AND tag=$2',[server,pickerTags.at(-1)]);
+   const stale=await click({...initial,components:next.components},pickerTags.at(-1));if(stale.flags!==64||!text(stale).includes('no longer linked'))throw Error('Removed clan remained selectable');
+   const legend=await interact(command('legends','stats',[{name:'type',type:3,value:'cutoffs'},{name:'limit',type:4,value:3}]));
+   const stat=legend.components.flatMap(row=>row.components).find(control=>control.custom_id==='ck:legendstats:3');if(!stat||stat.options.length!==5)throw Error('Legend statistic selector missing');
+   const changed=await interact({type:3,data:{custom_id:stat.custom_id,component_type:3,values:['winners']}},other);if(!text(changed).includes('Legend Season Winners')||!changed.components.flatMap(row=>row.components).some(control=>control.custom_id==='ck:legendstats:3'))throw Error('Legend statistic switch lost type or limit');
+   const invalid=await interact({type:3,data:{custom_id:stat.custom_id,component_type:3,values:['not-valid']}},other);if(!text(invalid).includes('Choose a Legend statistic'))throw Error('Unknown Legend view accepted');
+   console.log(JSON.stringify({selectorControls:'passed',checks:['31 linked clans','at most 25 options','fixed next page','another member can switch','season/TH/limit/sort/member filter retained','selected page retained','removed clan rejected','Legend statistic switching','Legend limit retained','invalid view rejected'],externalDiscordWrites:0}));
+  }finally{await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[pickerTags]);}
  }else if(botInfoMode){
   const servers=['999999999999996510','999999999999996512','999999999999996513'],clans=[group,'#PYLQGRJJ'];
   if((await db.query('SELECT 1 FROM servers WHERE id=ANY($1::text[])',[servers])).rowCount||(await db.query('SELECT 1 FROM discord_cache.gateway_shards WHERE application_id=$1',[app])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[clans])).rowCount)throw Error('Bot status fixture exists');
@@ -271,16 +303,20 @@ try{
    await db.query('INSERT INTO server_clans(server_id,tag) VALUES($1,$4),($2,$4),($3,$5)',[...servers,...clans]);
    await db.query('INSERT INTO discord_cache.gateway_shards(application_id,shard_id,shard_count,generation,healthy,heartbeat_at) VALUES($1,0,2,$2,true,now()),($1,1,2,$2,true,now())',[app,generation]);
    await db.query("INSERT INTO discord_cache.guilds(id,data,application_id,shard_id,generation,available,metadata_complete,members_complete) VALUES($1,'{}',$3,0,$4,true,true,true),($2,'{}',$3,1,$5,true,true,true)",[servers[0],servers[1],app,generation,wrong]);
-   const current=await get();if(current.configuredServers!==before.configuredServers+2||current.familyClans!==before.familyClans+1||current.healthyShards!==2||current.readyGuilds!==1||current.cachedGuilds!==2||current.expectedShards!==2)throw Error('Status aggregation or generation fencing incorrect '+JSON.stringify(current));
+   await db.query("UPDATE discord_cache.guilds SET data=jsonb_build_object('member_count', CASE WHEN id=$2 THEN 12 ELSE 34 END) WHERE application_id=$1",[app,servers[0]]);
+   const current=await get();if(current.serverMembers!==46||current.tickets!==before.tickets)throw Error('Public bot counters are incorrect '+JSON.stringify(current));if(current.configuredServers!==before.configuredServers+2||current.familyClans!==before.familyClans+1||current.healthyShards!==2||current.readyGuilds!==1||current.cachedGuilds!==2||current.expectedShards!==2)throw Error('Status aggregation or generation fencing incorrect '+JSON.stringify(current));
    if(!Number.isFinite(Date.parse(current.countsRefreshedAt)))throw Error('Stored counts missing snapshot age');
    await db.query('UPDATE discord_cache.guilds SET generation=$2 WHERE id=$1',[servers[1],generation]);if((await get()).readyGuilds!==2)throw Error('Matching guild not ready');
    await db.query("UPDATE discord_cache.gateway_shards SET heartbeat_at=now()-interval '1 hour' WHERE application_id=$1 AND shard_id=1",[app]);
    const stale=await get();if(stale.healthyShards!==1||stale.readyGuilds!==1)throw Error('Stale gateway reported ready');
-   const first=await interact({type:2,data:{name:'bot'}});if(!text(first).includes('ClashKing statistics')||!text(first).includes('1/2 healthy')||text(first).includes('http://'))throw Error('Bot statistics response incorrect '+text(first));
-   const refresh=await interact({type:3,data:{custom_id:first.components[0].components[0].custom_id,component_type:2}},other);if(!text(refresh).includes('ClashKing statistics'))throw Error('Bot info refresh failed');
+   const first=await interact({type:2,data:{name:'bot'}});if(!text(first).includes('Statistics')||!text(first).includes('Shards online')||!text(first).includes('1 / 2')||text(first).includes('Readiness requires')||text(first).includes('http://'))throw Error('Bot statistics response incorrect '+text(first));
+   if(first.components[0].components[0].label||!first.components[0].components[0].emoji)throw Error('Bot refresh is not icon-only');
+   const links=first.components[0].components.filter(item=>item.style===5);if(!links.some(item=>item.label==='Bot Invite')||!links.some(item=>item.label==='Support Server'))throw Error('Missing legacy bot links');
+   await db.query("UPDATE discord_cache.guilds SET data='{}' WHERE id=$1",[servers[0]]);if((await get()).serverMembers!==undefined)throw Error('Partial member count presented as a total');
+   const refresh=await interact({type:3,data:{custom_id:first.components[0].components[0].custom_id,component_type:2}},other);if(!text(refresh).includes('Statistics'))throw Error('Bot info refresh failed');
    if((await fetch(`http://127.0.0.1:${port}/v2/bot/status`)).status!==401)throw Error('Bot status missing authentication');
    botInfoFailure=true;const failed=await interact({type:2,data:{name:'bot'}});if(!text(failed).includes('temporarily unavailable')||failed.embeds?.length)throw Error('Failed stats shown as zero');
-   console.log(JSON.stringify({botInfo:'passed',checks:['configured servers exclude left servers','family clans deduplicated','gateway generation fencing','heartbeat freshness','data timestamp','public refresh','API authentication','unavailable state'],externalDiscordWrites:0}));
+   console.log(JSON.stringify({botInfo:'passed',checks:['configured servers exclude left servers','family clans deduplicated','gateway generation fencing','heartbeat freshness','data timestamp','complete member count only','legacy invite and support links','icon-only public refresh','API authentication','unavailable state'],externalDiscordWrites:0}));
   }finally{await db.query('DELETE FROM discord_cache.guilds WHERE id=ANY($1::text[])',[servers]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[servers]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[clans]);}
  }else if(giveawayMode){
   const server='999999999999996510',foreign='999999999999996512',id='local-reroll-fixture',outsider='local-reroll-foreign';
@@ -298,11 +334,15 @@ try{
     SELECT encode(sha256(id::bytea),'hex'),id,server_id,channel_id,'end',start_time,updated_at,1,'{}'::jsonb,'succeeded' FROM giveaways WHERE id=$1`,[id]);
    await db.query(`INSERT INTO giveaways(id,server_id,prize,status,start_time,end_time,winners,entries,winners_list)
     VALUES($1,$2,'Foreign prize','ended',now()-interval '2 hours',now()-interval '1 hour',1,$3::jsonb,$4::jsonb)`,[outsider,foreign,JSON.stringify([actor,eligible]),JSON.stringify([{user_id:actor,status:'winner'}])]);
-   const opts=[{name:'giveaway',type:3,value:id},{name:'winners',type:3,value:`<@${actor}>`},{name:'reason',type:3,value:'Winner could not claim prize'}];
-   const denied=await interact(command('giveaway','reroll',opts),actor,'0');if(!text(denied).includes('Manage Server'))throw Error('Giveaway permission bypass');
-   const invalid=await interact(command('giveaway','reroll',[opts[0],{name:'winners',type:3,value:`<@${actor}> <@${actor}>`}]),actor,'32');if(!text(invalid).includes('distinct'))throw Error('Duplicate replacement accepted');
-   const cross=await interact(command('giveaway','reroll',[{...opts[0],value:outsider},opts[1]]),actor,'32');if(!text(cross).includes('not found'))throw Error('Cross-server reroll accepted '+text(cross));
-   const replaced=await interact(command('giveaway','reroll',opts),actor,'32');if(!text(replaced).includes(eligible)||text(replaced).includes(`<@${zero}>`))throw Error('Weighted reroll failed '+text(replaced));
+   const reroll=async(giveawayId,userIds=[actor],reason='Winner could not claim prize',auth=true)=>{
+    const response=await fetch(`http://127.0.0.1:${port}/v2/server/${server}/giveaways/${giveawayId}/reroll`,{method:'POST',headers:{'content-type':'application/json',...(auth?{authorization:`Bearer ${keys.API_BOT_TOKEN}`}:{})},body:JSON.stringify({user_ids_to_replace:userIds,reason})});
+    return {status:response.status,data:await response.json()};
+   };
+   const removed=await interact(command('giveaway','reroll',[]),actor,'32');if(!text(removed).includes('/dashboard'))throw Error('Removed giveaway command still available');
+   if((await reroll(id,[actor],undefined,false)).status!==401)throw Error('Giveaway API authentication bypass');
+   const invalid=await reroll(id,[actor,actor]);if(invalid.status<400)throw Error('Duplicate replacement accepted');
+   const cross=await reroll(outsider);if(cross.status!==404)throw Error('Cross-server reroll accepted '+JSON.stringify(cross));
+   const replaced=await reroll(id);if(replaced.status!==200||!JSON.stringify(replaced.data).includes(eligible)||JSON.stringify(replaced.data).includes(`"${zero}"`))throw Error('Weighted reroll failed '+JSON.stringify(replaced));
    const winners=(await db.query('SELECT winners_list FROM giveaways WHERE id=$1',[id])).rows[0].winners_list;
    if(winners.find(x=>x.user_id===actor)?.reason!=='Winner could not claim prize'||winners.find(x=>x.user_id===eligible)?.status!=='winner')throw Error('Reroll history not persisted');
    const effects=(await db.query("SELECT payload FROM giveaway_publication_effects WHERE giveaway_id=$1 AND kind='reroll'",[id])).rows;
@@ -319,24 +359,23 @@ try{
     const mentions=giveawayMessages[0].allowed_mentions;
     if(mentions.parse?.length||JSON.stringify(mentions.users)!==JSON.stringify([eligible]))throw Error('Unexpected announcement mentions');
    }
-   const repeat=await interact(command('giveaway','reroll',opts),actor,'32');if(!text(repeat).includes('not a current winner'))throw Error('Repeat rerolled old winner');
+   const repeat=await reroll(id);if(repeat.status<400||!JSON.stringify(repeat.data).includes('not a current winner'))throw Error('Repeat rerolled old winner');
    const counts=(await db.query("SELECT count(*)::int n FROM giveaway_publication_effects WHERE giveaway_id=$1 AND kind='reroll'",[id])).rows[0].n;if(counts!==1)throw Error('Repeat queued duplicate announcement');
    const imported='local-reroll-imported';
    await db.query(`INSERT INTO giveaways(id,server_id,prize,status,start_time,end_time,winners,entries,winners_list,boosters)
     VALUES($1,$2,'Imported prize','ended',now()-interval '2 hours',now()-interval '1 hour',1,$3::jsonb,$4::jsonb,$5::jsonb)`,[imported,server,JSON.stringify([actor,eligible]),JSON.stringify([{user_id:actor}]),JSON.stringify([{roles:['999999999999996599'],value:2}])]);
-   const importedOptions=[{...opts[0],value:imported},opts[1]];
-   const noWeights=await interact(command('giveaway','reroll',importedOptions),actor,'32');if(!text(noWeights).includes('no recorded booster weights'))throw Error('Imported boosted odds silently discarded '+text(noWeights));
+   const noWeights=await reroll(imported);if(noWeights.status<400||!JSON.stringify(noWeights.data).includes('no recorded booster weights'))throw Error('Imported boosted odds silently discarded '+JSON.stringify(noWeights));
    await db.query("UPDATE giveaways SET boosters='[]'::jsonb WHERE id=$1",[imported]);
-   const fallback=await interact(command('giveaway','reroll',importedOptions),actor,'32');if(!text(fallback).includes(eligible))throw Error('Legacy winner without status not supported '+text(fallback));
+   const fallback=await reroll(imported);if(fallback.status!==200||!JSON.stringify(fallback.data).includes(eligible))throw Error('Legacy winner without status not supported '+JSON.stringify(fallback));
    await db.query("UPDATE giveaways SET status='ongoing' WHERE id=$1",[imported]);
-   const ongoing=await interact(command('giveaway','reroll',[{...opts[0],value:imported},{...opts[1],value:eligible}]),actor,'32');if(!text(ongoing).includes('ended giveaway'))throw Error('Ongoing reroll accepted');
-   console.log(JSON.stringify({giveawayReroll:'passed',trackingDelivery:giveawayDeliveryMode?'passed':'not run',checks:['manager permission','duplicate and foreign rejection','recorded positive weights','zero weight excluded','reason and history persisted','announcement queued','stale retry rejected','missing imported booster odds rejected','legacy unweighted import','ongoing rejected'],externalDiscordWrites:0}));
+   const ongoing=await reroll(imported,[eligible]);if(ongoing.status<400||!JSON.stringify(ongoing.data).includes('ended giveaway'))throw Error('Ongoing reroll accepted');
+   console.log(JSON.stringify({giveawayReroll:'passed',trackingDelivery:giveawayDeliveryMode?'passed':'not run',checks:['removed command rejected','canonical API authentication','duplicate and foreign rejection','recorded positive weights','zero weight excluded','reason and history persisted','announcement queued','stale retry rejected','missing imported booster odds rejected','legacy unweighted import','ongoing rejected'],externalDiscordWrites:0}));
   }finally{await db.query('DELETE FROM giveaway_publication_effects WHERE server_id=ANY($1::text[]) AND giveaway_id=ANY($2::text[])',[[server,foreign],[id,outsider,'local-reroll-imported']]);await db.query('DELETE FROM giveaways WHERE server_id=ANY($1::text[])',[[server,foreign]]);await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,foreign]]);}
  }else if(graphMode){
   const server='999999999999996510',season='2025-01';
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic graph scope exists');
   await db.query("INSERT INTO servers(id,name) VALUES($1,'Graph fixture')",[server]);
-  let event,priorEvent,dailyOwned=false;const graphWarIds=[],graphRaidStarts=[],graphCapitalDates=[];const dailyPlayer=tags[10],dailyTime=new Date();dailyTime.setUTCDate(dailyTime.getUTCDate()-1);dailyTime.setUTCHours(12,0,0,0);
+  let event,priorEvent,dailyOwned=false;const graphWarIds=[],graphRaidStarts=[],graphCapitalDates=[],graphExtraTags=[];const dailyPlayer=tags[10],dailyTime=new Date();dailyTime.setUTCDate(dailyTime.getUTCDate()-1);dailyTime.setUTCHours(12,0,0,0);
   try{
    await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,'Alpha Clan',true,0,0,'',0,0),('#PYLQGRJJ','Beta Clan',true,0,0,'',0,0)",[group]);
    await db.query("INSERT INTO server_clans(tag,server_id) VALUES($1,$2),('#PYLQGRJJ',$2)",[group,server]);
@@ -344,22 +383,25 @@ try{
    await db.query("INSERT INTO player_stat_changes(player_tag,clan_tag,event_time,stat_type,previous_value,current_value,delta) VALUES($1,$2,$3,'donated',0,260,260),($4,'#PYLQGRJJ',$3,'donated',0,100,100)",[tag,group,event,tags[1]]);
    const prior=await(await fetch(`http://127.0.0.1:${port}/v2/bot/clans/${encodeURIComponent(group)}/season-stats?season=2024-12`,{headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`}})).json();priorEvent=new Date(Date.parse(prior.start)+86400000);
    await db.query("INSERT INTO player_stat_changes(player_tag,clan_tag,event_time,stat_type,previous_value,current_value,delta) VALUES($1,$2,$3,'donated',0,130,130)",[tag,group,priorEvent]);
+   const buttons=response=>response.components.flatMap(row=>row.components??[]);
+   const control=(response,suffix)=>buttons(response).find(item=>item.custom_id?.endsWith(':'+suffix));
+   const click=(response,suffix,value)=>interact({type:3,message:{id:'999999999999996577',components:response.components},data:{custom_id:control(response,suffix).custom_id,component_type:suffix==='refresh'?2:3,...(value===undefined?{}:{values:[value]})}},other);
+   const assertChart=response=>{if(!response.posterBytes||response.posterBytes<1000||!response.imageHash)throw Error('Missing real chart PNG '+text(response));if(response.content)throw Error('Chart duplicated data as text');for(const item of buttons(response)){if(item.custom_id?.length>100)throw Error('Oversized chart control');if(item.options?.length>25)throw Error('Oversized chart menu');}const refresh=control(response,'refresh');if(!refresh?.emoji||refresh.label)throw Error('Refresh must be icon-only');};
    const first=await interact(command('graph','month',[{name:'attribute',type:3,value:'donated'},{name:'season',type:3,value:season}]));
-   if(!first.posterBytes||!text(first).includes('Alpha Clan: 260')||!text(first).includes('Beta Clan: 100'))throw Error('Graph totals or PNG missing '+text(first));
+   assertChart(first);if(control(first,'metric').options.find(o=>o.default)?.value!=='donated')throw Error('Current chart metric not selected');
    const custom=await interact(command('graph','month',[{name:'attribute',type:3,value:'donated'},{name:'season',type:3,value:season},{name:'clans',type:3,value:group},{name:'limit',type:4,value:1}]));
-   if(!text(custom).includes(group+': 260')||text(custom).includes('Beta Clan:'))throw Error('Custom clan selection ignored');
-   const id=first.components[0].components[0].custom_id;
-   const refreshed=await interact({type:3,data:{custom_id:id}},other);
-   if(!refreshed.posterBytes||!text(refreshed).includes('260'))throw Error('Public chart refresh failed');
+   assertChart(custom);if(control(custom,'clan0').options.filter(o=>o.value.startsWith('#')).map(o=>o.value).join(',')!==group)throw Error('Custom clan selection ignored');
+   const refreshed=await click(first,'refresh');assertChart(refreshed);if(first.imageHash!==refreshed.imageHash)throw Error('Public chart refresh changed its scope');
+   const changed=await click(first,'metric','received');assertChart(changed);if(changed.imageHash===first.imageHash||control(changed,'metric').options.find(o=>o.default)?.value!=='received')throw Error('Metric switch failed');
+   const oneClan=await click(first,'clan',group);assertChart(oneClan);if(oneClan.imageHash===first.imageHash||!control(oneClan,'refresh').custom_id.includes(group.slice(1)))throw Error('Clan selection failed');
+   const customChanged=await click(custom,'metric','received');assertChart(customChanged);if(control(customChanged,'clan0').options.filter(o=>o.value.startsWith('#')).length!==1)throw Error('Custom scope lost on metric switch');
    const series=await interact(command('graph','over-time',[{name:'attribute',type:3,value:'donated'},{name:'season',type:3,value:season},{name:'months',type:4,value:2}]));
-   if(!series.posterBytes||!text(series).includes('130 → 260')||!text(series).includes('0 → 100'))throw Error('Multi-season contributions failed '+text(series));
+   assertChart(series);if(!control(series,'refresh').custom_id.includes(':2025-01:2:'))throw Error('Multi-season options lost');
    graphGap=true;
-   const seriesId=series.components[0].components[0].custom_id;
-   const gap=await interact({type:3,data:{custom_id:seriesId}},other);
-   if(!gap.posterBytes||!text(gap).includes('? → 260')||!text(gap).includes('1 observations unavailable'))throw Error('Missing season became zero '+text(gap));
+   const gap=await click(series,'refresh');assertChart(gap);if(gap.imageHash===series.imageHash)throw Error('Missing observation did not change chart');
    graphGap=false;
    graphFailure=true;const partial=await interact(command('graph','month',[{name:'attribute',type:3,value:'donated'},{name:'season',type:3,value:season}]));
-   if(text(partial).includes('Beta Clan:')||!partial.posterBytes)throw Error('Failed clan included as zero');
+   assertChart(partial);if(partial.imageHash===first.imageHash)throw Error('Failed clan did not change chart');graphFailure=false;
    if((await db.query('SELECT 1 FROM basic_player WHERE tag=$1',[dailyPlayer])).rowCount)throw Error('Daily player fixture already exists');
    await db.query("INSERT INTO basic_player(tag,name,clan_tag,townhall_level) VALUES($1,'Daily fixture','#PYLQGRJJ',16)",[dailyPlayer]);dailyOwned=true;
    await db.query("INSERT INTO player_change_history(event_time,player_tag,change_type,item_id,previous_value,current_value) VALUES($1,$2,1,0,'10','13'),($1,$2,1,1,'13','12'),($1,$2,1,2,'12','12'),($1,$2,2,0,'0','1'),($1,$2,12,NULL,'Old name','New name')",[dailyTime,dailyPlayer]);
@@ -375,13 +417,13 @@ try{
    for(const [metric,want] of [['activity',1],['warStars',17],['warsWon',1],['warsSpun',2]]){const value=await total(metric);if(value.status!==200||value.data.value!==want||value.data.basis!=='recorded_clan')throw Error('Extended event metric '+metric+' '+JSON.stringify(value));}
    if((await total('warStars','#PYLQGRJJ')).data.value!==17||(await total('warsWon','#PYLQGRJJ')).data.value!==1)throw Error('Opponent war perspective incorrect');
    if((await total('unsupported')).status!==400)throw Error('Unsupported graph metric accepted');
-   const more=await interact(command('graph','month',[{name:'attribute',type:3,value:'gold'},{name:'season',type:3,value:season}]));if(!more.posterBytes||!text(more).includes('Beta Clan: 150')||!text(more).includes('Latest stored clan members'))throw Error('Extended monthly graph failed '+text(more));
-   const moreSeries=await interact(command('graph','over-time',[{name:'attribute',type:3,value:'attackWins'},{name:'season',type:3,value:season},{name:'months',type:4,value:2}]));if(!moreSeries.posterBytes||!text(moreSeries).includes('Beta Clan: 0 → 1'))throw Error('Extended series failed '+text(moreSeries));
+   const more=await interact(command('graph','month',[{name:'attribute',type:3,value:'gold'},{name:'season',type:3,value:season}]));assertChart(more);
+   const moreSeries=await interact(command('graph','over-time',[{name:'attribute',type:3,value:'attackWins'},{name:'season',type:3,value:season},{name:'months',type:4,value:2}]));assertChart(moreSeries);
    console.log(JSON.stringify({extendedGraph:'passed',checks:['six latest-member metrics','four event/war metrics','opponent perspective','friendly wars excluded','unsupported metric rejected','monthly PNG and basis','series PNG']}));
    for(const [index,loot,participants,state] of [[0,1000,2,'ended'],[1,2000,3,'ended'],[2,9000,4,'ongoing']]){const start=new Date(+event+index*86400000);await db.query('INSERT INTO capital_raid_history(clan_tag,start_time,end_time,state,data) VALUES($1,$2,$3,$4,$5)',[group,start,new Date(+start+3*86400000),state,JSON.stringify({capitalTotalLoot:loot,members:Array.from({length:participants},(_,i)=>({tag:tags[i],attacks:1}))})]);graphRaidStarts.push(start);}
    if((await total('capitalRaided')).data.value!==3000||(await total('raidParticipants')).data.value!==2.5)throw Error('Raid graph totals or average incorrect');
    if((await total('capitalRaided','#PYLQGRJJ')).data.value!==null)throw Error('Missing raid history became zero');
-   const raidsChart=await interact(command('graph','month',[{name:'attribute',type:3,value:'raidParticipants'},{name:'season',type:3,value:season}]));if(!raidsChart.posterBytes||!text(raidsChart).includes('Alpha Clan: 2.5')||text(raidsChart).includes('Beta Clan:'))throw Error('Fractional raid average chart failed '+text(raidsChart));
+   const raidsChart=await interact(command('graph','month',[{name:'attribute',type:3,value:'raidParticipants'},{name:'season',type:3,value:season}]));assertChart(raidsChart);
    console.log(JSON.stringify({raidGraphs:'passed',checks:['completed raid loot','fractional participation average','ongoing raids excluded','missing history stays null','real PNG']}));
    for(const [offset,points] of [[0,4000],[1,4200]]){const date=new Date(+event+offset*86400000).toISOString().slice(0,10);await db.query("INSERT INTO leaderboard_history_clan_capital(location_id,date,clan_tag,clan_name,clan_badge_token,clan_level,capital_points,members,rank) VALUES('global',$1,$2,'Alpha Clan','fixture',10,$3,40,999999)",[date,group,points]);graphCapitalDates.push(date);}
    if((await total('capitalTrophies')).data.value!==4200)throw Error('Capital trophies did not use final recorded snapshot');
@@ -389,8 +431,8 @@ try{
    const laterCapitalDate=new Date(+event+21*86400000).toISOString().slice(0,10);await db.query("INSERT INTO leaderboard_history_clan_capital(location_id,date,clan_tag,clan_name,clan_badge_token,clan_level,capital_points,members,rank) VALUES('global',$1,$2,'Alpha Clan','fixture',10,4300,40,999999)",[laterCapitalDate,group]);graphCapitalDates.push(laterCapitalDate);
    const weekly=await(await fetch(`http://127.0.0.1:${port}/v2/bot/clans/${encodeURIComponent(group)}/capital-trophy-history?season=${season}&months=2`,{headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`}})).json();
    if(weekly.weeks.length<6||weekly.values.filter(v=>v!==null).join(',')!=='4200,4300'||weekly.sampleDates.filter(v=>v!==null).at(-1)!==laterCapitalDate)throw Error('Weekly Capital observations or gaps incorrect '+JSON.stringify(weekly));
-   const trophiesChart=await interact(command('graph','over-time',[{name:'attribute',type:3,value:'capitalTrophies'},{name:'season',type:3,value:season},{name:'months',type:4,value:2}]));if(!trophiesChart.posterBytes||!text(trophiesChart).includes('Alpha Clan: 4300')||!text(trophiesChart).includes('weekly observations'))throw Error('Capital weekly chart failed '+text(trophiesChart));
-   const weeklyRefresh=await interact({type:3,data:{custom_id:trophiesChart.components[0].components[0].custom_id,component_type:2}},other);if(!text(weeklyRefresh).includes('4300'))throw Error('Weekly graph refresh lost options');
+   const trophiesChart=await interact(command('graph','over-time',[{name:'attribute',type:3,value:'capitalTrophies'},{name:'season',type:3,value:season},{name:'months',type:4,value:2}]));assertChart(trophiesChart);
+   const weeklyRefresh=await click(trophiesChart,'refresh');assertChart(weeklyRefresh);if(weeklyRefresh.imageHash!==trophiesChart.imageHash)throw Error('Weekly graph refresh lost options');
    console.log(JSON.stringify({capitalTrophyGraph:'passed',checks:['latest snapshot instead of sum','missing remains unknown','series PNG and historical gap']}));
    const dailyQuery=async(metric,days=3)=>{const response=await fetch(`http://127.0.0.1:${port}/v2/bot/clans/daily-stats`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({clans:[group,'#PYLQGRJJ',group],metric,days})});return {status:response.status,data:await response.json()};};
    const gain=await dailyQuery('troopLevels');if(gain.status!==200||gain.data.basis!=='latest_stored_members'||gain.data.series.length!==2||gain.data.series.find(x=>x.tag==='#PYLQGRJJ').values.reduce((a,b)=>a+b,0)!==3)throw Error('Daily upgrade delta or attribution failed '+JSON.stringify(gain));
@@ -399,12 +441,20 @@ try{
    const activity=await dailyQuery('activity');if(activity.data.series.find(x=>x.tag===group).values.reduce((a,b)=>a+b,0)!==2)throw Error('Activity aggregate incorrect');
    if((await dailyQuery('donated',181)).status!==400)throw Error('Unbounded daily range accepted');
    const dayOptions=[{name:'attribute',type:3,value:'donated'},{name:'days',type:4,value:3}];
-   const chart=await interact(command('graph','daily',dayOptions));if(!chart.posterBytes||!text(chart).includes('Alpha Clan: 100')||!text(chart).includes('Today is partial'))throw Error('Daily chart output failed '+text(chart));
-   const control=chart.components[0].components[0].custom_id;if(!text(await interact({type:3,data:{custom_id:control,component_type:2}},other)).includes('Alpha Clan: 100'))throw Error('Daily refresh lost options');
+   const chart=await interact(command('graph','daily',dayOptions));assertChart(chart);
+   const dailyRefresh=await click(chart,'refresh');assertChart(dailyRefresh);if(dailyRefresh.imageHash!==chart.imageHash)throw Error('Daily refresh lost options');
    dailyGraphFailure=true;const missingDaily=await interact(command('graph','daily',dayOptions));if(missingDaily.posterBytes||!text(missingDaily).includes('unavailable'))throw Error('Missing daily data rendered as zero');dailyGraphFailure=false;
+   for(let i=0;i<26;i++)graphExtraTags.push('#QQY'+i.toString(6).split('').map(n=>'0289PY'[Number(n)]).join(''));
+   if((await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[graphExtraTags])).rowCount)throw Error('Extra graph scope exists');
+   for(const [i,clanTag]of graphExtraTags.entries()){await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,$2,true,0,0,'',0,0)",[clanTag,'Extra '+String(i).padStart(2,'0')]);await db.query('INSERT INTO server_clans(tag,server_id) VALUES($1,$2)',[clanTag,server]);}
+   const big=await interact(command('graph','month',[{name:'season',type:3,value:season}]));assertChart(big);
+   const next=control(big,'clan').options.find(o=>o.value.startsWith('page:'));if(!next)throw Error('Large family omitted more-clans option');
+   const nextPage=await click(big,'clan',next.value);assertChart(nextPage);
+   const visibleTags=new Set([...control(big,'clan').options,...control(nextPage,'clan').options].filter(o=>o.value.startsWith('#')).map(o=>o.value));if(visibleTags.size!==28)throw Error('Clan pagination omitted/duplicated scope '+visibleTags.size);
+   console.log(JSON.stringify({graphInteraction:'passed',checks:['metric switch','clan switch','custom-clan scope','icon-only refresh','28-clan pagination','deterministic refresh','no repeated raw content']}));
    console.log(JSON.stringify({dailyGraph:'passed',checks:['positive level gains counted once','decreases/boosts ignored','name events','recorded donation clan','schema rejects negative resets','aggregate activity','bounded range','duplicate clans','real PNG','refresh options','upstream failure'],externalDiscordWrites:0}));
    console.log(JSON.stringify({graphMonth:'passed',checks:['actual recorded clan totals','PNG rendering','custom clan selection','public refresh','unavailable clan excluded','multi-season totals','missing season preserved as gap','series refresh options'],externalDiscordWrites:0}));
-  }finally{if(graphCapitalDates.length)await db.query('DELETE FROM leaderboard_history_clan_capital WHERE clan_tag=$1 AND date=ANY($2::date[])',[group,graphCapitalDates]);if(graphRaidStarts.length)await db.query('DELETE FROM capital_raid_history WHERE clan_tag=$1 AND start_time=ANY($2::timestamptz[])',[group,graphRaidStarts]);if(graphWarIds.length)await db.query('DELETE FROM wars WHERE war_id=ANY($1::int[])',[graphWarIds]);if(dailyOwned){await db.query('DELETE FROM battles_farming WHERE player_tag=$1',[dailyPlayer]);await db.query('DELETE FROM player_change_history WHERE player_tag=$1',[dailyPlayer]);await db.query('DELETE FROM player_stat_changes WHERE player_tag=$1',[dailyPlayer]);await db.query('DELETE FROM player_online_events WHERE tag=$1',[dailyPlayer]);await db.query('DELETE FROM basic_player WHERE tag=$1',[dailyPlayer]);}if(event)await db.query('DELETE FROM player_stat_changes WHERE event_time=ANY($1::timestamptz[]) AND player_tag=ANY($2::text[])',[[event,...(priorEvent?[priorEvent]:[])],[tag,tags[1]]]);await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']]);}
+  }finally{if(graphCapitalDates.length)await db.query('DELETE FROM leaderboard_history_clan_capital WHERE clan_tag=$1 AND date=ANY($2::date[])',[group,graphCapitalDates]);if(graphRaidStarts.length)await db.query('DELETE FROM capital_raid_history WHERE clan_tag=$1 AND start_time=ANY($2::timestamptz[])',[group,graphRaidStarts]);if(graphWarIds.length)await db.query('DELETE FROM wars WHERE war_id=ANY($1::int[])',[graphWarIds]);if(dailyOwned){await db.query('DELETE FROM battles_farming WHERE player_tag=$1',[dailyPlayer]);await db.query('DELETE FROM player_change_history WHERE player_tag=$1',[dailyPlayer]);await db.query('DELETE FROM player_stat_changes WHERE player_tag=$1',[dailyPlayer]);await db.query('DELETE FROM player_online_events WHERE tag=$1',[dailyPlayer]);await db.query('DELETE FROM basic_player WHERE tag=$1',[dailyPlayer]);}if(event)await db.query('DELETE FROM player_stat_changes WHERE event_time=ANY($1::timestamptz[]) AND player_tag=ANY($2::text[])',[[event,...(priorEvent?[priorEvent]:[])],[tag,tags[1]]]);await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ',...graphExtraTags]]);}
  }else if(warPanelMode){
   const server='999999999999996510',message='999999999999996599',prep=String(Math.floor(Date.parse(fixturePrep)/1000));
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=$1',[group])).rowCount)throw Error('Synthetic panel scope exists');
@@ -458,22 +508,22 @@ try{
    await db.query("INSERT INTO server_clans(tag,server_id) VALUES($1,$2),('#PYLQGRJJ',$2)",[group,server]);
    const run=options=>interact({type:2,data:{name:'boosts',options}});
    const base=await run([]);
-   if(!text(base).includes('2/2 boosted players')||!text(base).includes('3/3 profiles checked')||text(base).includes('Super Archer')||text(base).includes('Moved'))throw Error('Boost membership/active/dedup failed '+text(base));
+   if(!text(base).includes('2/2 players')||new Set(live.filter(path=>path.startsWith('/v1/players/'))).size!==3||text(base).includes('Super Archer')||text(base).includes('Moved'))throw Error('Boost membership/active/dedup failed '+text(base));
    const sorted=await run([{name:'limit',type:4,value:1},{name:'sort_order',type:3,value:'desc'}]);
-   if(!text(sorted).includes('Zulu')||text(sorted).includes('Alpha')||!text(sorted).includes('1/2 boosted players'))throw Error('Boost sort/limit failed '+text(sorted));
+   if(!text(sorted).includes('Zulu')||text(sorted).includes('Alpha')||!text(sorted).includes('1/2 players'))throw Error('Boost sort/limit failed '+text(sorted));
    const empty=await run([{name:'super_troop',type:3,value:'Super Archer'}]);
    if(!text(empty).includes('No active boosts found.')||text(empty).includes('Coverage is incomplete'))throw Error('Inactive troop reported active '+text(empty));
    const filtered=await run([{name:'clan',type:3,value:group},{name:'super_troop',type:3,value:'Sneaky Goblin'},{name:'limit',type:4,value:1},{name:'sort_order',type:3,value:'desc'}]);
-   if(!text(filtered).includes('1/1 boosted players')||!text(filtered).includes('Alpha')||text(filtered).includes('Zulu'))throw Error('Boost filter failed '+text(filtered));
+   if(!text(filtered).includes('1/1 players')||!text(filtered).includes('Alpha')||text(filtered).includes('Zulu'))throw Error('Boost filter failed '+text(filtered));
    const control=filtered.components[0].components[0].custom_id;
    if(control.length>100)throw Error('Boost refresh ID exceeds Discord limit');
    const refreshed=await interact({type:3,data:{custom_id:control}},other);
-   if(!text(refreshed).includes('Sneaky Goblin')||!text(refreshed).includes('1/1 boosted players'))throw Error('Public boost refresh lost filters '+text(refreshed));
+   if(!text(refreshed).includes('Sneaky Goblin')||!text(refreshed).includes('1/1 players'))throw Error('Public boost refresh lost filters '+text(refreshed));
    const automatic=await interact({type:4,data:{name:'boosts',options:[{name:'super_troop',type:3,value:'Sneaky',focused:true}]}});
    if(!text(automatic).includes('Sneaky Goblin'))throw Error('Canonical troop autocomplete missing');
    boostFailure=true;
    const incomplete=await run([]);
-   if(!text(incomplete).includes('1 unavailable')||!text(incomplete).includes('1/1 boosted players'))throw Error('Missing boost profile not reported '+text(incomplete));
+   if(!text(incomplete).includes('Some player data unavailable')||!text(incomplete).includes('1/1 players'))throw Error('Missing boost profile not reported '+text(incomplete));
    console.log(JSON.stringify({boosts:'passed',checks:['current active troop flags','family member deduplication','transferred profile excluded','troop filter','limit and ordering','public refresh preserves filters','canonical autocomplete','partial failures explicit'],externalDiscordWrites:0}));
   }finally{await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']]);}
  }else if(warStatsMode){
@@ -560,13 +610,10 @@ try{
     await db.query("INSERT INTO auth_refresh_tokens(token_hash,user_id,device_id,expires_at) VALUES('local-handoff-refresh',$1,'',now()+interval '10 minutes')",[actor]);
     const createRoster=async(serverId)=>{const response=await fetch(`http://127.0.0.1:${port}/v2/roster?server_id=${serverId}`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({alias:'Settings handoff',roster_type:'family'})});const value=await response.json();if(!response.ok)throw Error('Create handoff roster failed');return value.roster_id;};
     const rosterId=await createRoster(server),foreignRoster=await createRoster(second);
-    const settingsOptions=[{name:'roster',type:3,value:rosterId}];
-    const denied=await interact(command('roster','settings',settingsOptions),actor,'0');if(!text(denied).includes('Manage'))throw Error('Settings handoff permission bypass');
-    const foreign=await interact(command('roster','settings',[{name:'roster',type:3,value:foreignRoster}]),actor,'32');if(text(foreign).includes('Open roster settings'))throw Error('Foreign roster got a handoff');
-    const settings=await interact(command('roster','settings',settingsOptions),actor,'32');
+    const settings=await interact({type:2,data:{name:'dashboard'}},actor,'32');
     const destination=new URL(settings.components?.[0]?.components?.[0]?.url);
     const params=new URLSearchParams(destination.hash.slice(1)),code=params.get('code');
-    if(destination.pathname!=='/access'||destination.search||params.get('roster')!==rosterId||!/^[a-f0-9]{64}$/u.test(code??''))throw Error('Settings handoff target invalid');
+    if(destination.pathname!=='/access'||destination.search||params.has('roster')||!/^[a-f0-9]{64}$/u.test(code??''))throw Error('Settings handoff target invalid');
     const digest=createHash('sha256').update(code).digest('hex');
     const grant=(await db.query('SELECT user_id,server_id,expires_at FROM dashboard_access_grants WHERE token_hash=$1',[digest])).rows[0];
     if(grant?.user_id!==actor||grant?.server_id!==server||+grant.expires_at>Date.now()+121000)throw Error('Grant owner/server/expiry mismatch');
@@ -577,13 +624,13 @@ try{
     if((await exchange(verificationToken)).status!==401)throw Error('One-use grant replay accepted');
     const scoped=await fetch(`http://127.0.0.1:${port}/v2/server/${server}/rosters/${rosterId}`,{headers:{authorization:`Bearer ${session.access_token}`}});if(!scoped.ok)throw Error('Scoped session cannot open own roster');
     const blocked=await fetch(`http://127.0.0.1:${port}/v2/server/${second}/rosters/${foreignRoster}`,{headers:{authorization:`Bearer ${session.access_token}`}});if(blocked.status!==403)throw Error('Scoped session escaped server');
-    const expired=await interact(command('roster','settings',settingsOptions),actor,'32');
+    const expired=await interact({type:2,data:{name:'dashboard'}},actor,'32');
     const expiredCode=new URLSearchParams(new URL(expired.components[0].components[0].url).hash.slice(1)).get('code');
     await db.query("UPDATE dashboard_access_grants SET expires_at=now()-interval '1 minute' WHERE token_hash=$1",[createHash('sha256').update(expiredCode).digest('hex')]);
     const expiry=await fetch(`http://127.0.0.1:${port}/v2/auth/server-dashboard/exchange`,{method:'POST',headers:{authorization:`Bearer ${verificationToken}`,'content-type':'application/json'},body:JSON.stringify({code:expiredCode})});if(expiry.status!==401)throw Error('Expired grant accepted');
     await db.query("DELETE FROM auth_refresh_tokens WHERE token_hash='local-handoff-refresh' AND user_id=$1",[actor]);
     const revoked=await fetch(`http://127.0.0.1:${port}/v2/server/${server}/rosters/${rosterId}`,{headers:{authorization:`Bearer ${session.access_token}`}});if(revoked.status!==401)throw Error('Signed-out browser retained scoped access');
-    console.log(JSON.stringify({rosterHandoff:'passed' ,checks:['manager only','roster/server lookup','fragment target','grant ownership and expiry','wrong user rejected','one use only','scoped roster read','cross-server rejection','expired code rejected','parent session revocation'],browserNavigation:'not exercised'}));
+    console.log(JSON.stringify({dashboardHandoff:'passed' ,checks:['current server from signed interaction','fragment target','grant ownership and expiry','wrong user rejected','one use only','scoped roster read','cross-server rejection','expired code rejected','parent session revocation'],browserNavigation:'not exercised'}));
    }
    console.log(JSON.stringify({clanVerification:'passed',checks:['real API/SQL','random initial challenge','stable pending challenge','cross-server collision exclusion','full word rotation/wrap','description verification'],externalDiscordWrites:0}));
   }finally{verificationDescription='';await db.query("DELETE FROM auth_refresh_tokens WHERE token_hash='local-handoff-refresh' AND user_id=$1",[actor]);await db.query('DELETE FROM dashboard_scoped_sessions WHERE server_id=ANY($1::text[])',[[server,second]]);await db.query('DELETE FROM dashboard_access_grants WHERE server_id=ANY($1::text[])',[[server,second]]);await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,second]]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);await db.query('DELETE FROM discord_cache.guilds WHERE id=ANY($1::text[])',[[server,second]]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);}
@@ -592,24 +639,22 @@ try{
   if((await db.query('SELECT 1 FROM servers WHERE id=ANY($1::text[])',[[server,elsewhere]])).rowCount)throw Error('Synthetic roster server exists');
   if((await db.query('SELECT 1 FROM basic_clan WHERE tag=$1',[group])).rowCount)throw Error('Synthetic roster clan exists');
   await db.query("INSERT INTO servers(id,name) VALUES($1,'Roster server'),($2,'Other roster server')",[server,elsewhere]);
-  const request=async(path,body)=>{const response=await fetch(`http://127.0.0.1:${port}`+path,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw Error('Roster API '+response.status+' '+JSON.stringify(data));return data;};
+  const call=async(method,path,body,expected=200)=>{const response=await fetch(`http://127.0.0.1:${port}`+path,{method,headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});const raw=await response.text(),data=raw?JSON.parse(raw):{};if(expected==='error'?response.ok:!response.ok)throw Error('Roster API '+response.status+' '+JSON.stringify(data));return data;};
+  const request=(path,body)=>call('POST',path,body);
   try{
    await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,'Roster clan',true,0,2,'',0,0)",[group]);
    await db.query('INSERT INTO server_clans(server_id,tag) VALUES($1,$3),($2,$3)',[server,elsewhere,group]);
    const created=await request('/v2/roster?server_id='+server,{alias:'Visible roster',roster_type:'family',members:[{tag:tags[1],name:'Stored member',townhall:15,trophies:1}]});
    const foreignRoster=await request('/v2/roster?server_id='+elsewhere,{alias:'Other server secret',roster_type:'family',members:[{tag:tags[1],name:'Stored member',townhall:15}]});
    if(warEventMode){
-    const run=action=>interact(command('clan','war-events',[{name:'clan',type:3,value:group},{name:'action',type:3,value:action}]),actor,'32');
-    const blocked=await interact(command('clan','war-events',[{name:'clan',type:3,value:group},{name:'action',type:3,value:'enable'}]),actor,'0');
-    if(!text(blocked).includes('Manage Server'))throw Error('War events permission bypass');
-    if(!text(await run('view')).includes('Disabled'))throw Error('War events default not off');
-    if(!text(await run('enable')).includes('Enabled'))throw Error('War events not enabled');
-    if(!(await db.query('SELECT war_events_enabled FROM server_clans WHERE tag=$1 AND server_id=$2',[group,server])).rows[0]?.war_events_enabled)throw Error('War event setting not persisted');
-    if(!text(await run('disable')).includes('Disabled'))throw Error('War events not disabled');
+    const removed=await interact(command('clan','war-events',[{name:'clan',type:3,value:group},{name:'action',type:3,value:'enable'}]),actor,'32');if(!text(removed).includes('/dashboard'))throw Error('Removed war-event command accepted');
+    if((await db.query('SELECT war_events_enabled FROM server_clans WHERE tag=$1 AND server_id=$2',[group,server])).rows[0]?.war_events_enabled)throw Error('War events default not off');
     const base=`http://127.0.0.1:${port}/v2/server/${server}/clan/`;
     const put=(tag,body,auth=true)=>fetch(base+encodeURIComponent(tag)+'/war-events',{method:'PUT',headers:{'Content-Type':'application/json',...(auth?{Authorization:`Bearer ${keys.API_BOT_TOKEN}`}:{})},body:JSON.stringify(body)});
     if((await put(group,{enabled:true},false)).status!==401||(await put(group,{enabled:'yes'})).status!==400||(await put('#QQQQ',{enabled:true})).status!==404)throw Error('War event validation or linked-clan scope failed');
-    console.log(JSON.stringify({warEventsSettings:'passed',checks:['manager only','default off','enable persistence','view','disable','auth','invalid boolean','unlinked clan'],externalDiscordWrites:0}));
+    if(!(await put(group,{enabled:true})).ok||!(await db.query('SELECT war_events_enabled FROM server_clans WHERE tag=$1 AND server_id=$2',[group,server])).rows[0]?.war_events_enabled)throw Error('War event API enable failed');
+    if(!(await put(group,{enabled:false})).ok)throw Error('War event API disable failed');
+    console.log(JSON.stringify({warEventsSettings:'passed',checks:['setup command removed','default off','API enable persistence','API disable','auth','invalid boolean','unlinked clan'],externalDiscordWrites:0}));
    }
    if(quickPanelMode){
     if((await db.query('SELECT 1 FROM discord_cache.gateway_shards WHERE application_id=$1',[app])).rowCount)throw Error('Synthetic panel gateway exists');
@@ -617,10 +662,8 @@ try{
     await db.query('INSERT INTO discord_cache.gateway_shards(application_id,shard_id,shard_count,generation,healthy,heartbeat_at) VALUES($1,0,1,$2,true,now())',[app,generation]);
     await db.query('INSERT INTO discord_cache.guilds(id,data,application_id,shard_id,generation,available,metadata_complete,members_complete) VALUES($1,$2,$3,0,$4,true,true,true)',[server,JSON.stringify({owner_id:other}),app,generation]);
     await db.query('INSERT INTO discord_cache.members(guild_id,user_id,data) VALUES($1,$2,$3)',[server,actor,JSON.stringify({user:{id:actor},roles:[]})]);
-    const post=options=>interact({type:2,data:{name:'buttons',options}},actor,'32');
-    const denied=await interact({type:2,data:{name:'buttons'}},actor,'0');if(!text(denied).includes('Manage Server'))throw Error('Panel post permission bypass');
-    const posted=await post([{name:'help',type:5,value:true}]);if(!text(posted).includes('Panel posted')||sentReminders.length!==1)throw Error('Panel was not posted');
-    const payload=sentReminders[0];if(payload.components[0].components.length!==5||payload.allowed_mentions.parse.length)throw Error('Panel controls/mentions invalid');
+    const removed=await interact({type:2,data:{name:'buttons'}},actor,'32');if(!text(removed).includes('/dashboard')||sentReminders.length)throw Error('Removed panel setup command still posts');
+    // Existing member controls remain valid without exposing a setup slash command.
     const click=async(action,who=actor,legacy=false)=>interact({type:3,data:{component_type:2,custom_id:legacy?action:`ck:quick:${server}:${action}`}},who);
     const link=await click('link');if(link.custom_id!=='ck:link:submit')throw Error('Panel link did not open existing modal');
     const help=await click('help');if(help.flags!==64||!help.embeds?.length)throw Error('Panel help not private');
@@ -631,9 +674,7 @@ try{
     const refresh=await click('refresh');if(refresh.flags!==64||!text(refresh).includes('refreshes completed'))throw Error('Panel refresh failed '+text(refresh));
     const todo=await click('todo');if(todo.flags!==64||!todo.embeds?.length)throw Error('Panel to-do failed '+text(todo));
     const cross=await interact({type:3,data:{component_type:2,custom_id:`ck:quick:${elsewhere}:rosters`}});if(!text(cross).includes('another server'))throw Error('Foreign panel accepted');
-    const badChannel=await post([{name:'channel',type:7,value:'999999999999996599'}]);if(text(badChannel).includes('Panel posted')||sentReminders.length!==1)throw Error('Panel posted to foreign channel');
-    const empty=await post(['link','help','refresh','todo','rosters'].map(name=>({name,type:5,value:false})));if(!text(empty).includes('at least one'))throw Error('Empty panel accepted');
-    console.log(JSON.stringify({quickPanel:'passed',checks:['manager-only post','five controls','link modal','private help/tasks/refresh','clicker identity','own roster scope','hidden links excluded','legacy IDs','cross-server rejection','empty panel rejected'],externalDiscordWrites:0,localPanelPosts:sentReminders.length}));
+    console.log(JSON.stringify({quickPanel:'passed',checks:['setup command removed','existing link modal','private help/tasks/refresh','clicker identity','own roster scope','hidden links excluded','legacy IDs','cross-server rejection'],externalDiscordWrites:0,localPanelPosts:sentReminders.length}));
    }
    const list=await interact(command('roster','list'),actor,'32');if(!text(list).includes('Visible roster')||text(list).includes('Other server secret'))throw Error('Roster list scope failed: '+text(list));
    const selection=await interact({type:3,data:{custom_id:'ck:roster:select',component_type:3,values:[created.roster_id]}},actor,'32');if(!text(selection).includes('Stored member'))throw Error('Roster selection failed');
@@ -642,65 +683,96 @@ try{
    if(!text(search).includes('Visible roster')||text(search).includes('Other server secret'))throw Error('Roster search scope failed: '+text(search));
    const own=await interact(command('roster','search'),actor,'32');if(!text(own).includes('Visible roster'))throw Error('Self roster search failed: '+text(own));
    const refreshed=await interact({type:3,data:{custom_id:search.components[0].components[0].custom_id,component_type:2}},actor,'32');if(!text(refreshed).includes('Visible roster'))throw Error('Search refresh failed');
-   const denied=await interact(command('roster','refresh',[{name:'roster',type:3,value:created.roster_id}]),actor,'0');if(!text(denied).includes('Manage'))throw Error('Roster refresh permission bypass');
+   for(const action of ['refresh','add-player','remove-player','move-player','groups','group-player','settings','post','ping','copy','delete','role','role-refresh']){
+    const removed=await interact(command('roster',action,[{name:'roster',type:3,value:created.roster_id}]),actor,'32');if(!text(removed).includes('dashboard'))throw Error('Removed roster setup action accepted: '+action);
+   }
+   const refreshPath=`/v2/server/${server}/rosters/${created.roster_id}/refresh`;
    rosterProfileFailure=true;
-   const failed=await interact(command('roster','refresh',[{name:'roster',type:3,value:created.roster_id}]),actor,'32');if(!text(failed).includes('1 unavailable player(s) kept unchanged'))throw Error('Refresh hid upstream failure');
+   const failed=await request(refreshPath,{scope:'data'});if(failed.failedPlayers!==1)throw Error('Refresh hid upstream failure');
    if((await db.query('SELECT trophies FROM roster_members WHERE roster_id=$1 AND tag=$2',[created.roster_id,tags[1]])).rows[0]?.trophies!==1)throw Error('Failed refresh changed old profile');
    rosterProfileFailure=false;await db.query('UPDATE rosters SET last_refreshed_at=NULL WHERE id=$1',[created.roster_id]);
-   const refresh=await interact(command('roster','refresh',[{name:'roster',type:3,value:created.roster_id}]),actor,'32');if(!text(refresh).includes('Roster data refreshed: 1'))throw Error('Data refresh failed: '+text(refresh));
+   const refresh=await request(refreshPath,{scope:'data'});if(refresh.refreshedPlayers!==1)throw Error('Data refresh failed: '+JSON.stringify(refresh));
    const row=(await db.query('SELECT townhall,trophies FROM roster_members WHERE roster_id=$1 AND tag=$2',[created.roster_id,tags[1]])).rows[0];if(row.townhall!==16||row.trophies!==5500)throw Error('Data refresh did not persist profile');
-   const reused=await interact(command('roster','refresh',[{name:'roster',type:3,value:created.roster_id}]),actor,'32');if(!text(reused).includes('Recent roster data reused'))throw Error('Cooldown incorrectly reported new refresh');
-   const rosterOption={name:'roster',type:3,value:created.roster_id};
+   if(!(await request(refreshPath,{scope:'data'})).reused)throw Error('Cooldown incorrectly reported new refresh');
    const destination=await request('/v2/roster?server_id='+server,{alias:'Destination',roster_type:'family'});
-   const playerInput={name:'players',type:3,value:tag};
-   const addDenied=await interact(command('roster','add-player',[rosterOption,playerInput]),actor,'0');if(!text(addDenied).includes('Manage'))throw Error('Roster add permission bypass');
-   const added=await interact(command('roster','add-player',[rosterOption,playerInput]),actor,'32');if(!text(added).includes('Added 1'))throw Error('Roster add failed '+text(added));
-   const addedRow=(await db.query('SELECT name,townhall FROM roster_members WHERE roster_id=$1 AND tag=$2',[created.roster_id,tag])).rows[0];if(addedRow?.name!=='Current Player'||addedRow?.townhall!==16)throw Error('Added player snapshot not hydrated');
-   const groupAction=(action,extra=[])=>command('roster','groups',[{name:'action',type:3,value:action},...extra]);
-   const labelName={name:'name',type:3,value:'War starters'};
-   const labelDenied=await interact(groupAction('add',[labelName]),actor,'0');if(!text(labelDenied).includes('Manage'))throw Error('Label permission bypass');
-   const labelCreated=await interact(groupAction('add',[labelName]),actor,'32');if(!text(labelCreated).includes('Created'))throw Error('Label create failed '+text(labelCreated));
+   const membersPath=id=>`/v2/roster/${id}/members?server_id=${server}`;
+   await request(membersPath(created.roster_id),{members:[{tag,name:'Current Player',townhall:16,trophies:5500}]});
+   const labelsPath=`/v2/server/${server}/roster-member-groups`;
+   await request(labelsPath,{name:'War starters'});
    const label=(await db.query('SELECT id FROM roster_member_groups WHERE server_id=$1 AND name=$2',[server,'War starters'])).rows[0];
-   const labelOption={name:'group',type:3,value:label.id};
-   const assigned=await interact(command('roster','group-player',[rosterOption,playerInput,labelOption]),actor,'32');if(!text(assigned).includes('Updated'))throw Error('Label assign failed '+text(assigned));
-   const labeledView=await interact(command('roster','view',[rosterOption]),actor,'32');if(!text(labeledView).includes('War starters'))throw Error('Roster label absent from view');
-   const blockedDelete=await interact(groupAction('delete',[labelOption]),actor,'32');if(text(blockedDelete).includes('Deleted'))throw Error('Assigned label deletion accepted');
+   const labelPath=`/v2/server/${server}/rosters/${created.roster_id}/member-label`;
+   await call('PATCH',labelPath,{playerTags:[tag],memberGroupId:label.id});
+   const viewOptions=[{name:'roster',type:3,value:created.roster_id}];
+   if(!text(await interact(command('roster','view',viewOptions),actor,'32')).includes('War starters'))throw Error('Roster label absent from view');
+   await call('DELETE',labelsPath+'/'+label.id,undefined,'error');
    const foreignLabel=(await db.query("INSERT INTO roster_member_groups(server_id,name) VALUES($1,'Foreign label') RETURNING id",[elsewhere])).rows[0];
-   const crossLabel=await interact(command('roster','group-player',[rosterOption,playerInput,{...labelOption,value:foreignLabel.id}]),actor,'32');if(text(crossLabel).includes('Updated'))throw Error('Foreign label assignment accepted');
-   const invalidBatch=await interact(command('roster','group-player',[rosterOption,{...playerInput,value:`${tag} #QQQ`},labelOption]),actor,'32');if(text(invalidBatch).includes('Updated'))throw Error('Unknown member label assignment accepted');
-   const renamed=await interact(groupAction('rename',[labelOption,{...labelName,value:'First team'}]),actor,'32');if(!text(renamed).includes('Renamed'))throw Error('Label rename failed');
-   if(!text(await interact(command('roster','view',[rosterOption]),actor,'32')).includes('First team'))throw Error('Renamed label absent');
-   const main=await interact(command('roster','group-player',[rosterOption,playerInput]),actor,'32');if(!text(main).includes('to Main'))throw Error('Move to Main failed');
-   const labelDeleted=await interact(groupAction('delete',[labelOption]),actor,'32');if(!text(labelDeleted).includes('Deleted'))throw Error('Unused label deletion failed');
+   await call('PATCH',labelPath,{playerTags:[tag],memberGroupId:foreignLabel.id},'error');
+   await call('PATCH',labelPath,{playerTags:[tag,'#QQQ'],memberGroupId:label.id},'error');
+   await call('PATCH',labelsPath+'/'+label.id,{name:'First team'});
+   if(!text(await interact(command('roster','view',viewOptions),actor,'32')).includes('First team'))throw Error('Renamed label absent');
+   await call('PATCH',labelPath,{playerTags:[tag],memberGroupId:null});
+   await call('DELETE',labelsPath+'/'+label.id);
    if((await db.query('SELECT member_group_id FROM roster_members WHERE roster_id=$1 AND tag=$2',[created.roster_id,tag])).rows[0].member_group_id!==null)throw Error('Main retained label');
-   await interact(groupAction('add',[{...labelName,value:'Preserved label'}]),actor,'32');
+   await request(labelsPath,{name:'Preserved label'});
    const preserved=(await db.query('SELECT id FROM roster_member_groups WHERE server_id=$1 AND name=$2',[server,'Preserved label'])).rows[0];
-   await interact(command('roster','group-player',[rosterOption,playerInput,{...labelOption,value:preserved.id}]),actor,'32');
-   const moveOptions=[rosterOption,playerInput,{name:'destination',type:3,value:destination.roster_id}];
-   const moved=await interact(command('roster','move-player',moveOptions),actor,'32');if(!text(moved).includes('Moved 1'))throw Error('Roster move failed '+text(moved));
+   await call('PATCH',labelPath,{playerTags:[tag],memberGroupId:preserved.id});
+   const move=async(from,to,expected=200)=>{
+    const changes=[{action:'move',playerTag:tag,fromRosterId:from,toRosterId:to}];
+    const proposal=await call('POST','/v2/roster/membership-changes/validate',{serverId:server,rosterIds:[from,to],changes},expected);
+    if(expected!=='error')await request('/v2/roster/membership-changes',{serverId:server,changes,expectedRevisions:proposal.expectedRevisions});
+   };
+   await move(created.roster_id,destination.roster_id);
    if((await db.query('SELECT 1 FROM roster_members WHERE roster_id=$1 AND tag=$2',[created.roster_id,tag])).rowCount||!(await db.query('SELECT 1 FROM roster_members WHERE roster_id=$1 AND tag=$2',[destination.roster_id,tag])).rowCount)throw Error('Move was not atomic');
    if((await db.query('SELECT member_group_id FROM roster_members WHERE roster_id=$1 AND tag=$2',[destination.roster_id,tag])).rows[0]?.member_group_id!==preserved.id)throw Error('Move discarded label');
-   const foreign=await interact(command('roster','move-player',[{...rosterOption,value:destination.roster_id},playerInput,{name:'destination',type:3,value:foreignRoster.roster_id}]),actor,'32');if(text(foreign).includes('Moved 1'))throw Error('Moved across server boundary');
-   const copied=await interact(command('roster','copy',[{...rosterOption,value:destination.roster_id},{name:'name',type:3,value:'Copied roster'},{name:'members',type:5,value:true}]),actor,'32');if(!text(copied).includes('1 members copied'))throw Error('Copy failed '+text(copied));
+   await move(destination.roster_id,foreignRoster.roster_id,'error');
+   await request(`/v2/roster/${destination.roster_id}/clone?server_id=${server}`,{new_alias:'Copied roster',copy_members:true});
    const copy=(await db.query("SELECT id FROM rosters WHERE server_id=$1 AND alias='Copied roster'",[server])).rows[0];
    if((await db.query('SELECT member_group_id FROM roster_members WHERE roster_id=$1 AND tag=$2',[copy.id,tag])).rows[0]?.member_group_id!==preserved.id)throw Error('Copy discarded label');
-   const copyOption={...rosterOption,value:copy.id};
-   const notConfirmed=await interact(command('roster','delete',[copyOption,{name:'type',type:3,value:'roster'},{name:'confirm',type:5,value:false}]),actor,'32');if(!text(notConfirmed).includes('confirm'))throw Error('Delete lacked confirmation');
-   const removed=await interact(command('roster','remove-player',[copyOption,playerInput]),actor,'32');if(!text(removed).includes('Removed 1'))throw Error('Remove failed '+text(removed));
-   const cleared=await interact(command('roster','delete',[{...rosterOption,value:destination.roster_id},{name:'type',type:3,value:'members'},{name:'confirm',type:5,value:true}]),actor,'32');if(!text(cleared).includes('Cleared members'))throw Error('Clear failed '+text(cleared));
-   rosterProfileFailure=true;
-   const failedAdd=await interact(command('roster','add-player',[{...rosterOption,value:destination.roster_id},{name:'players',type:3,value:`${tag} ${tags[1]}`}]),actor,'32');
-   if(!text(failedAdd).includes('no players were added')||(await db.query('SELECT 1 FROM roster_members WHERE roster_id=$1',[destination.roster_id])).rowCount)throw Error('Failed profile partially added roster batch');
-   rosterProfileFailure=false;
-   const deleted=await interact(command('roster','delete',[copyOption,{name:'type',type:3,value:'roster'},{name:'confirm',type:5,value:true}]),actor,'32');if(!text(deleted).includes('Deleted roster')||(await db.query('SELECT 1 FROM rosters WHERE id=$1',[copy.id])).rowCount)throw Error('Delete failed '+text(deleted));
-   console.log(JSON.stringify({rosterReads:'passed',checks:['label create/rename/assign/display','foreign label rejected','in-use deletion rejected','Main and unused label deletion','actual API-created rosters','server-scoped list and selection','direct view','player and self search','search refresh','permission gate','failed profile retained','actual stored profile update','cooldown reuse','permission-checked add','hydrated profile','atomic move','foreign server move rejected','copy members','remove members','clear and delete confirmation'],externalDiscordWrites:0}));
+   await request(membersPath(copy.id),{operation:'remove',player_tags:[tag]});
+   await call('DELETE',`/v2/roster/${destination.roster_id}?server_id=${server}&members_only=true`);
+   if((await db.query('SELECT 1 FROM roster_members WHERE roster_id=$1',[destination.roster_id])).rowCount)throw Error('Clear members failed');
+   await call('DELETE',`/v2/roster/${copy.id}?server_id=${server}`);
+   if((await db.query('SELECT 1 FROM rosters WHERE id=$1',[copy.id])).rowCount)throw Error('Delete failed');
+   console.log(JSON.stringify({rosterReads:'passed',checks:['setup commands rejected','canonical API-created rosters','server-scoped list and selection','direct view','player and self search','search refresh','failed refresh preserves profile','stored profile update','cooldown reuse','label CRUD/display','foreign label rejected','in-use label protected','atomic move','foreign server move rejected','copy preserves labels','remove/clear/delete'],externalDiscordWrites:0}));
   }finally{if(quickPanelMode){await db.query('DELETE FROM discord_cache.members WHERE guild_id=$1',[server]);await db.query('DELETE FROM discord_cache.guilds WHERE id=$1',[server]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);}await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,elsewhere]]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);}
+ }else if(linksMode){
+  const server='999999999999996510',generation=randomBytes(16).toString('hex'),outside='999999999999996588',hiddenOwner='999999999999996589';
+  const playerTags=tags.slice(0,4),names=['In Server','Outside Server','Hidden Player','Unlinked Player'];
+  if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=$1',[group])).rowCount)throw Error('Synthetic link scope exists');
+  try{
+   await db.query("INSERT INTO servers(id,name) VALUES($1,'Link list fixture')",[server]);
+   await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received,members) VALUES($1,'Link Clan',true,0,4,'',0,0,$2)",[group,JSON.stringify(playerTags.map((tag,i)=>({tag,name:names[i]})))]);
+   await db.query('INSERT INTO server_clans(server_id,tag) VALUES($1,$2)',[server,group]);
+   await db.query('INSERT INTO discord_cache.gateway_shards(application_id,shard_id,shard_count,generation,healthy,heartbeat_at) VALUES($1,0,1,$2,true,now())',[app,generation]);
+   await db.query('INSERT INTO discord_cache.guilds(id,data,application_id,shard_id,generation,available,metadata_complete,members_complete) VALUES($1,$2,$3,0,$4,true,true,true)',[server,JSON.stringify({owner_id:actor}),app,generation]);
+   for(const id of [actor,hiddenOwner])await db.query('INSERT INTO discord_cache.members(guild_id,user_id,data) VALUES($1,$2,$3)',[server,id,JSON.stringify({user:{id,username:'Link member'},roles:[]})]);
+   await db.query('DELETE FROM player_links WHERE tag=ANY($1::text[]) AND user_id=$2',[playerTags,actor]);
+   for(const [i,id]of [[0,actor],[1,outside],[2,hiddenOwner]])await db.query("INSERT INTO player_links(tag,user_id,source,is_verified,hidden) VALUES($1,$2,'local-test',true,$3)",[playerTags[i],id,i===2]);
+   const first=await interact(command('link','list',[{name:'clan',type:3,value:group}]));
+   if(first.embeds?.length!==3||first.embeds[0].title!=='Linked in this server · 1'||!first.embeds[0].description.includes(actor)||!first.embeds[1].description.includes(names[3])||first.embeds[2].title!=='Other linked accounts · 2'||text(first).includes(hiddenOwner))throw Error('Clan link grouping or hidden identity failed '+text(first));
+   if(first.flags===64||first.allowed_mentions?.parse?.length)throw Error('Link list should be public without pinging members');
+   const refresh=first.components.flatMap(row=>row.components).find(item=>item.type===2);
+   if(refresh.label||!refresh.emoji)throw Error('Link refresh is not icon-only');
+   const again=await interact({type:3,data:{custom_id:refresh.custom_id,component_type:2}},other);
+   if(again.embeds[0].title!==first.embeds[0].title||text(again).includes(hiddenOwner))throw Error('Public refresh bypassed privacy');
+   await db.query("INSERT INTO server_clan_verifications(server_id,clan_tag,challenge_id,marker,marker_index,requested_by,state,started_at,check_after,next_check_at,expires_at,verified_at) VALUES($1,$2,'11111111-1111-4111-8111-111111111111','local-proof',0,$3,'verified',now(),now()+interval '1 second',now()+interval '1 second',now()+interval '1 hour',now())",[server,group,actor]);
+   const verified=await interact({type:3,data:{custom_id:refresh.custom_id,component_type:2}},other);
+   if(verified.embeds[0].title!=='Linked in this server · 2'||!verified.embeds[0].description.includes(hiddenOwner))throw Error('Verified clan exception missing');
+   const invalid=await interact(command('link','list',[{name:'clan',type:3,value:'#QQQQQQQQ'}]));if(!text(invalid).includes('Choose a clan linked to this server'))throw Error('Foreign clan accepted');
+   await db.query('UPDATE discord_cache.guilds SET members_complete=false WHERE id=$1',[server]);
+   const stale=await interact(command('link','list',[{name:'clan',type:3,value:group}]));if(stale.embeds?.length)throw Error('Incomplete membership reported as unlinked');
+   console.log(JSON.stringify({clanLinks:'passed',checks:['server members','outside links','unlinked','hidden identity protected','verified clan visibility','public refresh','icon only','no mentions','foreign clan rejected','incomplete snapshot rejected'],externalDiscordWrites:0}));
+  }finally{
+   await db.query('DELETE FROM player_links WHERE tag=ANY($1::text[])',[playerTags]);
+   await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);
+   await db.query('DELETE FROM discord_cache.members WHERE guild_id=$1',[server]);await db.query('DELETE FROM discord_cache.guilds WHERE id=$1',[server]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);
+  }
  }else if(helpMode){
   const list=await interact({type:2,data:{name:'help'}});
   if(!text(list).includes('/clan')||!text(list).includes('/link')||!text(list).includes('/help'))throw Error('Help missing current command roots');
   const detail=await interact({type:2,data:{name:'help',options:[{name:'command',type:3,value:'clan war-preference'}]}});
   if(!text(detail).includes('Required')||!text(detail).includes('townhall')||!text(detail).includes('Last preference change'))throw Error('Help detail missing real options');
-  const refresh=detail.components[0].components[0].custom_id;
+  const refresh=detail.components.flatMap(row=>row.components).find(item=>item.custom_id?.startsWith("ck:help:refresh:")).custom_id;
   if(!text(await interact({type:3,data:{custom_id:refresh,component_type:2}},other)).includes('/clan war-preference'))throw Error('Help refresh lost command');
   const root=await interact({type:2,data:{name:'help',options:[{name:'command',type:3,value:'clan'}]}});
   if(!text(root).includes('/clan summary')||!text(root).includes('/clan war-preference'))throw Error('Help group missing subcommands');
@@ -709,6 +781,12 @@ try{
   if(!text(retired).includes('no longer available'))throw Error('Cached warning command fell through to another report');
   const removed=await fetch(`http://127.0.0.1:${port}/v2/server/999999999999996510/clan/${encodeURIComponent(group)}/member-warning`,{headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`}});
   if(removed.status!==404)throw Error('Removed warning endpoint remains active');
+  for(const name of ['autorefresh','roles','giveaway','buttons']) {
+   const response=await interact({type:2,data:{name}});if(response.embeds?.length)throw Error('Removed setup command remains active: '+name);
+  }
+  for(const [name,action]of [['roster','create'],['roster','settings'],['roster','post'],['ticket','panel-post'],['clan','war-events']]){
+   const response=await interact(command(name,action,[]),actor,'32');if(response.embeds?.some(embed=>embed.title?.includes('Created')))throw Error('Retired setup action succeeded');
+  }
   const complete=await interact({type:4,data:{name:'help',options:[{name:'command',type:3,value:'war',focused:true}]}});
   if(!complete.choices?.some(choice=>choice.value==='clan war-preference'))throw Error('Help autocomplete missing leaf');
   const bad=await interact({type:2,data:{name:'help',options:[{name:'command',type:3,value:'not-real'}]}});
@@ -816,7 +894,7 @@ try{
    raidFailure=true;
    const partialRaid=await interact(command('family','summary',[...opts,{name:'view',type:3,value:'capital'}]));
    const lootField=partialRaid.embeds.flatMap(embed=>embed.fields??[]).find(field=>field.name.includes('looted'));
-   if(!text(partialRaid).includes('raid histories incomplete')||!lootField?.value.includes('No recorded observations')||!text(partialRaid).includes('444'))throw Error('Partial raid history presented as complete');
+   if(!text(partialRaid).includes('Partial war/raid history')||!lootField?.value.includes('No recorded observations')||!text(partialRaid).includes('444'))throw Error('Partial raid history presented as complete');
    raidFailure=false;
    const countText=embeds=>embeds.reduce((sum,embed)=>sum+(embed.title?.length??0)+(embed.description?.length??0)+(embed.footer?.text?.length??0)+(embed.fields??[]).reduce((n,field)=>n+field.name.length+field.value.length,0),0);
    if(countText(family.embeds)>6000||family.embeds.some(embed=>(embed.fields??[]).some(field=>field.value.length>1024)))throw Error('Summary exceeds Discord limits');
@@ -878,7 +956,7 @@ try{
    const official=await interact(command('clan','war-log',[clanOption]));
    if(!text(official).includes('Official Opponent')||!text(official).includes('3/4 attacks'))throw Error('Official war log failed '+text(official));
    privateWar=true;const stored=await interact(command('clan','war-log',[clanOption]));
-   if(!text(stored).includes('Archived Opponent')||!text(stored).includes('official log is private'))throw Error('Private stored history failed');privateWar=false;
+   if(!text(stored).includes('Archived Opponent')||!text(stored).includes('War log private'))throw Error('Private stored history failed');privateWar=false;
    await db.query("INSERT INTO cwl_groups(cwl_id,season,rounds,state,war_size) VALUES($1,'2026-09','[]','ended',15)",[cwlId]);
    await db.query("INSERT INTO cwl_group_clans(cwl_id,clan_tag,name) VALUES($1,$2,'Alpha Clan')",[cwlId,group]);
    const cwl=await interact(command('clan','war-log',[clanOption,{name:'view',type:3,value:'cwl'}]));
@@ -937,7 +1015,7 @@ try{
    const raids=await interact(command('family','raids'));
    if(!text(raids).includes('12.3K')||JSON.stringify(raids.embeds).includes('999'))throw Error('Wrong raid weekend chosen '+text(raids));
    raidSkip=true;const skipped=await interact(command('family','raids'));
-   if(!text(skipped).includes('No matching raid'))throw Error('Old raid substituted for missing weekend');raidSkip=false;
+   if(!text(skipped).includes('without raid data')||JSON.stringify(skipped.embeds).includes('999'))throw Error('Old raid substituted for missing weekend');raidSkip=false;
    raidFailure=true;const failed=await interact(command('family','raids'));
    if(!text(failed).includes('Unavailable')||!text(failed).includes('12.3K'))throw Error('Partial raid failure lost valid clan');raidFailure=false;
    const dated=await interact(command('family','raids',[{name:'weekend',type:3,value:raidDate}]));
@@ -1168,16 +1246,14 @@ try{
    const policyJob=`auto:${roleServer}:${actor}`;
    const flushPolicy=async()=>{await (await bot.getWorker()).scheduled({cron:'* * * * *'});await wait(async()=>Boolean((await db.query('SELECT completed_at FROM role_refresh_jobs WHERE id=$1',[policyJob])).rows[0]?.completed_at),'automatic policy completion');};
    memberRoles.delete(newRole);memberRoles.add(oldRole);nickname='Original nickname';
-   const policyDenied=await interact(command('autorefresh','options',[]));
-   if(!text(policyDenied).includes('Manage Server'))throw Error('Automatic settings permission bypass');
-   const triggersDenied=await interact(command('autorefresh','triggers',[]));if(!text(triggersDenied).includes('Manage Server'))throw Error('Trigger permission bypass');
-   const triggersSelected=await interact(command('autorefresh','triggers',[{name:'member_leave',type:5,value:false},{name:'townhall_change',type:5,value:false}]),actor,'32');
-   if(text(triggersSelected).includes('Member leave')||!text(triggersSelected).includes('League change'))throw Error('Trigger selection reply wrong');
+   const retiredAutomatic=await interact(command('autorefresh','options',[]),actor,'32');
+   if(retiredAutomatic.embeds?.length)throw Error('Retired setup command still runs');
+   await settings({auto_eval_triggers:['member_join','league_change','role_change']});
    const selectedTriggers=(await db.query('SELECT auto_role_triggers FROM servers WHERE id=$1',[roleServer])).rows[0].auto_role_triggers;
-   if(selectedTriggers.includes('member_leave')||selectedTriggers.includes('townhall_change')||selectedTriggers.length!==3)throw Error('Trigger selection not persisted');
-   await interact(command('autorefresh','triggers',[{name:'mode',type:3,value:'none'}]),actor,'32');
+   if(selectedTriggers.includes('member_leave')||selectedTriggers.includes('townhall_change')||selectedTriggers.length!==3)throw Error('Dashboard trigger selection not persisted');
+   await settings({auto_eval_triggers:[]});
    if((await db.query('SELECT cardinality(auto_role_triggers) AS n FROM servers WHERE id=$1',[roleServer])).rows[0].n!==0)throw Error('No-events selection failed');
-   await interact(command('autorefresh','triggers',[{name:'mode',type:3,value:'all'}]),actor,'32');
+   await settings({auto_eval_triggers:null});
    if((await db.query('SELECT auto_role_triggers FROM servers WHERE id=$1',[roleServer])).rows[0].auto_role_triggers!==null)throw Error('Unrestricted reset failed');
    if(process.env.CLASHKING_E2E_DASHBOARD_REPO){
     const dashboardRepo=resolve(process.env.CLASHKING_E2E_DASHBOARD_REPO),clientBundle=join(directory,'dashboard-roles-client.mjs');
@@ -1194,9 +1270,8 @@ try{
     const denied=await client.updateRoleSettings(roleServer,{auto_eval_triggers:[]});if(denied.status!==403)throw Error('Dashboard nonmanager changed triggers '+JSON.stringify(denied));
     console.log(JSON.stringify({dashboardRoleTriggers:'passed',checks:['actual RolesClient with vendored contract','authenticated owner','selected/empty/null round trips','nonmanager rejected'],externalDiscordWrites:0}));
    }
-   console.log(JSON.stringify({automaticTriggers:'passed',checks:['manager-only command','selected boolean events','canonical storage','empty selection','reset default'],externalDiscordWrites:0}));
-   const policyCommand=await interact(command('autorefresh','options',[{name:'state',type:5,value:true},{name:'nickname_change',type:5,value:false},{name:'role_treatment',type:3,value:'add'}]),actor,'32');
-   if(!text(policyCommand).includes('Add only'))throw Error('Automatic settings command failed');
+   console.log(JSON.stringify({automaticTriggers:'passed',checks:['retired Discord setup command','dashboard settings endpoint','canonical storage','empty selection','reset default'],externalDiscordWrites:0}));
+   await settings({auto_eval_status:true,auto_eval_nickname:false,auto_eval_role_treatment:'add'});
    const autoLegacyClaim=await fetch(`http://127.0.0.1:${port}/v2/bot/role-refresh/claim`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({serverId:roleServer,includeRoster:true,includeRoleTreatment:true})});
    if(!autoLegacyClaim.ok||(await autoLegacyClaim.json()).jobs.some(job=>job.id===policyJob))throw Error('Old worker claimed restricted automatic policy');
    const policyClaim=await fetch(`http://127.0.0.1:${port}/v2/bot/role-refresh/claim`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({serverId:roleServer,includeRoster:true,includeRoleTreatment:true,includeAutomaticPolicy:true})});
@@ -1314,9 +1389,7 @@ try{
    await settings({auto_eval_status:false});
    const joined=new Date();joined.setUTCFullYear(joined.getUTCFullYear()-2);joined.setUTCDate(joined.getUTCDate()-1);roleJoinedAt=joined.toISOString();
    await db.query("UPDATE discord_cache.members SET data=jsonb_set(data,'{joined_at}',to_jsonb($3::text)) WHERE guild_id=$1 AND user_id=$2",[roleServer,actor,roleJoinedAt]);
-   const tenureOptions=[{name:'mode',type:3,value:'add'},{name:'months',type:4,value:12},{name:'role',type:8,value:oldRole}];
-   const deniedTenure=await interact(command('roles','tenure',tenureOptions));if(!text(deniedTenure).includes('Manage Server'))throw Error('Tenure configuration permission bypassed');
-   const savedTenure=await interact(command('roles','tenure',tenureOptions),actor,'32');if(!text(savedTenure).includes('Saved the 12-month'))throw Error('Tenure command did not save rule '+text(savedTenure));
+   await ruleRequest('POST','',{type:'status',option:'12',role_id:oldRole});
    await ruleRequest('POST','',{type:'status',option:'36',role_id:newRole});
    const tenureId=`tenure:${roleServer}:${actor}`;
    const legacyClaim=await fetch(`http://127.0.0.1:${port}/v2/bot/role-refresh/claim`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({serverId:roleServer})});if(!legacyClaim.ok||(await db.query('SELECT 1 FROM role_refresh_jobs WHERE id=$1',[tenureId])).rowCount)throw Error('Old consumer scheduled unsupported tenure work');
@@ -1340,11 +1413,12 @@ try{
    const rosterApi=async(path,body,method='POST')=>{const response=await fetch(`http://127.0.0.1:${port}`+path,{method,headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify(body)});const value=await response.json();if(!response.ok)throw Error('Roster role API '+response.status+' '+JSON.stringify(value));return value;};
    const roster1=await rosterApi('/v2/roster?server_id='+roleServer,{alias:'Role one',roster_type:'family',members:[{tag:tags[0],name:'Roster member',townhall:16}]});
    const roster2=await rosterApi('/v2/roster?server_id='+roleServer,{alias:'Role two',roster_type:'family',members:[{tag:tags[0],name:'Roster member',townhall:16}]});
-   const ropt=id=>({name:'roster',type:3,value:id});
-   const roleopt=id=>({name:'role',type:8,value:id});
-   const deniedRosterRole=await interact(command('roster','role',[ropt(roster1.roster_id),roleopt(oldRole)]),actor,'0');if(!text(deniedRosterRole).includes('Manage'))throw Error('Roster role permission bypass');
-   const setRosterRole=async(id,role,extra=[])=>{const response=await interact(command('roster','role',[ropt(id),...(role?[roleopt(role)]:[]),...extra]),actor,'32');if(!text(response).includes('saved'))throw Error('Roster role config failed '+text(response));};
-   const drainRoster=async()=>{const response=await interact(command('roster','role-refresh',[ropt(roster1.roster_id)]),actor,'32');if(!text(response).includes('Queued'))throw Error('Roster role refresh failed '+text(response));};
+   const setRosterRole=async(id,role,extra=[])=>rosterApi(`/v2/server/${roleServer}/rosters/${id}/role`,{roleId:role,memberGroupId:extra.find(option=>option.name==='group')?.value??null},'PUT');
+   const drainRoster=async()=>{
+    await rosterApi(`/v2/server/${roleServer}/rosters/${roster1.roster_id}/role-refresh`,{});
+    await (await bot.getWorker()).scheduled({cron:'* * * * *'});
+    await wait(async()=>!(await db.query('SELECT 1 FROM role_refresh_jobs WHERE server_id=$1 AND completed_at IS NULL',[roleServer])).rowCount,'dashboard roster role refresh');
+   };
    await setRosterRole(roster1.roster_id,oldRole);
    const oldConsumer=await fetch(`http://127.0.0.1:${port}/v2/bot/role-refresh/claim`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({serverId:roleServer})});
    if((await oldConsumer.json()).jobs.some(job=>job.categories.includes('roster')))throw Error('Old consumer claimed unsupported roster job');

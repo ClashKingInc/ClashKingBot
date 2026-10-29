@@ -1,3 +1,4 @@
+import { withClanSelector } from "./clan-controls";
 import { actionRow, legacyMessage } from "../discord/components";
 import { InteractionResponseType } from "../discord/types";
 import {
@@ -274,7 +275,7 @@ export async function memberReport(ctx: CommandContext, scope: Scope) {
   const title = `${scope === "family" ? "Family" : (clans[0]?.name ?? "Clan")} · ${label}`;
   const footer = `${shown}/${rows.length} ${action === "compo" ? "groups" : "players"} · ${members.length} members${failedClans ? ` · ${failedClans} clans unavailable` : ""}${failedPlayers ? ` · ${failedPlayers} profiles/stats unavailable` : ""}${metric === "location" ? " · Public ranking location only" : ""}`;
   const icon = emoji.component("refresh");
-  return legacyMessage({
+  const response = legacyMessage({
     allowed_mentions: { parse: [] },
     embeds: [
       {
@@ -294,6 +295,7 @@ export async function memberReport(ctx: CommandContext, scope: Scope) {
       }),
     ],
   });
+  return scope === "clan" ? withClanSelector(ctx, response) : response;
 }
 export async function dispatchMemberReport(
   ctx: CommandContext,

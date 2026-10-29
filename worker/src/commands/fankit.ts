@@ -35,11 +35,14 @@ async function search(query:string):Promise<Asset[]>{
  }
  return assets;
 }
-async function page(ctx:CommandContext,query:string,index:number){
- const assets=await search(query);if(!assets.length)return legacyMessage({content:"No fan-kit images found for that search.",allowed_mentions:{parse:[]}});
- if(index>=assets.length)throw new CommandInputError("These results changed. Run /fankit again.");
- const asset=assets[index]!,token=encode(query),button=(label:string,i:number,disabled=false)=>({type:2 as const,style:2 as const,label,custom_id:`ck:fk:p:${token}:${i}`,disabled});
- return legacyMessage({allowed_mentions:{parse:[]},embeds:[{title:asset.title,image:{url:asset.preview},color:await serverEmbedColor(ctx),footer:{text:`${index+1}/${assets.length} · Supercell fan kit`}}],components:[actionRow(button("Previous",Math.max(0,index-1),index===0),button("Next",index+1,index===assets.length-1),{type:2,style:5,label:"Download",url:asset.preview},...(ctx.interaction.guild_id?[{type:2 as const,style:2 as const,label:"Add as Emoji",custom_id:`ck:fk:e:${token}:${asset.id}`}]:[]))]});
+async function page(ctx:CommandContext,query:string,index:number,assetId?:number){
+ const assets=await search(query);if(assetId!==undefined)index=assets.findIndex(asset=>asset.id===assetId);if(!assets.length)return legacyMessage({content:"No fan-kit images found for that search.",allowed_mentions:{parse:[]}});
+ if(index<0||index>=assets.length)throw new CommandInputError("These results changed. Run /fankit again.");
+ const asset=assets[index]!,token=encode(query);
+ return legacyMessage({allowed_mentions:{parse:[]},embeds:[{title:asset.title,image:{url:asset.preview},color:await serverEmbedColor(ctx),footer:{text:`${index+1}/${assets.length} · Supercell fan kit`}}],components:[
+  actionRow({type:3,custom_id:`ck:fk:s:${token}:0`,placeholder:"Choose an image",options:assets.map(item=>({label:item.title.slice(0,100),value:String(item.id),default:item.id===asset.id}))}),
+  actionRow({type:2,style:5,label:"Download",url:asset.preview},...(ctx.interaction.guild_id?[{type:2 as const,style:2 as const,label:"Add as Emoji",custom_id:`ck:fk:e:${token}:${asset.id}`}]:[])),
+ ]});
 }
 async function addEmoji(ctx:CommandContext,query:string,id:number){
  const guild=requireGuildId(ctx),permissions=ctx.interaction.member?.permissions??"0";
@@ -61,12 +64,19 @@ async function addEmoji(ctx:CommandContext,query:string,id:number){
 }
 export const fankitCommand:Command={deferred:true,definition:{name:"fankit",description:"Browse official Supercell fan-kit images",type:1,integration_types:[0,1],contexts:[0,1,2],options:[{name:"query",description:"Image search phrase",type:OptionType.String,required:true,min_length:1,max_length:40}]},execute:ctx=>page(ctx,queryValue(stringOption(ctx,"query")??""),0)};
 export function dispatchFankit(ctx:CommandContext,waitUntil?:(promise:Promise<unknown>)=>void):Promise<DiscordInteractionResponse>|DiscordInteractionResponse{
- const match=/^ck:fk:([pe]):([A-Za-z0-9_-]{1,64}):(\d{1,12})$/u.exec(ctx.interaction.data?.custom_id??"");
+ const match=/^ck:fk:([pse]):([A-Za-z0-9_-]{1,64}):(\d{1,12})$/u.exec(ctx.interaction.data?.custom_id??"");
  if(!match)throw new CommandInputError("Invalid fan-kit control.");
  let query:string;try{query=queryValue(new TextDecoder("utf-8",{fatal:true}).decode(Uint8Array.from(atob(match[2]!.replaceAll("-","+").replaceAll("_","/")),c=>c.charCodeAt(0))));}catch{throw new CommandInputError("Invalid fan-kit search.");}
  const value=Number(match[3]);if(!Number.isSafeInteger(value)||match[1]==="p"&&value>24)throw new CommandInputError("Invalid fan-kit result.");
- const run=()=>match[1]==="p"?page(ctx,query,value):addEmoji(ctx,query,value);
- if(!waitUntil)return run().then(result=>match[1]==="p"?{...result,type:InteractionResponseType.UpdateMessage}:result);
- waitUntil(run().then(result=>match[1]==="p"?ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token,result.data??{}):ctx.services.discordRest.createInteractionFollowup(ctx.interaction.token,result.data??{})).catch(error=>ctx.services.discordRest.createInteractionFollowup(ctx.interaction.token,{content:error instanceof CommandInputError?error.message:"Could not load the fan kit. Try again.",flags:MessageFlags.Ephemeral})));
+ let selected:number|undefined;
+ if(match[1]==="s"){
+  const values=ctx.interaction.data?.values;
+  if(ctx.interaction.data?.component_type!==3||values?.length!==1||!/^\d{1,12}$/u.test(values[0]!))throw new CommandInputError("Choose an image from these results.");
+  selected=Number(values[0]);
+ }
+ const browsing=match[1]!=="e";
+ const run=()=>browsing?page(ctx,query,value,selected):addEmoji(ctx,query,value);
+ if(!waitUntil)return run().then(result=>browsing?{...result,type:InteractionResponseType.UpdateMessage}:result);
+ waitUntil(run().then(result=>browsing?ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token,result.data??{}):ctx.services.discordRest.createInteractionFollowup(ctx.interaction.token,result.data??{})).catch(error=>ctx.services.discordRest.createInteractionFollowup(ctx.interaction.token,{content:error instanceof CommandInputError?error.message:"Could not load the fan kit. Try again.",flags:MessageFlags.Ephemeral})));
  return {type:InteractionResponseType.DeferredUpdateMessage};
 }

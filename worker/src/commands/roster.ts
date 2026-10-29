@@ -1,17 +1,13 @@
-import { dashboardAccessLink } from "./dashboard";
-import { rosterLabelOptions, rosterLabels, rosterLabelAutocomplete } from "./roster-labels";
-import { rosterAction, rosterActionNames, rosterActionOptions } from "./roster-actions";
 import { ClashKingApiError } from "../api/client";
 import { ApplicationEmojis } from "../discord/emojis";
 import { actionRow, legacyMessage, type ButtonComponent } from "../discord/components";
 import { InteractionResponseType, InteractionType, type DiscordInteractionResponse } from "../discord/types";
-import { localizations, resolveLocale, translate } from "../localization/catalog";
+import { localizations, translate } from "../localization/catalog";
 import { CommandInputError, invokingUserId, normalizeTag, requireGuildId } from "./command-utils";
-import { playerAutocomplete } from "./game-common";
+import { emojis, playerAutocomplete } from "./game-common";
 import { serverEmbedColor } from "./embed-color";
 import { modalFields } from "./modals";
 import type { Command, CommandContext } from "./types";
-import { previewRosterPing, confirmRosterPing } from "./roster-ping";
 
 // Projections of api-contracts/src/bot-server.ts; never Dashboard's snake_case response.
 interface Question { id: string; label: string; type: string; required: boolean; options: string[]; order: number }
@@ -47,39 +43,24 @@ export async function loadRoster(ctx: CommandContext, id: string, modal = false)
 const load = loadRoster;
 const rosterOption = { name: "roster", type: 3, description: translate("roster.title"),
   description_localizations: localizations("roster.title"), required: true, autocomplete: true };
-const choice = (value: string, key: Key) => ({ value, name: translate(key), name_localizations: localizations(key) });
 export const rosterCommand: Command = {
   deferred: true, ephemeral: true,
   definition: { name: "roster", type: 1, contexts: [0], integration_types: [0], default_member_permissions: "32",
     name_localizations: localizations("roster.name"), description: translate("roster.title"),
     description_localizations: localizations("roster.title"), options: [
-      ...rosterActionOptions(rosterOption),
-      {name:"settings",type:1,description:"Open this roster in the dashboard",options:[rosterOption]},
-      ...rosterLabelOptions(rosterOption),
       { name: "list", type: 1, description: "Browse this server's rosters" },
       { name: "view", type: 1, description: "View a roster's members", options: [rosterOption] },
       { name: "search", type: 1, description: "Find this server's rosters for a player or Discord user", options: [
         { name: "player", type: 3, description: "Player tag to find", autocomplete: true },
         { name: "user", type: 6, description: "Linked Discord user (default you)" },
       ] },
-      { name: "refresh", type: 1, description: "Refresh a roster's player data", options: [rosterOption] },
-      { name: "post", type: 1, description: translate("roster.post"), description_localizations: localizations("roster.post"), options: [rosterOption,
-        { name: "type", type: 3, description: translate("roster.post"), required: true, choices: [
-          choice("signup", "roster.signupMode"), choice("post", "roster.title"), choice("static", "roster.staticMode"),
-        ] }] },
-      { name: "ping", type: 1, description: translate("roster.ping"), description_localizations: localizations("roster.ping"), options: [rosterOption,
-        { name: "type", type: 3, description: translate("roster.ping"), required: true, choices: [
-          choice("missing", "roster.missing"), choice("outside", "roster.outside"), choice("all", "roster.all"),
-        ] }, { name: "message", type: 3, description: translate("base.descriptionLabel"), max_length: 500 }] },
-      { name: "create", type: 1, description: translate("roster.create"), description_localizations: localizations("roster.create") },
     ] },
   autocomplete: async (ctx) => {
     requireGuildId(ctx);
     const options = ctx.interaction.data?.options?.[0]?.options ?? [];
     const focused = options.find(option => option.focused);
-    if (focused?.name === "group") return rosterLabelAutocomplete(ctx,String(focused.value??""));
     if (focused?.name === "player") return playerAutocomplete({...ctx,options:new Map(options.map(option=>[option.name,option]))});
-    if (!["roster","destination"].includes(focused?.name??"")) return [];
+    if (focused?.name !== "roster") return [];
     const query = String(focused?.value ?? "").toLocaleLowerCase();
     const { items } = await ctx.services.api.get<{ items: Roster[] }>(endpoint(ctx), {}, AbortSignal.timeout(1500));
     return items.filter(r => r.serverId === requireGuildId(ctx) && uuid.test(r.id) && `${r.alias} ${r.clanTag ?? ""}`.toLocaleLowerCase().includes(query))
@@ -88,34 +69,19 @@ export const rosterCommand: Command = {
   },
   execute: (ctx) => guarded(ctx, async () => {
     const sub = ctx.interaction.data?.options?.[0];
-    if (sub?.name === "create") return createModal(ctx);
+    // Cached slash definitions must not revive dashboard-only roster mutations.
+    if (!sub || !["list", "view", "search"].includes(sub.name))
+      throw new CommandInputError("Manage rosters in the dashboard.");
     requireManager(ctx);
     const options = new Map(sub?.options?.map(option => [option.name, option.value]));
-    if (sub?.name === "groups" || sub?.name === "group-player" || sub?.name === "role" || sub?.name === "role-refresh") return rosterLabels(ctx,sub.name,options);
     if (sub?.name === "list") return list(ctx,0);
     if (sub?.name === "search") {
       if (options.has("player") && options.has("user")) throw new CommandInputError("Choose either a player or a Discord user.");
       return searchRosters(ctx,options.has("player")?`p~${normalizeTag(String(options.get("player")),ctx.locale)}`:`u~${String(options.get("user")??invokingUserId(ctx))}`);
     }
     const id = String(options.get("roster") ?? "");
-    const mode = String(options.get("type") ?? "");
     if (!uuid.test(id)) throw new CommandInputError(t(ctx, "error.invalidInteraction"));
-    if (sub&&rosterActionNames.includes(sub.name)) return rosterAction(ctx,id,sub.name,options);
-    if (sub?.name === "settings") {
-      await load(ctx,id);
-      return legacyMessage({content:"Open this roster’s settings. The link expires in 2 minutes and can be used once.",components:[actionRow({type:2,style:5,label:"Open roster settings",url:await dashboardAccessLink(ctx,id)})]},{ephemeral:true});
-    }
     if (sub?.name === "view") return view(ctx,id);
-    if (sub?.name === "refresh") {
-      await load(ctx,id);
-      const result=await ctx.services.api.post<{status:string;refreshedPlayers:number;failedPlayers:number;refreshedAt:string;reused:boolean}>(endpoint(ctx,id)+"/refresh",{scope:"data"});
-      if(result.reused)return reply("Recent roster data reused. Try again after the refresh cooldown.");
-      return reply(`Roster data refreshed: ${result.refreshedPlayers} player(s)${result.failedPlayers?`; ${result.failedPlayers} unavailable player(s) kept unchanged`:""}.`);
-    }
-    if (sub?.name === "post" && ["signup", "post", "static"].includes(mode)) return post(ctx, id, mode);
-    if (sub?.name === "ping" && ["missing", "outside", "all"].includes(mode)) {
-      return previewRosterPing(ctx, await load(ctx, id), mode, String(options.get("message") ?? ""));
-    }
     throw new CommandInputError(t(ctx, "error.invalidInteraction"));
   }),
 };
@@ -163,10 +129,10 @@ async function list(ctx: CommandContext, page: number): Promise<DiscordInteracti
   const rows = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const components = rows.length ? [actionRow({ type: 3, custom_id: "ck:roster:select", placeholder: t(ctx, "roster.view"),
     options: rows.map(r => ({ label: r.alias.slice(0, 100) || r.id, value: r.id, description: `👥 ${r.memberCount}` })) })] : [];
-  const controls: ButtonComponent[] = [{type:2,style:2,label:"Refresh",custom_id:`ck:roster:list:${page}`}];
+  const refresh = (await emojis(ctx)).component("refresh") ?? { name: "↻" };
+  const controls: ButtonComponent[] = [{type:2,style:2,emoji:refresh,custom_id:`ck:roster:list:${page}`}];
   if (page > 0) controls.push({ type: 2, style: 2, label: "←", custom_id: `ck:roster:list:${page - 1}` });
   if (page < last) controls.push({ type: 2, style: 2, label: "→", custom_id: `ck:roster:list:${page + 1}` });
-  if (manager(ctx)) controls.push(button(ctx, "create", "roster.create"));
   if (controls.length) components.push(actionRow(...controls));
   return legacyMessage({ content: rows.length ? `${t(ctx, "roster.title")} · ${page + 1}/${last + 1}` : t(ctx, "roster.empty"), components }, { ephemeral: true });
 }
@@ -180,24 +146,11 @@ async function view(ctx: CommandContext, id: string, page = 0) {
   const roster = await load(ctx, id);
   const last = Math.max(0, Math.ceil(roster.members.length / PAGE_SIZE) - 1);
   page = Math.min(page, last);
-  const controls = [button(ctx, "join", "roster.join", id),{type:2 as const,style:2 as const,label:"Refresh",custom_id:`ck:roster:view:${id}:${page}`}];
-  if (manager(ctx)) controls.push(button(ctx, "post", "roster.post", id));
+  const refresh = (await emojis(ctx)).component("refresh") ?? { name: "↻" };
+  const controls: ButtonComponent[] = [button(ctx, "join", "roster.join", id),{type:2,style:2,emoji:refresh,custom_id:`ck:roster:view:${id}:${page}`}];
   if (page > 0) controls.push({ type: 2, style: 2, label: "←", custom_id: `ck:roster:view:${id}:${page - 1}` });
   if (page < last) controls.push({ type: 2, style: 2, label: "→", custom_id: `ck:roster:view:${id}:${page + 1}` });
   return { type: 4, data: { content: rosterText(ctx, roster, page), flags: 64, allowed_mentions: { parse: [] }, components: [actionRow(...controls)] } };
-}
-function createModal(ctx: CommandContext): DiscordInteractionResponse {
-  return legacyMessage({ components: [actionRow({ type: 2, style: 5,
-    label: t(ctx, "roster.create"), url: rosterDashboardUrl(ctx) })] }, { ephemeral: true });
-}
-export function rosterDashboardUrl(ctx: CommandContext, id?: string): string {
-  const origin = ctx.env.DASHBOARD_BASE_URL;
-  if (!origin) throw new CommandInputError(t(ctx, "roster.failed"));
-  const url = new URL(id ? "/dashboard/rosters/detail" : "/dashboard/rosters", origin);
-  if (url.protocol !== "https:" && !(url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname))) throw new Error("Invalid Dashboard origin");
-  url.searchParams.set("guildId", requireGuildId(ctx));
-  if (id) url.searchParams.set("rosterId", id);
-  return url.toString();
 }
 async function formVersion(questions: Question[]): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(questions)));
@@ -286,42 +239,22 @@ async function submit(ctx: CommandContext, id: string, version: string) {
   await ctx.services.api.post(endpoint(ctx, id) + "/submissions", { playerTag: tag, answers, discordUserId: invokingUserId(ctx) });
   return reply(t(ctx, "roster.saved"));
 }
-async function post(ctx: CommandContext, id: string, mode = "signup") {
-  requireManager(ctx);
-  const channelId = ctx.interaction.channel_id;
-  if (!channelId) throw new CommandInputError(t(ctx, "base.missingChannel"));
-  const shared = { ...ctx, locale: resolveLocale(ctx.interaction.guild_locale) };
-  await ctx.services.api.post(endpoint(ctx, id) + "/post", {
-    channelId, mode, nonce: ctx.interaction.id, dashboardUrl: rosterDashboardUrl(ctx, id),
-    joinLabel: t(shared, "roster.join"), leaveLabel: t(shared, "roster.leave"), viewLabel: t(shared, "roster.view"),
-  });
-  return reply(t(ctx, "roster.posted"));
-}
-
-/** Strict routing keeps modal submissions separate from public buttons, with no in-memory sessions. */
+/** Keep existing member signup and display refresh controls working. Setup and
+ * staff roster edits are dashboard-only, including stale buttons after removal. */
 export async function dispatchRoster(ctx: CommandContext, waitUntil?: (promise: Promise<unknown>) => void): Promise<DiscordInteractionResponse> {
   const parts = (ctx.interaction.data?.custom_id ?? "").split(":");
-  if (parts[2] === "ping-send") return guarded(ctx, async () => {
-    requireManager(ctx);
-    if (ctx.interaction.type !== InteractionType.MessageComponent) return reply(t(ctx, "error.invalidInteraction"));
-    const run = () => confirmRosterPing(ctx, parts);
-    if (!waitUntil) return run();
-    waitUntil(guarded(ctx, run).then(response => ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token, response.data ?? {})));
-    return { type: 5, data: { flags: 64 } };
-  });
   const [, , action, id, extra] = parts;
   const modal = ctx.interaction.type === InteractionType.ModalSubmit;
   const valid = parts.length <= 5 && (action === "search" && parts.length === 4 && /^(?:p~#[0289PYLQGRJCUV]{1,15}|u~[0-9]{15,20})$/u.test(id ?? "")
-    || (action === "create" || action === "select") && parts.length === 3
+    || action === "select" && parts.length === 3
     || action === "list" && parts.length === 4 && /^\d{1,6}$/.test(id ?? "")
-    || ["view", "join", "leave", "join-page", "leave-page", "withdraw", "post", "submit", "refresh"].includes(action ?? "") && uuid.test(id ?? "")
+    || ["view", "join", "leave", "join-page", "leave-page", "withdraw", "submit", "refresh"].includes(action ?? "") && uuid.test(id ?? "")
       && (action === "submit" ? parts.length === 5 && /^[a-f0-9]{16}$/.test(extra ?? "")
         : action === "view" ? parts.length === 4 || parts.length === 5 && /^\d{1,6}$/.test(extra ?? "") : parts.length === 4));
   if (!valid || modal !== ["submit", "withdraw"].includes(action ?? "")) return reply(t(ctx, "error.invalidInteraction"));
   const run = () => guarded(ctx, async () => {
     switch (action) {
       case "search": return searchRosters(ctx,id!);
-      case "create": return createModal(ctx);
       case "list": return list(ctx, Number(id));
       case "select": {
         const selected = ctx.interaction.data?.values;
@@ -343,7 +276,6 @@ export async function dispatchRoster(ctx: CommandContext, waitUntil?: (promise: 
         return reply(t(ctx, "roster.saved"));
       }
       case "submit": return submit(ctx, id!, extra!);
-      case "post": return post(ctx, id!);
       case "refresh": {
         requireManager(ctx);
         await ctx.services.api.post(endpoint(ctx, id!) + "/refresh-publication", {});
@@ -357,7 +289,7 @@ export async function dispatchRoster(ctx: CommandContext, waitUntil?: (promise: 
       ? undefined : ctx.services.discordRest.createInteractionFollowup(ctx.interaction.token, response.data ?? {})));
     return { type: InteractionResponseType.DeferredUpdateMessage };
   }
-  if (!waitUntil || ["create", "join", "leave", "join-page", "leave-page"].includes(action ?? "")) return run();
+  if (!waitUntil || ["join", "leave", "join-page", "leave-page"].includes(action ?? "")) return run();
   waitUntil(run().then(response => ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token, response.data ?? {})));
   return { type: InteractionResponseType.DeferredChannelMessageWithSource, data: { flags: 64 } };
 }

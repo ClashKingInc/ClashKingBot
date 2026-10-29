@@ -1,16 +1,17 @@
 import { privacyCommand } from "./privacy";
-import { autoRefreshCommand } from "./autorefresh";
+import { dispatchLegendStats } from "./legend-global";
+import { dispatchClanControl } from "./clan-controls";
+import { dispatchClanLinks } from "./link-list";
+import { dispatchGraphControl } from "./graph-controls";
 import { fankitCommand, dispatchFankit } from "./fankit";
 import { pepeCommand } from "./pepe";
-import { buttonsCommand, quickMemberAction } from "./buttons";
+import { quickMemberAction } from "./buttons";
 import { botInfoCommand } from "./bot-info";
-import { giveawayCommand } from "./giveaway";
-import { rolesCommand } from "./roles";
 import { graphCommand } from "./graph";
 import { roleUsersCommand } from "./role-users";
 import { boostsCommand } from "./boosts";
 import { statsCommand } from "./stats";
-import { helpCommand } from "./help";
+import { dispatchHelpControl, helpCommand } from "./help";
 import { dispatchMemberReport } from "./member-reports";
 import {
   InteractionResponseType,
@@ -43,7 +44,9 @@ import { clanCommand } from "./clan";
 import { dispatchGamePage } from "./game-pages";
 import type { Command, CommandContext, CommandServices, ComponentHandler } from "./types";
 
-const commands: readonly Command[] = [privacyCommand,autoRefreshCommand,fankitCommand,pepeCommand,buttonsCommand,botInfoCommand,giveawayCommand,rolesCommand,graphCommand,roleUsersCommand,boostsCommand,statsCommand,helpCommand,baseCommand, linkCommand, rosterCommand, refreshCommand, mainAccountCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand, familyCommand, banCommand, strikeCommand, warCommand, cwlCommand];
+// Setup and automation live in the dashboard. Keep only member-facing and
+// informational slash commands here; persistent message handlers remain below.
+const commands: readonly Command[] = [privacyCommand,fankitCommand,pepeCommand,botInfoCommand,graphCommand,roleUsersCommand,boostsCommand,statsCommand,helpCommand,baseCommand, linkCommand, rosterCommand, refreshCommand, mainAccountCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand, familyCommand, banCommand, strikeCommand, warCommand, cwlCommand];
 const commandByName = new Map(commands.map((command) => [command.definition.name, command]));
 // Retain cached legacy invocations without registering a separate slash root.
 commandByName.set("unlink", unlinkCommand);
@@ -97,6 +100,12 @@ async function executeCommand(
   const name = context.interaction.data?.name;
   const command = name ? commandByName.get(name) : undefined;
   if (!command) {
+    // Cached setup definitions can outlive registration; guide users without
+    // retaining a hidden write path through an old Discord command.
+    if (name && ["autorefresh", "roles", "giveaway", "buttons"].includes(name)) {
+      return { type: InteractionResponseType.ChannelMessageWithSource,
+        data: { content: "Server setup is managed in /dashboard.", flags: MessageFlags.Ephemeral } };
+    }
     return unknownInteraction(context.locale);
   }
   const ephemeral = typeof command.ephemeral === "function" ? await command.ephemeral(context) : command.ephemeral;
@@ -129,6 +138,11 @@ async function executePersistentHandler(
   waitUntil?: (promise: Promise<unknown>) => void,
 ): Promise<DiscordInteractionResponse> {
   const customId = context.interaction.data?.custom_id ?? "";
+  if(customId.startsWith("ck:legendstats:"))return dispatchLegendStats(context,waitUntil);
+  if(customId.startsWith("ck:clans:"))return dispatchClanControl(context,waitUntil);
+  if(customId.startsWith("ck:help:"))return dispatchHelpControl(context,waitUntil);
+  if(customId.startsWith("ck:chart:"))return dispatchGraphControl(context,waitUntil);
+  if(customId.startsWith("ck:links:"))return dispatchClanLinks(context,waitUntil);
   if(customId.startsWith("ck:fk:"))return dispatchFankit(context,waitUntil);
   // Old Legend History buttons still exist on Discord messages. Route them
   // through the same renderer as /legends history instead of maintaining a

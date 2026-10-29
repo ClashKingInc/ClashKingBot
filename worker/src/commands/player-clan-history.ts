@@ -16,7 +16,7 @@ function format(count:number,full:string,totals:Array<{clan:Clan;minutes:number}
   const days=visit.end?Math.floor((Date.parse(visit.end)-Date.parse(visit.start))/86400000):0;
   return `${link(visit.clan)}${visit.role?`, ${visit.role}`:""}${days>=1?`, ${days} days`:""}\n${visit.end?`${timestamp(visit.start)} to ${timestamp(visit.end)}`:`Seen on ${timestamp(visit.start)}`}`;
  }).join("\n")||"No Clans Found";
- return {description:`This player has been seen in a total of ${count} different clans\n[Full History](${full})\n\n**Top 5 Clans Player has stayed the most:**\n${longest}\n\n**Last 5 Clans Player has been seen at:**\n${latest}`,footer};
+ return {description:`${count} clans in recorded history\n[Full History](${full})\n\n**Longest stays**\n${longest}\n\n**Recent clans**\n${latest}`,footer};
 }
 export async function clashKingHistory(ctx:CommandContext,player:Player):Promise<HistoryView>{
  const encoded=encodeURIComponent(player.tag);
@@ -53,7 +53,7 @@ export async function clashOfStatsHistory(ctx:CommandContext,player:Player):Prom
   if(!response.ok)return unavailable;
   const raw=await response.text();if(raw.length>2_000_000)return unavailable;
   const data=JSON.parse(raw) as CosHistory;
-  if(data.error)return /private/i.test(JSON.stringify(data.error))?{description:"This player has made their clash of stats history private.",footer:"Data from ClashofStats.com"}:unavailable;
+  if(data.error)return /private/i.test(JSON.stringify(data.error))?{description:"This player’s Clash of Stats history is private.",footer:"Data from ClashofStats.com"}:unavailable;
   if(!Array.isArray(data.log)||!Array.isArray(data.summary))return unavailable;
   const clan=(tag:string):Clan=>({tag:tag.startsWith("#")?tag:`#${tag}`,name:data.clansMap?.[tag]?.name??tag});
   const roles:Record<string,string>={member:"Member",elder:"Elder",admin:"Co-Leader",coLeader:"Co-Leader",leader:"Leader"};

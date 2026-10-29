@@ -2,8 +2,7 @@ import { Schema } from "effect";
 import { ApplicationEmojis } from "../discord/emojis";
 import { ClashKingApiError } from "../api/client";
 import { InteractionResponseType, InteractionType, MessageFlags, type DiscordInteraction, type DiscordInteractionResponse } from "../discord/types";
-import { CommandInputError, requireGuildId } from "./command-utils";
-import { subcommand } from "./game-common";
+import { CommandInputError } from "./command-utils";
 import type { Command, CommandServices } from "./types";
 
 const uuid = "[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
@@ -40,27 +39,15 @@ const reply = Schema.Union([
 
 export const ticketCommand: Command = {
   definition: {
-    name: "ticket", description: "Post ticket panels and manage tickets", type: 1,
+    name: "ticket", description: "Update the current ticket", type: 1,
     contexts: [0], integration_types: [0],
     options: [
-      { name: "panel-post", description: "Post a dashboard ticket panel in this channel", type: 1,
-        options: [{ name: "panel-id", description: "Ticket panel", type: 3, required: true, autocomplete: true }] },
       { name: "status", description: "Change this ticket's status", type: 1,
         options: [{ name: "status", description: "Ticket status", type: 3, required: true,
           choices: ["open", "sleep", "close"].map(value => ({ name: value, value })) }] },
       { name: "add", description: "Add a member to this ticket", type: 1,
         options: [{ name: "member", description: "Server member", type: 6, required: true }] },
     ],
-  },
-  async autocomplete(context) {
-    const permissions = BigInt(context.interaction.member?.permissions ?? "0");
-    if ((permissions & (8n | 32n)) === 0n) return [];
-    const guild = requireGuildId(context);
-    const result = await context.services.api.get<{ items: { id: string; name: string }[] }>(`/v2/bot/server/${guild}/ticket-panels`);
-    // Slash options live inside panel-post, not at the command root.
-    const query = subcommand(context).options.get("panel-id")?.value;
-    return result.items.filter(panel => panel.name.toLowerCase().includes(typeof query === "string" ? query.toLowerCase() : ""))
-      .slice(0, 25).map(panel => ({ name: panel.name.slice(0, 100), value: panel.id }));
   },
   async execute() {
     throw new CommandInputError("Ticket actions require the original signed Discord interaction.");
@@ -122,8 +109,9 @@ async function updateTicketProgress(interaction: DiscordInteraction, proof: Tick
 export function ticketPath(interaction: DiscordInteraction): string | undefined {
   const base = "/v2/runtime";
   if (interaction.type === InteractionType.ApplicationCommand && interaction.data?.name === "ticket") {
-    return interaction.data.options?.[0]?.name === "panel-post"
-      ? `${base}/ticket-panel-publications/prepare` : `${base}/tickets/actions`;
+    // Old cached slash definitions must not publish setup panels after removal.
+    return ["status", "add"].includes(interaction.data.options?.[0]?.name ?? "")
+      ? `${base}/tickets/actions` : undefined;
   }
   if (interaction.type !== InteractionType.MessageComponent && interaction.type !== InteractionType.ModalSubmit) return undefined;
   const id = interaction.data?.custom_id ?? "";

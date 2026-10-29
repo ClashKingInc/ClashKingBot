@@ -33,12 +33,12 @@ export async function rankedOverview(ctx:CommandContext,player:Player){
  if(!member)return undefined;
  return {rank:1+group.members.filter(item=>item.leagueTrophies>member.leagueTrophies).length,attacks:member.attackWinCount+member.attackLoseCount,defenses:member.defenseWinCount+member.defenseLoseCount,limit};
 }
-const seasonOption={name:"season",description:"Historical Ranked tournament season (defaults to current)",type:OptionType.String};
+const seasonOption={name:"season",description:"Ranked season (defaults to current)",type:OptionType.String};
 export const rankedCommand:Command={
  deferred:true,
- definition:{name:"ranked",description:"Ranked players, tournament stats and groups",type:1,integration_types:[0,1],contexts:[0,1,2],options:[
-  {name:"player",description:"View a Ranked player, their tournament graphic and group",type:OptionType.Subcommand,options:[playerOption,seasonOption]},
-  {name:"history",description:"View a player's Ranked tournament history",type:OptionType.Subcommand,options:[playerOption]},
+ definition:{name:"ranked",description:"Ranked players, season stats and groups",type:1,integration_types:[0,1],contexts:[0,1,2],options:[
+  {name:"player",description:"View a Ranked player, season graphic and group",type:OptionType.Subcommand,options:[playerOption,seasonOption]},
+  {name:"history",description:"View a player's Ranked season history",type:OptionType.Subcommand,options:[playerOption]},
  ]},autocomplete:personalPlayerAutocomplete,
  async execute(context){
   const ctx=subcommand(context),tag=await resolvePlayerTag(ctx),requested=stringOption(ctx,"season");

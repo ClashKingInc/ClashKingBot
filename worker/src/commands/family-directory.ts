@@ -55,5 +55,5 @@ export async function familyDirectory(ctx:CommandContext){
   }
   const period=stats&&(type==="donations"||type==="activity")?` · ${season==="current"?"Current season":season}`:" · Current clan profiles";
   const id=["ck","page","fd",invokingUserId(ctx),stats?"stats":"clans",type,String(limit),order,season,"0"].join(":");
-  return legacyMessage({allowed_mentions:{parse:[]},embeds:[{title:stats?`Family · ${metrics[type as keyof typeof metrics]}`:"Family Clans",color:await serverEmbedColor(ctx),description:description||"No clan data available.",footer:{text:`${shown}/${rows.length} clans · ${rows.filter(row=>row.unavailable).length} unavailable${period}`}}],components:[actionRow({type:2,style:2,label:"Refresh",custom_id:id})]});
+  return legacyMessage({allowed_mentions:{parse:[]},embeds:[{title:stats?`Family · ${metrics[type as keyof typeof metrics]}`:"Family Clans",color:await serverEmbedColor(ctx),description:description||"No clan data available.",footer:{text:`${shown}/${rows.length} clans${rows.some(row=>row.unavailable)?` · ${rows.filter(row=>row.unavailable).length} unavailable`:""}${period}`}}],components:[actionRow({type:2,style:2,label:"Refresh",custom_id:id})]});
 }

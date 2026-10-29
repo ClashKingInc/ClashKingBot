@@ -6,13 +6,13 @@ import type { Raid } from "./raid-data";
 import { warTime } from "./war-data";
 import { serverEmbedColor } from "./embed-color";
 import type { ApplicationCommandOption, CommandContext } from "./types";
-const sections={all:"All metrics",loot:"Loot and battles",contributions:"Donations and Clan Games",capital:"Capital Gold",competitive:"War stars and trophy snapshots"};
+const sections={all:"Overview",loot:"Loot and battles",contributions:"Donations and Clan Games",capital:"Capital Gold",competitive:"Wars and trophies"};
 const metrics={
- gold:{label:"Recorded gold",icon:"gold",group:"loot"},elixir:{label:"Recorded elixir",icon:"elixir",group:"loot"},darkElixir:{label:"Recorded dark elixir",icon:"dark_elixir",group:"loot"},
- attacks:{label:"Recorded attacks",icon:"clash_sword",group:"loot"},wins:{label:"Recorded wins (at least 1 star)",icon:"war_star",group:"loot"},
+ gold:{label:"Gold looted",icon:"gold",group:"loot"},elixir:{label:"Elixir looted",icon:"elixir",group:"loot"},darkElixir:{label:"Dark Elixir looted",icon:"dark_elixir",group:"loot"},
+ attacks:{label:"Attacks",icon:"clash_sword",group:"loot"},wins:{label:"Attack wins",icon:"war_star",group:"loot"},
  donated:{label:"Donated troops",icon:"up_green_arrow",group:"contributions"},received:{label:"Received troops",icon:"down_red_arrow",group:"contributions"},clanGames:{label:"Clan Games points",icon:"clan_games",group:"contributions"},
- capitalDonated:{label:"Capital Gold donated",icon:"capital_gold",group:"capital"},capitalRaided:{label:"Capital Gold looted in selected clans",icon:"capital_gold",group:"capital"},
- warStars:{label:"Completed war stars (no friendlies)",icon:"war_star",group:"competitive"},trophies:{label:"Latest recorded trophy snapshot",icon:"trophy",group:"competitive"},
+ capitalDonated:{label:"Capital Gold donated",icon:"capital_gold",group:"capital"},capitalRaided:{label:"Capital Gold looted",icon:"capital_gold",group:"capital"},
+ warStars:{label:"War stars",icon:"war_star",group:"competitive"},trophies:{label:"Trophies",icon:"trophy",group:"competitive"},
 } as const;
 type Metric=keyof typeof metrics;
 interface Item {tag:string;attacks:number|null;wins:number|null;gold:number|null;elixir:number|null;darkElixir:number|null;donated:number|null;received:number|null;capitalDonated:number|null;clanGames:number|null;warStars:number|null;trophies:number|null;snapshotDate:string|null;capitalRaided?:number|null}
@@ -62,7 +62,7 @@ export async function seasonSummary(ctx:CommandContext,scope:"clan"|"family"){
   fields.push({name:`${emoji.get(metric.icon)} ${metric.label}`,value:text||"No recorded observations.",inline:false});
  }
  const title=`${scope==="family"?"Family":escapeMarkdown(clans[0]?.name??target).slice(0,80)} · ${window?.season??season} summary`;
- const footer=`${members.length} current members · Player totals across clans · ${failedClans} unavailable clans / ${failedPlayers} unavailable players${warComplete?"":" · War archive incomplete"}${raidIncomplete?` · ${raidIncomplete} raid histories incomplete`:""}${clipped?` · ${clipped} rows omitted for message size`:""}`;
+ const footer=`${members.length} current members${failedClans||failedPlayers?" · Some members unavailable":""}${!warComplete||raidIncomplete?" · Partial war/raid history":""}${clipped?` · Top ${limit} per category`:""}`;
  const embeds=[];for(let i=0;i<fields.length;i+=6)embeds.push({title:i?`${title} (continued)`:title,color,fields:fields.slice(i,i+6),footer:{text:footer}});
  const id=["ck","page",scope==="clan"?"sc":"sf",invokingUserId(ctx),...(scope==="clan"?[target]:[]),view,season,String(limit),String(hall),"0"].join(":");
  return legacyMessage({allowed_mentions:{parse:[]},embeds,components:[actionRow({type:2,style:2,label:"Refresh",custom_id:id})]});

@@ -82,8 +82,8 @@ export async function armyInteraction(interaction:DiscordInteraction,proof:Proof
         const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(result.shareCode));
         const hash=[...new Uint8Array(digest)].map(byte=>byte.toString(16).padStart(2,"0")).join("");
         data=legacyMessage({content:result.saved?"Saved to your ClashKing army library.":"",embeds:[{
-          title:result.name??"Army Link Results",description:`-# ${emoji.get(army.minimumTownHall)}Minimum Townhall ${army.minimumTownHall}`,
-          color:await serverEmbedColor({interaction,services,env}),fields,footer:{text:`${army.metadataIncomplete?"Known items only • ":""}${army.troopSpace} Troop Space | ${army.spellSpace} Spell Space | ${army.clanCastleSpace} CC Troop${army.metadataIncomplete?" • Unknown IDs preserved":""}`},
+          title:result.name??"Army Link Results",description:`-# ${emoji.get(army.minimumTownHall)}Town Hall ${army.minimumTownHall}+`,
+          color:await serverEmbedColor({interaction,services,env}),fields,footer:{text:`${army.metadataIncomplete?"Partial army • ":""}${army.troopSpace} Troop Space | ${army.spellSpace} Spell Space | ${army.clanCastleSpace} CC Troop${army.metadataIncomplete?"":""}`},
         }],components:[actionRow(linkButton("Copy Army",result.armyLink),{type:2,style:3,label:"Save Army",custom_id:`ck:army:save:${hash}`})],allowed_mentions:{parse:[]}}).data!;
       }else data={content:"Use /army share to choose a saved army.",allowed_mentions:{parse:[]}};
     }catch(error){

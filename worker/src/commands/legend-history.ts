@@ -48,7 +48,7 @@ export async function legendHistoryReply(ctx:CommandContext, player:{name:string
   const pageArgs=limit===undefined?player.tag:`${player.tag}:${limit}`;
   return legacyMessage({allowed_mentions:{parse:[]},embeds:[{
     color,author:{name:`${player.name} Legend History`.slice(0,256),url:playerUrl(player.tag),...(iconUrl?{icon_url:iconUrl}:{})},
-    description:`🏆= trophies, 🌎= global rank\n[Open in ClashKing](${playerAppUrl(player.tag,ctx.env.APP_ENV)})`,fields:pages[page],
+    description:`[Open in ClashKing](${playerAppUrl(player.tag,ctx.env.APP_ENV)})`,fields:pages[page],
     ...(pages.length>1?{footer:{text:`Page ${page+1}/${pages.length}`}}:{}),
   }],components:pages.length>1?[actionRow(
     {type:2,style:2,label:"Previous",custom_id:`ck:page:lh:${invokingUserId(ctx)}:${pageArgs}:${page-1}`,disabled:page===0},

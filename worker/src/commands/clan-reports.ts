@@ -7,7 +7,7 @@ import { currentRaidWeekend, loadRaidWeekend, validateRaidWeekend } from "./raid
 import { warTime } from "./war-data";
 import type { ApplicationCommandOption, CommandContext } from "./types";
 export const capitalOptions:ApplicationCommandOption[]=[
- {name:"view",description:"Capital report (default Overview)",type:OptionType.String,choices:[{name:"Overview",value:"overview"},{name:"Raiders",value:"raiders"},{name:"Recorded donations",value:"donations"}]},
+ {name:"view",description:"Capital report (default Overview)",type:OptionType.String,choices:[{name:"Overview",value:"overview"},{name:"Raiders",value:"raiders"},{name:"Donations",value:"donations"}]},
  {name:"weekend",description:"Friday date YYYY-MM-DD (defaults to latest raid weekend)",type:OptionType.String},
  {name:"limit",description:"Maximum player rows (default 30)",type:OptionType.Integer,min_value:1,max_value:50},
  {name:"sort_order",description:"Loot/donation order",type:OptionType.String,choices:[{name:"Highest first",value:"desc"},{name:"Lowest first",value:"asc"}]},
@@ -35,11 +35,11 @@ export async function clanReports(ctx:CommandContext){
    const result=await ctx.services.api.get<{start:string;end:string;truncated:boolean;items:Array<{tag:string;name:string;donated:number}>}>(`/v2/bot/clans/${encodeURIComponent(tag)}/capital-contributions`,{weekend});
    const selected=result.items.filter(row=>!currentOnly||current.has(row.tag)).sort((a,b)=>(order==="desc"?-1:1)*(a.donated-b.donated)||a.tag.localeCompare(b.tag));
    lines=selected.slice(0,limit).map((row,index)=>`**${index+1}. ${clean(row.name)}** · ${emoji.get("capital_gold")} ${compact(row.donated)}${current.has(row.tag)?"":" · former member"}`);
-   note=`Recorded clan-attributed donations · ${result.start.slice(0,10)} 07:00 UTC → ${result.end.slice(0,10)} 07:00 UTC${result.truncated?" · Partial data":""}`;
+   note=`${currentOnly?"Current members":"All contributors"}${result.truncated?" · Partial data":""}`;
   }else{
    const raid=await loadRaidWeekend(ctx,tag,weekend);
-   empty="No matching raid in the latest 10 returned entries. Recorded donation data may still be available.";
-   note="Raid loot · latest 10 API entries checked";
+   empty="No raid data is available for this weekend.";
+   note="";
    if(raid&&view==="raiders"){
     empty=raid.members?"No raiders matched these filters.":"Raid member data unavailable.";
     const selected=(raid.members??[]).filter(row=>!currentOnly||current.has(row.tag)).sort((a,b)=>(order==="desc"?-1:1)*(a.capitalResourcesLooted-b.capitalResourcesLooted)||a.tag.localeCompare(b.tag));
@@ -55,14 +55,14 @@ export async function clanReports(ctx:CommandContext){
  }else if(view==="cwl"){
   const result=await ctx.services.api.get<{items:Array<{season:string;state:string;warLeague?:{name:string}|null;rank:number|null;stars:number|null;warSize:number|null}>}>(`/v2/cwl/${encodeURIComponent(tag)}/seasons`,{limit});
   lines=[...result.items].sort((a,b)=>b.season.localeCompare(a.season)).slice(0,limit).map(row=>`**${row.season.slice(0,7)} · ${clean(row.warLeague?.name||"League unavailable")}**\n${row.rank===null?"Rank unavailable":`Group #${row.rank}`} · ${row.stars===null?"Stars unavailable":`${row.stars} stars`}${row.warSize?` · ${row.warSize}v${row.warSize}`:""} · ${clean(row.state)}`);
-  note="Stored CWL seasons · incomplete results remain unknown";
+  note="";
  }else{
-  let items:LogEntry[],source="Official war log";
+  let items:LogEntry[],source="";
   try{items=(await ctx.services.api.get<{items:LogEntry[]}>(`/v2/bot/clash/clans/${encodeURIComponent(tag)}/warlog`,{limit})).items;}
   catch(error){
    if(!(error instanceof ClashKingApiError)||![403,404,502,503,504].includes(error.status))throw error;
    items=(await ctx.services.api.get<{items:LogEntry[]}>(`/v2/clan/${encodeURIComponent(tag)}/warlog`,{limit})).items;
-   source=error.status===403?"Stored war snapshots · official log is private":"Stored war snapshots · official log unavailable";
+   source=error.status===403?"War log private · Saved wars":"Saved wars · Live log unavailable";
   }
   lines=items.filter(row=>row.opponent?.tag).sort((a,b)=>warTime(b.endTime)-warTime(a.endTime)).slice(0,limit).map(row=>{
    const opponent=row.opponent!,delta=row.clan.stars-opponent.stars||row.clan.destructionPercentage-opponent.destructionPercentage;
@@ -71,5 +71,5 @@ export async function clanReports(ctx:CommandContext){
   });note=source;
  }
  const packed=pack(lines),id=["ck","page","cr",invokingUserId(ctx),tag,action,view,capital?explicit??"current":"current",String(limit),order,currentOnly?"members":"all","0"].join(":");
- return legacyMessage({allowed_mentions:{parse:[]},embeds:[{title:`${clean(clan.name)} · ${capital?view==="donations"?"Capital donations":view==="raiders"?"Capital raiders":"Capital overview":view==="cwl"?"CWL history":"War log"}`,color:await serverEmbedColor(ctx),description:packed.text||empty,footer:{text:`${capital?weekend+" · ":""}${note} · ${packed.count}/${lines.length} displayed rows`}}],components:[actionRow({type:2,style:2,label:"Refresh",custom_id:id})]});
+ return legacyMessage({allowed_mentions:{parse:[]},embeds:[{title:`${clean(clan.name)} · ${capital?view==="donations"?"Capital donations":view==="raiders"?"Capital raiders":"Capital overview":view==="cwl"?"CWL history":"War log"}`,color:await serverEmbedColor(ctx),description:packed.text||empty,footer:{text:[capital?weekend:"",note,`${packed.count} ${view==="wars"?"wars":view==="cwl"?"seasons":"entries"}`].filter(Boolean).join(" · ")}}],components:[actionRow({type:2,style:2,label:"Refresh",custom_id:id})]});
 }
