@@ -1,0 +1,14 @@
+{
+  "link.description": "Verifică și asociază un cont Clash of Clans profilului tău",
+  "unlink.description": "Dezasociază un cont Clash of Clans de profilul tău",
+  "base.description": "Publică o bază cu imagini și urmărește descărcările",
+  "player.description": "Eticheta jucătorului afișată în joc",
+  "link.name": "asociază",
+  "unlink.name": "dezasociază",
+  "base.name": "bază",
+  "player.name": "jucător",
+  "refresh.name": "refresh",
+  "refresh.description": "Refresh your roles and nickname, or refresh a member or role",
+  "mainAccount.name": "main-account",
+  "mainAccount.description": "Choose your main Clash account for this server's nickname"
+}

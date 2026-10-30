@@ -1,0 +1,14 @@
+{
+  "link.description": "ยืนยันและเชื่อมบัญชี Clash of Clans กับตัวคุณเอง",
+  "unlink.description": "ยกเลิกการเชื่อมบัญชี Clash of Clans ของคุณ",
+  "base.description": "แชร์ผังฐานพร้อมภาพและติดตามการดาวน์โหลด",
+  "player.description": "แท็กผู้เล่นที่แสดงในเกม",
+  "link.name": "เชื่อมบัญชี",
+  "unlink.name": "ยกเลิกการเชื่อม",
+  "base.name": "ผังฐาน",
+  "player.name": "ผู้เล่น",
+  "refresh.name": "refresh",
+  "refresh.description": "Refresh your roles and nickname, or refresh a member or role",
+  "mainAccount.name": "main-account",
+  "mainAccount.description": "Choose your main Clash account for this server's nickname"
+}
