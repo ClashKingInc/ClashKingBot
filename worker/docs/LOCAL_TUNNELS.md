@@ -6,6 +6,7 @@ Created and verified 2026-09-20. No production service tunnel was modified.
 | --- | --- | --- |
 | `https://local-bot.clashk.ing` | `http://127.0.0.1:8788` | `/interactions`, `/health` only |
 | `https://local-api.clashk.ing` | `http://127.0.0.1:8787` | `/v2/*` only |
+| `https://local-ai.clashk.ing` | `http://127.0.0.1:8789` | `/chat`, `/health` only |
 | `https://local-dash.clashk.ing` | `http://127.0.0.1:3002` | Dashboard; filesystem/editor/debug/env/git paths blocked |
 
 Timescale remains private at `127.0.0.1:54330`; it has no public DNS/tunnel route.
@@ -61,3 +62,7 @@ The Tracking task verified a real beta Discord gateway running against isolated 
 - Beta global commands registered; no production command registration, deployment, push or PR performed.
 
 References: [Cloudflare local tunnel configuration](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/local-management/configuration-file/), [Discord application editing](https://docs.discord.com/developers/resources/application#edit-current-application).
+
+## Roster AI local service (2026-10-01)
+
+The roster assistant runs separately on 8789 with GPT-6 Luna. The managed workspace at `/Users/matthewanderson/ClashKing` uses `.clashking/tunnel.yml`; its schema-owned launcher supports `clashking up assistant`, `clashking logs assistant`, and `clashking down assistant`. The bot-local tunnel config also includes the AI hostname. Use the already-managed connector rather than starting a duplicate. Dashboard uses `https://local-ai.clashk.ing`, while the assistant calls the API over loopback. The developer-preview authorization and server roster permissions remain enforced.
