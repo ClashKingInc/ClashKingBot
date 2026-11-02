@@ -1,3 +1,5 @@
+import { ClashKingApiError } from "../api/client";
+import { DiscordRestError } from "../discord/rest";
 import { actionRow, legacyMessage, type ActionRowComponent } from "../discord/components";
 import { InteractionResponseType, InteractionType, type DiscordAttachment, type DiscordMessage } from "../discord/types";
 import { localizations, translate, resolveLocale } from "../localization/catalog";
@@ -37,7 +39,6 @@ export const baseCommand: Command = {
     description_localizations: localizations("base.description"),
     integration_types: [0],
     name: "base",
-    name_localizations: localizations("base.name"),
     type: 1,
   },
   async execute(context) {
@@ -95,7 +96,7 @@ export const submitBase: ComponentHandler = async (context) => {
     if (!publicLocale.startsWith("en") && base.id && base.messageId) {
       // The API owns publication; only localize the existing controls, never repost.
       try {
-        await context.services.discordRest.editChannelMessage(channelId, base.messageId, { components: baseButtons(base.id, publicLocale) });
+        await context.services.discordRest.editChannelMessage(channelId, base.messageId, { components: baseButtons(base.id, publicLocale, base) });
       } catch {
         console.warn("Base published but button localization failed", { baseId: base.id, locale: publicLocale });
       }
@@ -121,6 +122,14 @@ const recordVote = (direction: "up" | "down"): ComponentHandler => async (contex
   await prepareBaseForAction(context, baseId);
   const userId = invokingUserId(context);
   await context.services.api.put(`/v2/bases/${encodeURIComponent(baseId)}/votes/${userId}`, { direction });
+  // Read both totals after the write: switching a vote changes both buttons.
+  const base = await context.services.api.get<BaseRecord>(`/v2/server/${requireGuildId(context)}/bases/${baseId}`);
+  const message = requiredLegacyMessage(context.interaction.message, context.locale);
+  const channelId = context.interaction.channel_id ?? message.channel_id;
+  if (!channelId) throw new CommandInputError(translate("base.missingMessageChannel", context.locale));
+  await context.services.discordRest.editChannelMessage(channelId, message.id, {
+    components: baseButtons(baseId, resolveLocale(context.interaction.guild_locale), base),
+  });
   return legacyMessage({ content: translate(direction === "up" ? "base.upvote" : "base.downvote", context.locale) }, { ephemeral: true });
 };
 
@@ -199,11 +208,11 @@ async function showLegacyDownloaders(context: CommandContext, baseId: string) {
   }] }, { ephemeral: true });
 }
 
-function baseButtons(baseId: string, locale: string): ActionRowComponent[] {
+function baseButtons(baseId: string, locale: string, counts: Pick<BaseRecord, "upvotes" | "downvotes"> = { upvotes: 0, downvotes: 0 }): ActionRowComponent[] {
   return [actionRow(
     { custom_id: `base:link:${baseId}`, label: translate("base.getLink", locale), emoji: { name: "🔗" }, style: 1, type: 2 },
-    { custom_id: `base:upvote:${baseId}`, emoji: { name: "👍" }, style: 2, type: 2 },
-    { custom_id: `base:downvote:${baseId}`, emoji: { name: "👎" }, style: 2, type: 2 },
+    { custom_id: `base:upvote:${baseId}`, emoji: { name: "👍" }, label: String(counts.upvotes), style: 2, type: 2 },
+    { custom_id: `base:downvote:${baseId}`, emoji: { name: "👎" }, label: String(counts.downvotes), style: 2, type: 2 },
   )];
 }
 
@@ -235,7 +244,8 @@ function trustedLegacyBaseLink(value: string): boolean {
 async function conversionStep<T>(message: string, operation: () => Promise<T>): Promise<T> {
   try {
     return await operation();
-  } catch {
+  } catch (error) {
+    if(error instanceof ClashKingApiError || error instanceof DiscordRestError)throw error;
     throw new CommandInputError(message);
   }
 }

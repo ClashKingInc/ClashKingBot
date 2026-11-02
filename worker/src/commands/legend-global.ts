@@ -1,14 +1,16 @@
+import { escapeLinkLabel } from "./game-common";
+import { sendInteractionError } from "./errors";
 import { actionRow } from "../discord/components";
-import { InteractionResponseType, InteractionType, MessageFlags } from "../discord/types";
+import { InteractionResponseType, InteractionType, } from "../discord/types";
 import { CommandInputError, invokingUserId, stringOption } from "./command-utils";
-import { emojis, escapeMarkdown, gameReply, legendDay, pagedGameReply, playerUrl } from "./game-common";
+import { emojis, gameReply, legendDay, pagedGameReply, playerUrl } from "./game-common";
 import type { CommandContext } from "./types";
 
 interface Cutoffs { day:string|null;items:Array<{rank:number;trophies:number}> }
 interface Daily { day:string;attacks:number;players:number;starCounts:{zero:number;one:number;two:number;three:number};averageDestruction:number|null;averageDuration:number|null }
 const count=(n:number)=>n.toLocaleString("en");
 export async function globalLegendStats(ctx:CommandContext){
-  const type=stringOption(ctx,"type")??"cutoffs",limit=Number(ctx.options.get("limit")?.value??50),emoji=await emojis(ctx);
+  const type=stringOption(ctx,"type")??"buckets",limit=Number(ctx.options.get("limit")?.value??50),emoji=await emojis(ctx);
   if(!["cutoffs","buckets","winners","daily","streaks"].includes(type)||!Number.isSafeInteger(limit)||limit<1||limit>50)throw new CommandInputError("Choose a valid statistic and a limit from 1 to 50.");
   const trophy=emoji.get("trophy"),star=emoji.get("star")||emoji.get("attack_star");
   let title="Legend Statistics",description="",entries:string[]|undefined;
@@ -18,7 +20,7 @@ export async function globalLegendStats(ctx:CommandContext){
     // These are consecutive recorded attacks, not proof that every game attack
     // was observed. Never present a retained-history bootstrap as lifetime data.
     description="No recorded triple streaks yet.";
-    entries=result.items.map((row,index)=>`**#${index+1} · ${star} ${row.resetObserved?"":"≥"}${count(row.streak)}** [${escapeMarkdown(row.name)}](${playerUrl(row.tag)})\n-# Last triple <t:${Math.floor(Date.parse(row.lastAttackAt)/1000)}:R>`);
+    entries=result.items.map((row,index)=>`**#${index+1} · ${star} ${row.resetObserved?"":"≥"}${count(row.streak)}** [${escapeLinkLabel(row.name)}](${playerUrl(row.tag)})\n-# Last triple <t:${Math.floor(Date.parse(row.lastAttackAt)/1000)}:R>`);
   }else if(type==="cutoffs"||type==="buckets"){
     const cutoff=await ctx.services.api.get<Cutoffs>("/v2/bot/legends/stats",{type:"cutoffs"});
     description=cutoff.day?`**${cutoff.day}**\n`:"No stored ranking snapshot is available.";
@@ -26,11 +28,13 @@ export async function globalLegendStats(ctx:CommandContext){
       title="Legend Rank Cutoffs";
       description+=cutoff.items.map(row=>`**#${count(row.rank)}** · ${trophy} ${count(row.trophies)}`).join("\n");
     }else{
-      title="Legend Trophy Buckets";
+      title="Legend Trophy Distribution";
       if(cutoff.day){
         const result=await ctx.services.api.get<{items:Array<{minimumTrophies:number;maximumTrophies:number;playerCount:number}>}>(`/v2/legends/trophy-buckets/${cutoff.day}`);
-        const total=result.items.reduce((sum,row)=>sum+row.playerCount,0);
-        description+=`${count(total)} ranked players\n\n`+result.items.filter(row=>row.playerCount).sort((a,b)=>b.minimumTrophies-a.minimumTrophies).map(row=>`${trophy} **${count(row.minimumTrophies)}–${count(row.maximumTrophies)}**\n${count(row.playerCount)} players · ${total?(row.playerCount/total*100).toFixed(1):"0"}%`).join("\n");
+        // Omit lower buckets entirely; percentages describe only the displayed range.
+        const buckets=result.items.filter(row=>row.minimumTrophies>=4899&&row.playerCount);
+        const total=buckets.reduce((sum,row)=>sum+row.playerCount,0);
+        description+=`${count(total)} ranked players\n\n`+buckets.sort((a,b)=>b.minimumTrophies-a.minimumTrophies).map(row=>`${trophy} **${count(row.minimumTrophies)}–${count(row.maximumTrophies)}**\n${count(row.playerCount)} players · ${total?(row.playerCount/total*100).toFixed(1):"0"}%`).join("\n");
       }
     }
   }else if(type==="winners"){
@@ -39,7 +43,7 @@ export async function globalLegendStats(ctx:CommandContext){
     entries=result.items.map(row=>{
       const date=new Date(row.season.replace(/^v2-/u,""));
       const season=Number.isFinite(date.valueOf())?new Intl.DateTimeFormat("en",{month:"long",year:"numeric",timeZone:"UTC"}).format(date):row.season;
-      return `**${season}**\n[${escapeMarkdown(row.name)}](${playerUrl(row.tag)}) · ${trophy} ${count(row.trophies)}`;
+      return `**${season}**\n[${escapeLinkLabel(row.name)}](${playerUrl(row.tag)}) · ${trophy} ${count(row.trophies)}`;
     });
     description="No season winners are available yet.";
   }else if(type==="daily"){
@@ -62,10 +66,10 @@ export async function globalLegendStats(ctx:CommandContext){
     const refresh=emoji.component("refresh");
     response.data!.components=[actionRow({type:2,style:2,emoji:refresh?{id:refresh.id,name:refresh.name,animated:refresh.animated}:{name:"🔄"},custom_id:["ck","page","lg",invokingUserId(ctx),type,String(limit),"0"].join(":")})];
   }
-  response.data!.components = [...(Array.isArray(response.data?.components) ? response.data.components : []), actionRow({
+  response.data!.components = [actionRow({
     type: 3, custom_id: `ck:legendstats:${limit}`, placeholder: "Legend statistics",
     options: Object.entries(legendViews).map(([value, label]) => ({ label, value, default: value === type })),
-  })];
+  }), ...(Array.isArray(response.data?.components) ? response.data.components : [])];
   return response;
 }
 
@@ -80,7 +84,7 @@ export async function dispatchLegendStats(ctx: CommandContext, waitUntil?: (prom
     ["limit", { name: "limit", type: 4, value: Number(match[1]) }],
   ]) });
   if (!waitUntil) return { ...(await run()), type: InteractionResponseType.UpdateMessage };
-  waitUntil(run().then(response => ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token, response.data ?? {})).catch(() =>
-    ctx.services.discordRest.createInteractionFollowup(ctx.interaction.token, { content: "Couldn't load these statistics. Please try again.", flags: MessageFlags.Ephemeral })));
+  waitUntil(run().then(response => ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token, response.data ?? {})).catch((error) =>
+    sendInteractionError(ctx,error)));
   return { type: InteractionResponseType.DeferredUpdateMessage };
 }

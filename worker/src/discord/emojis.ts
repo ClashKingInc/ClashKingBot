@@ -13,17 +13,19 @@ export class ApplicationEmojis {
   }
   get(name: string | number): string {
     const item = this.component(name);
-    // Never fall back to the retired red verification emblem while an
-    // application's new green artwork is waiting to be uploaded.
-    return item ? `<${item.animated ? "a" : ""}:${item.name}:${item.id}>` : emojiName(name) === "account_verified" ? "✅" : "";
+    return item ? `<${item.animated ? "a" : ""}:${item.name}:${item.id}>` : "";
   }
   component(name: string | number): DiscordApplicationEmoji | undefined {
     const key=emojiName(name);
+    // Match the green verified-account artwork in the App and Dashboard.
+    // A missing sync must not silently restore the old red verification icon.
     if(key==="account_verified")return this.#items.get("account_verified_green");
     // Corrected resource art removes transparent padding without replacing the
     // original application emoji. Other applications can retain their originals.
-    const resources=new Set(["gold","elixir","dark_elixir","capital_gold","clan_games","buildergold","builderelixir","shinyore","glowyore","starryore"]);
-    return (resources.has(key)?this.#items.get(`full_${key}`):undefined)??this.#items.get(key);
+    const resources=new Set(["gold","elixir","dark_elixir","capital_gold","clan_games","buildergold","builderelixir","shinyore","glowyore","starryore","no_star"]);
+    return (resources.has(key)?this.#items.get(`full_${key}`):undefined)??this.#items.get(key)
+      // The API uses e.g. "Legend III"; the asset inventory uses "legendleagueiii".
+      ??this.#items.get(key.replace(/(i{1,3})$/u,"league$1"));
   }
   number(number: number, color: "blue" | "gold" = "blue"): string {
     return this.get(`${color}_${number}`) || String(number);

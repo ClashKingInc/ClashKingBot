@@ -1,4 +1,4 @@
-import { legacyMessage } from "../discord/components";
+import { componentsV2 } from "../discord/components";
 import { CommandInputError, stringOption } from "./command-utils";
 import { graphMetrics, graphTotal, validGraphValue } from "./graph-data";
 import type { CommandContext } from "./types";
@@ -22,19 +22,12 @@ export async function graphSeries(ctx: CommandContext) {
     count > 12 ||
     !Number.isInteger(limit) ||
     limit < 1 ||
-    limit > 10
+    limit > 5
   )
-    throw new CommandInputError("Choose 2–12 seasons and 1–10 clans.");
+    throw new CommandInputError("Choose 2–12 seasons and 1–5 clans.");
   const clans = await resolveGraphClans(ctx),
     refs = clans.selected;
-  if (metric === "capitalTrophies")
-    return (await import("./graph-capital-weekly")).graphCapitalWeekly(
-      ctx,
-      clans,
-      requested,
-      count,
-      limit,
-    );
+  if(metric === "cwlLeague") return (await import("./graph-cwl")).graphCwl(ctx,clans,requested,count,limit);
   let season = requested;
   if (season === "current") {
     try {
@@ -114,18 +107,22 @@ export async function graphSeries(ctx: CommandContext) {
         a.tag.localeCompare(b.tag),
     )
     .slice(0, limit);
-  const { posterArtwork, renderPosterSvg } = await import("./legend-poster");
+  const { posterArtwork } = await import("./legend-poster");
+  const { renderGraphSvg, graphDecoration } = await import("./graph-image");
+  const decoration=await graphDecoration(ctx,metric,selected);
   const svg = lineChartSvg({
     title: graphMetrics[metric],
-    subtitle: `${graphScope(clans, selected.length)} · ${chartDate(seasons[0]!, true)} – ${chartDate(season, true)}`,
+    subtitle: `${graphScope(clans, selected.length)} | ${chartDate(seasons[0]!, true)} – ${chartDate(season, true)}`,
     logo: posterArtwork.logo,
+    icon: decoration.icon,
+    valueSuffix: metric === "warWinRate" ? "%" : undefined,
     labels: seasons.map((value) => chartDate(value, true)),
-    series: selected.map((row) => ({ name: row.name, values: row.values })),
-    note: missing ? "Missing periods are left as gaps" : undefined,
+    series: decoration.rows.map((row) => ({ name: row.name, values: row.values,
+      ...(!["raidParticipants","warWinRate","capitalTrophies","cwlLeague"].includes(metric)?{headline:row.values.some(v=>v!==null)?row.values.reduce<number>((sum,value)=>sum+(value??0),0):null}:{}),
+    })),
+    note: missing ? "Some periods unavailable" : undefined,
   });
-  const response = legacyMessage({
-    allowed_mentions: { parse: [] },
-    components: await graphControls(
+  const response = componentsV2([{type:12,items:[{media:{url:"attachment://clan-contributions.png"}}]},...await graphControls(
       ctx,
       {
         view: "over-time",
@@ -137,10 +134,10 @@ export async function graphSeries(ctx: CommandContext) {
       },
       clans,
     ),
-  });
+  ]);
   response.data!.attachments = [];
   response.data!.__files = [
-    { name: "clan-contributions.png", bytes: await renderPosterSvg(svg) },
+    { name: "clan-contributions.png", bytes: await renderGraphSvg(svg) },
   ];
   return response;
 }

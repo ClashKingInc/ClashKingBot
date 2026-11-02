@@ -1,4 +1,4 @@
-import { legacyMessage } from "../discord/components";
+import { componentsV2 } from "../discord/components";
 import { CommandInputError, stringOption } from "./command-utils";
 import type { CommandContext } from "./types";
 import { dailyMetrics } from "./graph-data";
@@ -22,9 +22,9 @@ export async function graphDaily(ctx: CommandContext) {
     days > 180 ||
     !Number.isInteger(limit) ||
     limit < 1 ||
-    limit > 10
+    limit > 5
   )
-    throw new CommandInputError("Choose a metric, 1–180 days and 1–10 clans.");
+    throw new CommandInputError("Choose a metric, 1–180 days and 1–5 clans.");
   const clans = await resolveGraphClans(ctx),
     refs = clans.selected;
   let data: Data;
@@ -61,18 +61,18 @@ export async function graphDaily(ctx: CommandContext) {
     throw new CommandInputError(
       "The daily total exceeds the supported numeric range.",
     );
-  const { posterArtwork, renderPosterSvg } = await import("./legend-poster");
+  const { posterArtwork } = await import("./legend-poster");
+  const { renderGraphSvg, graphDecoration } = await import("./graph-image");
+  const decoration=await graphDecoration(ctx,metric,rows);
   const svg = lineChartSvg({
     title: dailyMetrics[metric as keyof typeof dailyMetrics],
-    subtitle: `${graphScope(clans, rows.length)} · ${chartDate(data.dates[0]!)} – ${chartDate(data.dates.at(-1)!)}`,
+    subtitle: `${graphScope(clans, rows.length)} | ${chartDate(data.dates[0]!)} – ${chartDate(data.dates.at(-1)!)}`,
     logo: posterArtwork.logo,
+    icon: decoration.icon,
     labels: data.dates.map((date) => chartDate(date)),
-    series: rows,
-    note: "Today is still in progress",
+    series: decoration.rows.map(row=>({...row,headline:row.total})),
   });
-  const response = legacyMessage({
-    allowed_mentions: { parse: [] },
-    components: await graphControls(
+  const response = componentsV2([{type:12,items:[{media:{url:"attachment://daily-clan-statistics.png"}}]},...await graphControls(
       ctx,
       {
         view: "daily",
@@ -84,10 +84,10 @@ export async function graphDaily(ctx: CommandContext) {
       },
       clans,
     ),
-  });
+  ]);
   response.data!.attachments = [];
   response.data!.__files = [
-    { name: "daily-clan-statistics.png", bytes: await renderPosterSvg(svg) },
+    { name: "daily-clan-statistics.png", bytes: await renderGraphSvg(svg) },
   ];
   return response;
 }

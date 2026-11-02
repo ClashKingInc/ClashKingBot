@@ -13,9 +13,9 @@ export async function dashboardAccessLink(ctx: CommandContext, rosterId?: string
 
 export const dashboardCommand:Command={
  deferred:true,ephemeral:true,
- definition:{name:'dashboard',description:'Open this server’s ClashKing dashboard',type:1,contexts:[0],integration_types:[0]},
+ definition:{name:'setup',description:'Open this server’s ClashKing dashboard',type:1,contexts:[0],integration_types:[0]},
  async execute(ctx){
   const url=await dashboardAccessLink(ctx);
-  return legacyMessage({content:'Open this server’s dashboard. This link expires in 2 minutes and can be used once.',components:[actionRow(linkButton('Open dashboard',url))]},{ephemeral:true});
+  return legacyMessage({content:'Open this server’s dashboard. Do not share this link. It expires in 2 minutes and can be used once.',components:[actionRow(linkButton('Open dashboard',url))]},{ephemeral:true});
  }
 };

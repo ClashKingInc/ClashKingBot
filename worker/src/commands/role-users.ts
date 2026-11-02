@@ -1,6 +1,6 @@
-import { actionRow, legacyMessage } from "../discord/components";
+import { actionRow, legacyMessage, type ButtonComponent } from "../discord/components";
 import { CommandInputError, OptionType, invokingUserId, requireGuildId, stringOption } from "./command-utils";
-import { escapeMarkdown } from "./game-common";
+import { emojis, escapeMarkdown } from "./game-common";
 import { serverEmbedColor } from "./embed-color";
 import type { Command } from "./types";
 const size=20;
@@ -16,9 +16,10 @@ export const roleUsersCommand:Command={
   const last=Math.max(0,Math.ceil(result.total/size)-1),current=Math.min(page,last);
   if(current!==page)result=await get(current*size);
   const button=(label:string,target:number)=>({type:2 as const,style:2 as const,label,custom_id:`ck:page:ru:${invokingUserId(ctx)}:${role}:${target}`});
-  const controls=[button("Refresh",current)];
+  const emoji=await emojis(ctx);
+  const controls:ButtonComponent[]=[{type:2 as const,style:2 as const,emoji:emoji.component("refresh")??{name:"↻"},custom_id:`ck:page:ru:${invokingUserId(ctx)}:${role}:${current}`}];
   if(current>0)controls.push(button("←",current-1));
   if(current<last)controls.push(button("→",current+1));
-  return legacyMessage({allowed_mentions:{parse:[]},embeds:[{title:`${clean(result.role.name)} · ${result.total} members`,color:await serverEmbedColor(ctx),description:result.items.map(member=>`${clean(member.name)} · <@${member.id}>`).join("\n")||"No members have this role.",footer:{text:`Page ${current+1}/${last+1}`}}],components:[actionRow(...controls)]});
+  return legacyMessage({allowed_mentions:{parse:[]},embeds:[{title:clean(result.role.name),color:await serverEmbedColor(ctx),description:result.items.map(member=>`<@${member.id}>`).join("\n")||"No members have this role.",footer:{text:`${result.total} members | Page ${current+1}/${last+1}`}}],components:[actionRow(...controls)]});
  },
 };

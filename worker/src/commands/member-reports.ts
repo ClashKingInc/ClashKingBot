@@ -1,3 +1,6 @@
+import { sendInteractionError } from "./errors";
+import { builderLeagues } from "./builder-leagues";
+import { displayNameColumn } from "./display-width";
 import { withClanSelector } from "./clan-controls";
 import { actionRow, legacyMessage } from "../discord/components";
 import { InteractionResponseType } from "../discord/types";
@@ -8,7 +11,7 @@ import {
   requireGuildId,
   stringOption,
 } from "./command-utils";
-import { emojis, escapeMarkdown } from "./game-common";
+import { emojis } from "./game-common";
 import { serverEmbedColor } from "./embed-color";
 import type { ApplicationCommandOption, CommandContext } from "./types";
 
@@ -28,7 +31,7 @@ interface Member {
   attackWins?: number;
   defenseWins?: number;
   clanCapitalContributions?: number;
-  leagueTier?: { name: string };
+  leagueTier?: { id: number; name: string };
   league?: { name: string };
   heroes?: Array<{ level: number }>;
   clan?: { tag: string };
@@ -37,23 +40,23 @@ interface Clan {
   tag: string;
   name: string;
   memberList: Member[];
+  badgeUrls?: { small?: string };
 }
 const metrics: Record<
   string,
-  { label: string; key: keyof Member; full?: boolean }
+  { label: string; key: keyof Member; full?: boolean; icon?: string; text?: boolean }
 > = {
   townhall: { label: "Town Hall", key: "townHallLevel" },
-  trophies: { label: "Trophies", key: "trophies" },
+  name: { label: "Name", key: "name", text: true },
+  tag: { label: "Player tag", key: "tag", text: true },
+  role: { label: "Clan role", key: "role", text: true },
+  league_trophies: { label: "League & Trophies", key: "trophies" },
   builder_trophies: {
-    label: "Builder Base trophies",
+    label: "Builder Base Trophies",
     key: "builderBaseTrophies",
   },
   experience: { label: "Experience level", key: "expLevel" },
-  donated: { label: "Donated", key: "donations" },
-  received: { label: "Received", key: "donationsReceived" },
   war_stars: { label: "War stars", key: "warStars", full: true },
-  attack_wins: { label: "Attack wins", key: "attackWins", full: true },
-  defense_wins: { label: "Defense wins", key: "defenseWins", full: true },
   capital: {
     label: "Capital contributions",
     key: "clanCapitalContributions",
@@ -63,7 +66,6 @@ const metrics: Record<
 };
 const groups = {
   townhall: "Town Hall",
-  trophies: "Trophy bands",
   role: "Clan role",
   league: "Ranked league",
   location: "Ranking location",
@@ -71,62 +73,18 @@ const groups = {
 export function memberReportOptions(
   action: "compo" | "sorted",
 ): ApplicationCommandOption[] {
-  return [
-    action === "compo"
-      ? {
-          name: "type",
-          description: "Group members by (default Town Hall)",
-          type: OptionType.String,
-          choices: Object.entries(groups).map(([value, name]) => ({
-            name,
-            value,
-          })),
-        }
-      : {
-          name: "sort_by",
-          description: "Member statistic to sort by",
-          type: OptionType.String,
-          required: true,
-          choices: Object.entries(metrics).map(([value, { label: name }]) => ({
-            name,
-            value,
-          })),
-        },
-    {
-      name: "townhall",
-      description: "Only this Town Hall",
-      type: OptionType.Integer,
-      min_value: 1,
-      max_value: 30,
-    },
-    {
-      name: "limit",
-      description: "Rows to show (default 30)",
-      type: OptionType.Integer,
-      min_value: 1,
-      max_value: 50,
-    },
-    {
-      name: "sort_order",
-      description: "Direction (default Highest first)",
-      type: OptionType.String,
-      choices: [
-        { name: "Highest first", value: "desc" },
-        { name: "Lowest first", value: "asc" },
-      ],
-    },
-  ];
+  return action==="sorted"?[{name:"limit",description:"Players to show (default 50)",type:OptionType.Integer,min_value:1,max_value:50}]:[];
 }
 export async function memberReport(ctx: CommandContext, scope: Scope) {
   const action = ctx.path[0],
     metric =
       stringOption(ctx, action === "compo" ? "type" : "sort_by") ?? "townhall",
-    hall = Number(ctx.options.get("townhall")?.value ?? 0),
-    limit = Number(ctx.options.get("limit")?.value ?? 30),
-    order = stringOption(ctx, "sort_order") ?? "desc";
+    hall = 0,
+    limit = action==="sorted"?Number(ctx.options.get("limit")?.value??50):50,
+    order = metrics[metric]?.text ? "asc" : "desc";
   if (
     !["compo", "sorted"].includes(action ?? "") ||
-    !(action === "compo" ? metric in groups : metric in metrics) ||
+    !(action === "compo" ? metric in groups && !(scope === "clan" && metric === "location") : metric in metrics) ||
     !Number.isInteger(hall) ||
     hall < 0 ||
     hall > 30 ||
@@ -211,12 +169,8 @@ export async function memberReport(ctx: CommandContext, scope: Scope) {
       let key: string;
       if (metric === "townhall")
         key = String(member.townHallLevel ?? "Unknown");
-      else if (metric === "trophies")
-        key =
-          typeof member.trophies === "number"
-            ? String(Math.floor(member.trophies / 500) * 500)
-            : "Unknown";
-      else if (metric === "role") key = member.role ?? "Unknown";
+      // The official API calls Elders "admin"; keep that wire value out of the UI.
+      else if (metric === "role") key = ({ leader: "Leader", coLeader: "Co-Leader", admin: "Elder", elder: "Elder", member: "Member" } as Record<string,string>)[member.role ?? ""] ?? "Unknown";
       else if (metric === "league")
         key = member.leagueTier?.name ?? member.league?.name ?? "Unranked";
       else key = countries.get(member.tag) ?? "Unknown";
@@ -224,19 +178,23 @@ export async function memberReport(ctx: CommandContext, scope: Scope) {
     }
     rows = [...buckets]
       .sort((a, b) => {
-        const cmp = ["townhall", "trophies"].includes(metric)
+        if (metric === "role") {
+          const hierarchy = ["Leader", "Co-Leader", "Elder", "Member", "Unknown"];
+          return hierarchy.indexOf(a[0]) - hierarchy.indexOf(b[0]);
+        }
+        const cmp = metric === "townhall"
           ? Number(a[0]) - Number(b[0])
           : a[1] - b[1];
         return (order === "asc" ? cmp : -cmp) || a[0].localeCompare(b[0]);
       })
       .map(([key, count]) => {
-        const name =
-          metric === "townhall" && key !== "Unknown"
-            ? `${emoji.get(Number(key))} TH${key}`
-            : metric === "trophies" && key !== "Unknown"
-              ? `${key}–${Number(key) + 499}`
-              : escapeMarkdown(key);
-        return `**${name}** · ${count} · ${members.length ? ((count / members.length) * 100).toFixed(1) : 0}%`;
+        const name = metric === "townhall" && key !== "Unknown"
+          ? `TH${key}`
+          : metric === "league" ? key.replace(/\s+League\b/giu, "") : key;
+        const icon = metric === "townhall" && key !== "Unknown" ? emoji.get(Number(key)) : metric === "league" ? emoji.get(key) : "";
+        const share = `${members.length ? ((count / members.length) * 100).toFixed(1) : "0.0"}%`;
+        // Keep variable-width game icons outside the fixed-width data columns.
+        return `${icon ? `${icon} ` : ""}\`${displayNameColumn(name, metric === "location" ? 20 : 13)} ${String(count).padStart(3)} ${share.padStart(6)}\``;
       });
     label = groups[metric as keyof typeof groups];
   } else {
@@ -249,21 +207,36 @@ export async function memberReport(ctx: CommandContext, scope: Scope) {
           ? (member.builderBaseTrophies ?? member.versusTrophies)
           : member[rule.key];
     const measured = members.flatMap((member) => {
-      const number = value(member);
-      return typeof number === "number" && Number.isFinite(number)
-        ? [{ member, number }]
+      const raw = value(member);
+      const measuredValue = metric === "role"
+        ? ({ leader:"Leader",coLeader:"Co-Leader",admin:"Elder",elder:"Elder",member:"Member" } as Record<string,string>)[String(raw)] ?? "Unknown"
+        : raw;
+      return typeof measuredValue === "string" || typeof measuredValue === "number" && Number.isFinite(measuredValue)
+        ? [{ member, value: measuredValue }]
         : [];
     });
     failedPlayers += members.length - measured.length;
-    measured.sort(
-      (a, b) =>
-        (order === "asc" ? 1 : -1) * (a.number - b.number) ||
-        a.member.tag.localeCompare(b.member.tag),
-    );
-    rows = measured.map(
-      ({ member, number }, index) =>
-        `**${index + 1}.** ${emoji.get(member.townHallLevel ?? 0)} ${escapeMarkdown(member.name)} · **${number.toLocaleString("en")}**`,
-    );
+    measured.sort((a,b)=>{
+      // Ranked trophies reset between tiers, so compare the tier before its trophies.
+      if (metric === "league_trophies") {
+        const tierDifference=(b.member.leagueTier?.id??0)-(a.member.leagueTier?.id??0);
+        if(tierDifference)return tierDifference;
+      }
+      const difference = typeof a.value === "number" && typeof b.value === "number"
+        ? b.value-a.value : String(a.value).localeCompare(String(b.value));
+      return difference || a.member.name.localeCompare(b.member.name) || a.member.tag.localeCompare(b.member.tag);
+    });
+    const builderTiers=metric==="builder_trophies"?await builderLeagues():[];
+    const format=(value:string|number)=>typeof value==="number"?value.toLocaleString("en",{useGrouping:!["league_trophies","builder_trophies"].includes(metric)}):value;
+    const width=Math.max(1,...measured.map(row=>format(row.value).length));
+    const metricIcons:Record<string,string>={league_trophies:"Legend I",builder_trophies:"builderRuby League I",experience:"xp",war_stars:"war_star",capital:"capital_gold"};
+    rows = measured.map(({member,value},index)=>{
+      const builderLeague=builderTiers.find(tier=>(member.builderBaseTrophies??member.versusTrophies??0)>=tier.trophy_start)?.name;
+      const icon=metric==="league_trophies"?emoji.get(member.leagueTier?.name??member.league?.name??"Unranked"):
+        metric==="builder_trophies"?emoji.get(`builder${builderLeague??""}`):emoji.get(metricIcons[metric]??member.townHallLevel??0);
+      const content=metric==="name"?displayNameColumn(member.name,20):`${format(value).padStart(width)} ${displayNameColumn(member.name,15)}`;
+      return `\`${String(index+1).padStart(2)}\` ${icon} \`${content}\``;
+    });
   }
   let description = "",
     shown = 0;
@@ -272,14 +245,16 @@ export async function memberReport(ctx: CommandContext, scope: Scope) {
     description += (description ? "\n" : "") + line;
     shown++;
   }
-  const title = `${scope === "family" ? "Family" : (clans[0]?.name ?? "Clan")} · ${label}`;
-  const footer = `${shown}/${rows.length} ${action === "compo" ? "groups" : "players"} · ${members.length} members${failedClans ? ` · ${failedClans} clans unavailable` : ""}${failedPlayers ? ` · ${failedPlayers} profiles/stats unavailable` : ""}${metric === "location" ? " · Public ranking location only" : ""}`;
+  const title = `${scope === "family" ? "Family" : (clans[0]?.name ?? "Clan")} (${label})`;
+  const footer = `${action === "compo" && shown === rows.length ? "" : `${shown}/${rows.length} ${action === "compo" ? "groups" : "players"} | `}${members.length} members${failedClans ? ` | ${failedClans} clans unavailable` : ""}${failedPlayers ? ` | ${failedPlayers} profiles/stats unavailable` : ""}${metric === "location" ? " | Public ranking location only" : ""}`;
   const icon = emoji.component("refresh");
   const response = legacyMessage({
     allowed_mentions: { parse: [] },
     embeds: [
       {
-        title,
+        ...(scope === "clan"
+          ? { author: { name: title, ...(clans[0]?.badgeUrls?.small ? { icon_url: clans[0].badgeUrls.small } : {}) } }
+          : { title }),
         color,
         description: description || (failedClans || failedPlayers ? "Member data is unavailable. Try again." : "No members match these filters."),
         footer: { text: footer },
@@ -287,10 +262,21 @@ export async function memberReport(ctx: CommandContext, scope: Scope) {
     ],
     components: [
       actionRow({
+        type: 3,
+        custom_id: `ck:members:${scope}|${target}|${action}|${metric}|${hall}|${limit}|${order}|type`,
+        placeholder: action === "compo" ? "Composition type" : "Sort by",
+        options: action === "compo"
+          ? Object.entries(groups).filter(([value])=>scope==="family"||value!=="location").map(([value,label])=>({label,value,default:value===metric}))
+          : Object.entries(metrics).map(([value,rule])=>{
+            const icons:Record<string,string|number>={townhall:18,name:18,tag:18,role:18,league_trophies:"Legend I",builder_trophies:"builderRuby League I",experience:"xp",war_stars:"war_star",capital:"capital_gold",heroes:"Barbarian King"};
+            const icon=emoji.component(icons[value]!);
+            return {label:rule.label,value,default:value===metric,...(icon?{emoji:icon}:{})};
+          }),
+      }),
+      actionRow({
         type: 2,
         style: 2,
-        label: "Refresh",
-        ...(icon ? { emoji: icon } : {}),
+        emoji: icon ?? { name: "↻" },
         custom_id: `ck:members:${scope}|${target}|${action}|${metric}|${hall}|${limit}|${order}`,
       }),
     ],
@@ -304,9 +290,12 @@ export async function dispatchMemberReport(
   const parts = (ctx.interaction.data?.custom_id ?? "")
     .slice("ck:members:".length)
     .split("|");
-  const [scope, target, action, metric, hall, limit, order] = parts;
+  const changingType = parts.length === 8 && parts.pop() === "type";
+  const [scope, target, action, storedMetric, hall, limit, order] = parts;
+  const metric = changingType ? ctx.interaction.data?.values?.[0] : storedMetric;
   if (
     parts.length !== 7 ||
+    (changingType && (!["compo","sorted"].includes(action??"") || ctx.interaction.data?.values?.length !== 1 || !metric || !(metric in (action==="compo"?groups:metrics)))) ||
     !["clan", "family"].includes(scope ?? "") ||
     (scope === "family" && target !== ctx.interaction.guild_id)
   )
@@ -341,11 +330,8 @@ export async function dispatchMemberReport(
           reply.data ?? {},
         ),
       )
-      .catch(() =>
-        ctx.services.discordRest.createInteractionFollowup(
-          ctx.interaction.token,
-          { content: "Could not refresh this report. Try again.", flags: 64 },
-        ),
+      .catch((error) =>
+        sendInteractionError(ctx,error),
       ),
   );
   return { type: InteractionResponseType.DeferredUpdateMessage };

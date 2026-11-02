@@ -1,3 +1,4 @@
+import { interactionErrorReply } from "./commands/errors";
 import { normalizeMessageControls } from "./discord/message-controls";
 import { createServices } from "./services";
 import { drainRefreshJobs } from "./refresh/runtime";
@@ -6,7 +7,6 @@ import { dispatchInteraction } from "./commands/registry";
 import { giveawayEntry } from "./commands/giveaway";
 import { ticketInteraction } from "./commands/ticket";
 import { armyInteraction } from "./commands/army";
-import { CommandInputError } from "./commands/command-utils";
 import { verifyDiscordRequest } from "./discord/signature";
 import {
   InteractionResponseType,
@@ -15,7 +15,6 @@ import {
   type DiscordInteractionResponse,
 } from "./discord/types";
 import type { Env } from "./env";
-import { resolveLocale, translate } from "./localization/catalog";
 import { Services, runWithServices } from "./runtime";
 
 const JSON_HEADERS = {
@@ -116,13 +115,7 @@ export default {
         errorType: error instanceof Error ? error.name : "UnknownError",
         type: interaction.type,
       });
-      return json({
-        data: {
-          content: error instanceof CommandInputError ? error.message : translate("error.generic", resolveLocale(interaction.locale, interaction.guild_locale)),
-          flags: 1 << 6,
-        },
-        type: InteractionResponseType.ChannelMessageWithSource,
-      });
+      return json(interactionErrorReply(error,interaction));
     }
   },
 } satisfies ExportedHandler<Env>;

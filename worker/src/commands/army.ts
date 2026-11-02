@@ -1,3 +1,4 @@
+import { interactionErrorReply, sendInteractionError } from "./errors";
 import { ClashKingApiError } from "../api/client";
 import { actionRow, legacyMessage, linkButton } from "../discord/components";
 import { InteractionResponseType, MessageFlags, type DiscordInteraction, type DiscordInteractionResponse } from "../discord/types";
@@ -31,25 +32,20 @@ export const armyCommand: Command = {
 
 export async function armyInteraction(interaction:DiscordInteraction,proof:Proof,services:CommandServices,
   waitUntil:(promise:Promise<unknown>)=>void,env:Env):Promise<DiscordInteractionResponse> {
-  const errorMessage=(error:unknown)=>{
-    if(error instanceof ClashKingApiError){
-      if(error.status===401)return "Sign in to the ClashKing app with Discord before saving armies.";
-      if(error.status===400||error.status===403){try{const body=JSON.parse(error.body);if(typeof body.message==="string")return body.message;}catch{/* retain safe message */}}
-    }
-    return "Couldn't load this army. Please try again.";
-  };
+  const armyError=(error:unknown)=>error instanceof ClashKingApiError&&error.status===401
+    ? new CommandInputError("Sign in to the ClashKing app with Discord before saving armies.") : error;
   if(interaction.type===2&&interaction.data?.options?.[0]?.name==="share"){
     // Discord must receive the modal as the initial response. Deferring first
     // prevents opening it; only the submitted selection posts a public army.
     try{
       const result=await services.api.post<ArmyReply>("/v2/bot/armies/interaction",{interaction:proof});
-      if(!result.picker)return {type:InteractionResponseType.ChannelMessageWithSource,data:{content:"Your saved army library is empty. Use /army link, then Save Army.",flags:MessageFlags.Ephemeral}};
+      if(!result.picker)return interactionErrorReply(new CommandInputError("Your saved army library is empty. Use /army link, then Save Army."),interaction);
       const emoji=await applicationEmojis(services.discordRest),picker=result.picker;
       return {type:InteractionResponseType.Modal,data:{custom_id:`ck:army:share:${interaction.member?.user?.id}`,title:"Share saved army",components:[{
         type:18,label:"Army",component:{type:3,custom_id:"army",required:true,min_values:1,max_values:1,
           options:picker.options.map(({townhall,...option})=>{const icon=emoji.component(townhall);return {...option,...(icon?{emoji:{id:icon.id,name:icon.name,animated:icon.animated??false}}:{})};})},
       }]}};
-    }catch(error){return {type:InteractionResponseType.ChannelMessageWithSource,data:{content:errorMessage(error),flags:MessageFlags.Ephemeral,allowed_mentions:{parse:[]}}};}
+    }catch(error){return interactionErrorReply(armyError(error),interaction);}
   }
   waitUntil((async()=>{
     let data:NonNullable<DiscordInteractionResponse["data"]>;
@@ -87,9 +83,10 @@ export async function armyInteraction(interaction:DiscordInteraction,proof:Proof
         }],components:[actionRow(linkButton("Copy Army",result.armyLink),{type:2,style:3,label:"Save Army",custom_id:`ck:army:save:${hash}`})],allowed_mentions:{parse:[]}}).data!;
       }else data={content:"Use /army share to choose a saved army.",allowed_mentions:{parse:[]}};
     }catch(error){
-      data={content:errorMessage(error),allowed_mentions:{parse:[]}};
+      await sendInteractionError({interaction,services},armyError(error),true);
+      return;
     }
-    await services.discordRest.editOriginalInteractionResponse(interaction.token,data);
+    try{await services.discordRest.editOriginalInteractionResponse(interaction.token,data);}catch(error){await sendInteractionError({interaction,services},error);}
   })());
   const save=interaction.data?.custom_id?.startsWith("ck:army:save:");
   return {type:InteractionResponseType.DeferredChannelMessageWithSource,data:save?{flags:MessageFlags.Ephemeral}:{}};

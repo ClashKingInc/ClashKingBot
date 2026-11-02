@@ -8,7 +8,7 @@ export interface RefreshJob {
   token: string; expires_at: string; preview: boolean; categories: RefreshCategory[]; roster_role_ids?: string[]; role_treatment?: "add" | "remove" | "both";
   auto_role_treatment?: "add" | "remove" | "both"; auto_role_blacklist_ids?: string[];
 }
-interface GuildState { roles: DiscordRole[]; bot: DiscordMember; owner: string }
+export interface GuildState { roles: DiscordRole[]; bot: DiscordMember; owner: string }
 const permissions = (state: GuildState) => state.roles.filter(role => role.id === state.bot.user?.id || state.bot.roles.includes(role.id)
   || role.name === "@everyone").reduce((bits, role) => bits | BigInt(String(role.permissions ?? "0")), 0n);
 const higher = (left: DiscordRole, right: DiscordRole) => Number(left.position) > Number(right.position)
@@ -16,11 +16,19 @@ const higher = (left: DiscordRole, right: DiscordRole) => Number(left.position) 
 const topRole = (roles: DiscordRole[], member: DiscordMember) => roles.filter(role => member.roles.includes(role.id))
   .reduce<DiscordRole | undefined>((top, role) => !top || higher(role, top) ? role : top, undefined);
 
-export async function processRefreshJob(services: CommandServices, job: RefreshJob, state: GuildState) {
+type ManualRefresh = { server_id:string; user_id:string; preview:boolean; categories:RefreshCategory[]; role_treatment:"add"|"remove"|"both"; manual:true };
+export async function processManualRefresh(services:CommandServices, input:ManualRefresh,state:GuildState) {
+  return processMemberRefresh(services,input,state);
+}
+export async function processRefreshJob(services:CommandServices,job:RefreshJob,state:GuildState) {
+  return processMemberRefresh(services,job,state);
+}
+async function processMemberRefresh(services: CommandServices, job: RefreshJob|ManualRefresh, state: GuildState) {
+  const manual="manual" in job;
   const rest = services.discordRest;
   // These settings only govern legacy game-driven automatic evaluation.
   // Roster membership and tenure jobs have independent explicit contracts.
-  const gameAutomatic = !job.request_id && !job.categories.every(category => ["tenure","roster"].includes(category));
+  const gameAutomatic = !manual && !job.request_id && !job.categories.every(category => ["tenure","roster"].includes(category));
   const treatment = (gameAutomatic ? job.auto_role_treatment : job.role_treatment) ?? "both";
   if (!["add", "remove", "both"].includes(treatment)) throw new Error("Invalid role treatment");
   let member: DiscordMember;
@@ -34,13 +42,13 @@ export async function processRefreshJob(services: CommandServices, job: RefreshJ
     return { skipped: "Automatic refresh excluded by a server role", add: [], remove: [], blocked: [] };
   }
   const data = await services.api.get<RefreshData>(`/v2/bot/role-refresh/${job.server_id}/data`, { userId: job.user_id });
-  if (!job.request_id && !data.settings.autoeval_enabled && !job.categories.every(category=>["tenure","roster"].includes(category))) return { skipped: "Automatic refresh disabled", add: [], remove: [], blocked: [] };
-  data.retiredRosterRoleIds=job.roster_role_ids??[];
+  if (!manual && !job.request_id && !data.settings.autoeval_enabled && !job.categories.every(category=>["tenure","roster"].includes(category))) return { skipped: "Automatic refresh disabled", add: [], remove: [], blocked: [] };
+  data.retiredRosterRoleIds=manual?[]:job.roster_role_ids??[];
   const plan = planRefresh(data, member.roles, job.categories, {
     username: member.user?.global_name ?? member.user?.username ?? "",
     joinedAt: member.joined_at,
     displayName: member.nick ?? member.user?.global_name ?? member.user?.username ?? "",
-  }, !job.request_id);
+  }, !manual && !job.request_id);
   const botTop = topRole(state.roles, state.bot), memberTop = topRole(state.roles, member);
   const bits = permissions(state), admin = (bits & 8n) !== 0n;
   const blocked: string[] = [];
@@ -62,14 +70,16 @@ export async function processRefreshJob(services: CommandServices, job: RefreshJ
     blocked.push("nickname: missing permission or member is above the bot"); nickname = undefined;
   }
   if (!job.preview) {
+    if (!manual) {
     const valid = await services.api.post<{ valid: boolean }>("/v2/bot/role-refresh/validate", {
       id: job.id, token: job.token, accountTags: data.accounts.map(account => account.tag), rosterFingerprint: data.roster?.fingerprint,
       ...(gameAutomatic ? {automaticRoleTreatment: treatment, automaticBlacklistRoles: job.auto_role_blacklist_ids ?? []} : {}),
     });
     if (!valid.valid) throw new Error("Refresh inputs changed; retry with current accounts");
+    }
     // Individual role endpoints preserve unrelated/concurrent role assignments.
     // Apply additions first so moving family clans does not briefly drop access.
-    const checkDeadline = () => { if (Date.now() >= Date.parse(job.expires_at) - 15_000) throw new Error("Refresh lease deadline exceeded"); };
+    const checkDeadline = () => { if (!manual && Date.now() >= Date.parse(job.expires_at) - 15_000) throw new Error("Refresh lease deadline exceeded"); };
     for (const role of add) { checkDeadline(); await rest.request(`/guilds/${job.server_id}/members/${job.user_id}/roles/${role}`, { method: "PUT" }); }
     for (const role of remove) { checkDeadline(); await rest.request(`/guilds/${job.server_id}/members/${job.user_id}/roles/${role}`, { method: "DELETE" }); }
     if (nickname !== undefined) { checkDeadline(); await rest.request(`/guilds/${job.server_id}/members/${job.user_id}`, { method: "PATCH", body: JSON.stringify({ nick: nickname }) }); }

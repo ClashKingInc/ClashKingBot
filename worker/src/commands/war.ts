@@ -1,3 +1,8 @@
+import { sendInteractionError } from "./errors";
+import { warSearchView, warViews } from "./war-search-view";
+import { cwlSearch } from "./cwl-search";
+import { warPreference } from "./war-preference";
+import { withClanSelector } from "./clan-controls";
 import { actionRow, legacyMessage } from "../discord/components";
 import { InteractionResponseType } from "../discord/types";
 import {
@@ -6,21 +11,16 @@ import {
   normalizeTag,
   stringOption,
 } from "./command-utils";
-import { familyCwl, familyCwlOptions } from "./cwl-family";
+import { familyCwl } from "./cwl-family";
 import { clanCommand } from "./clan";
-import { emojis, escapeMarkdown, subcommand } from "./game-common";
+import { emojis, subcommand } from "./game-common";
 import { serverEmbedColor } from "./embed-color";
 import {
-  clanRounds,
-  cwlRanking,
   compactWarTime,
   isWar,
-  latestWar,
   loadCurrentWar,
-  loadCwl,
   warTime,
   type War,
-  type WarSide,
 } from "./war-data";
 import type { Command, CommandContext } from "./types";
 
@@ -31,32 +31,25 @@ const clanOption = {
   required: true,
   autocomplete: true,
 };
-const viewOption = {
-  name: "view",
-  description: "What to show (default Overview)",
-  type: OptionType.String,
-  choices: [
-    { name: "Overview", value: "overview" },
-    { name: "Attacks", value: "attacks" },
-    { name: "Defenses", value: "defenses" },
-    { name: "Roster", value: "roster" },
-    { name: "Opponent roster", value: "opponent" },
-  ],
-};
-const limitOption = {
-  name: "limit",
-  description: "Maximum player rows (default 30)",
-  type: OptionType.Integer,
-  min_value: 1,
-  max_value: 50,
-};
-const views = ["overview", "attacks", "defenses", "roster", "opponent"];
+const views:readonly string[] = warViews.map(v=>v[0]);
 interface ClanInfo {
   name: string;
   isWarLogPublic?: boolean;
   badgeUrls?: { small?: string };
 }
 
+const warSuggestions=new Map<string,{until:number;pending:Promise<War[]>}>();
+// Coalesce keystrokes and keep only a short-lived, environment-scoped history.
+// A failed lookup is evicted so it cannot poison subsequent autocomplete.
+function storedWarSuggestions(ctx:CommandContext,tag:string){
+ const key=`${ctx.env.CLASHKING_API_BASE_URL}:${ctx.env.DISCORD_APPLICATION_ID}:${tag}`,now=Date.now(),cached=warSuggestions.get(key);
+ if(cached&&cached.until>now)return cached.pending;
+ const pending=ctx.services.api.get<{items:War[]}>(`/v2/clan/${encodeURIComponent(tag)}/wars`,{limit:25},AbortSignal.timeout(1800)).then(result=>result.items.filter(w=>isWar(w,tag)&&Number.isFinite(warTime(w.endTime))));
+ const entry={until:now+90_000,pending};
+ pending.catch(()=>{if(warSuggestions.get(key)===entry)warSuggestions.delete(key);});
+ if(warSuggestions.size>=128)warSuggestions.delete(warSuggestions.keys().next().value!);
+ warSuggestions.set(key,entry);return pending;
+}
 export const warCommand: Command = {
   deferred: true,
   definition: {
@@ -66,6 +59,7 @@ export const warCommand: Command = {
     integration_types: [0, 1],
     contexts: [0, 1, 2],
     options: [
+      {name:"preference",description:"Clan war preferences and recorded history",type:OptionType.Subcommand,options:[clanOption]},
       {
         name: "search",
         description: "Show a clan's current or recorded war",
@@ -78,8 +72,6 @@ export const warCommand: Command = {
             type: OptionType.String,
             autocomplete: true,
           },
-          viewOption,
-          limitOption,
         ],
       },
     ],
@@ -90,25 +82,28 @@ export const warCommand: Command = {
       const raw = stringOption(ctx, "clan");
       if (!raw) return [];
       const tag = normalizeTag(raw, ctx.locale);
-      const data = await ctx.services.api.get<{ items: War[] }>(
-        `/v2/clan/${encodeURIComponent(tag)}/wars`,
-        { limit: 25 },
-      );
-      return data.items
-        .filter((war) => isWar(war, tag))
-        .map((war) => ({
-          name: `${new Date(warTime(war.endTime)).toISOString().slice(0, 10)} · ${war.clan.tag === tag ? war.opponent.name : war.clan.name}`.slice(
-            0,
-            100,
-          ),
-          value: compactWarTime(war.endTime),
-        }));
+      const query=String(ctx.options.get("war_end")?.value??"").toLocaleLowerCase();
+      const current={name:"Current war",value:"current"};
+      const wars=await storedWarSuggestions(ctx,tag).catch(()=>[]);
+      const seen=new Set<string>();
+      const choices=wars.sort((a,b)=>warTime(b.endTime)-warTime(a.endTime)).flatMap(war=>{
+        const value=compactWarTime(war.endTime);if(seen.has(value))return [];seen.add(value);
+        const enemy=war.clan.tag===tag?war.opponent:war.clan;
+        const days=Math.floor(Math.max(0,Date.now()-warTime(war.endTime))/86400000);
+        const ago=days?`${days}d ago`:`${Math.floor(Math.max(0,Date.now()-warTime(war.endTime))/3600000)}h ago`;
+        const prep=war.startTime?warTime(war.startTime)-warTime(war.preparationStartTime):0;
+        const type=war.tag||war.attacksPerMember===1?"CWL":[5,15,30,60,120,240,360,480,720,960,1200,1440].includes(prep/60000)?"Friendly":"Regular";
+        const name=`${enemy.name} | ${ago} | ${type} | ${new Date(warTime(war.endTime)).toISOString().slice(0,10)}`.slice(0,100);
+        return name.toLocaleLowerCase().includes(query)?[{name,value}]:[];
+      });
+      return [...(!query||current.name.toLocaleLowerCase().includes(query)?[current]:[]),...choices].slice(0,25);
     }
     return clanCommand.autocomplete!(context);
   },
   async execute(context) {
-    const ctx = subcommand(context),
-      tag = normalizeTag(stringOption(ctx, "clan") ?? "", ctx.locale),
+    const ctx = subcommand(context);
+    if(ctx.path[0]==="preference")return withClanSelector(context,await warPreference(ctx));
+    const tag = normalizeTag(stringOption(ctx, "clan") ?? "", ctx.locale),
       end = stringOption(ctx, "war_end") ?? "current";
     if (
       end !== "current" &&
@@ -129,7 +124,7 @@ export const warCommand: Command = {
         throw new CommandInputError(
           "That recorded war does not contain this clan.",
         );
-      return warReply(ctx, tag, war, false, end, settings);
+      return warReply(ctx, tag, war, Boolean(war.tag||war.attacksPerMember===1), end, settings);
     }
     const result = await loadCurrentWar(ctx, tag);
     if (!result.war)
@@ -160,22 +155,16 @@ export const cwlCommand: Command = {
     options: [
       {
         name: "rankings",
-        description: "CWL standings across linked family clans",
+        description: "CWL status and standings across linked family clans",
         type: OptionType.Subcommand,
         options: [
-          ...familyCwlOptions,
           {
             name: "season",
             description: "Season YYYY-MM (defaults to current)",
             type: OptionType.String,
+            autocomplete: true,
           },
         ],
-      },
-      {
-        name: "status",
-        description: "CWL group status across linked family clans",
-        type: OptionType.Subcommand,
-        options: familyCwlOptions,
       },
       {
         name: "search",
@@ -187,99 +176,32 @@ export const cwlCommand: Command = {
             name: "season",
             description: "Season YYYY-MM (defaults to current)",
             type: OptionType.String,
+            autocomplete: true,
           },
-          {
-            name: "round",
-            description: "Show one round instead of group standings",
-            type: OptionType.Integer,
-            min_value: 1,
-            max_value: 7,
-          },
-          viewOption,
-          limitOption,
         ],
       },
     ],
   },
-  autocomplete: (context) => clanCommand.autocomplete!(context),
+  async autocomplete(context) {
+    const ctx=subcommand(context);
+    if(!ctx.options.get("season")?.focused)return clanCommand.autocomplete!(context);
+    const query=stringOption(ctx,"season")??"";
+    return Array.from({length:25},(_,index)=>{
+      const date=new Date();date.setUTCDate(1);date.setUTCMonth(date.getUTCMonth()-index);
+      const value=date.toISOString().slice(0,7);return {name:date.toLocaleDateString("en",{month:"long",year:"numeric",timeZone:"UTC"}),value};
+    }).filter(option=>!query||option.value.includes(query)||option.name.toLowerCase().includes(query.toLowerCase()));
+  },
   async execute(context) {
     const ctx = subcommand(context);
-    if (["rankings", "status"].includes(ctx.path[0] ?? ""))
+    if (ctx.path[0] === "rankings")
       return familyCwl(ctx);
-    const tag = normalizeTag(stringOption(ctx, "clan") ?? "", ctx.locale),
-      season = stringOption(ctx, "season") ?? "current",
-      settings = readSettings(ctx),
-      round = Number(ctx.options.get("round")?.value ?? 0);
-    if (season !== "current" && !/^\d{4}-(0[1-9]|1[0-2])$/u.test(season))
-      throw new CommandInputError("Use a season in YYYY-MM format.");
-    if (!Number.isInteger(round) || round < 0 || round > 7)
-      throw new CommandInputError("Choose a round from 1 to 7.");
-    const result = await loadCwl(
-      ctx,
-      tag,
-      season === "current" ? undefined : season,
-    );
-    if (!result)
-      return legacyMessage({
-        content:
-          "No Clan War League group is available for that clan and season.",
-        components: await controls(ctx, "cwl", tag, season, settings, round),
-      });
-    const roundsByIndex = clanRounds(result.group, result.wars, tag);
-    const own = roundsByIndex.filter((war): war is War => war !== undefined);
-    if (round || settings.view !== "overview") {
-      const war = round ? roundsByIndex[round - 1] : latestWar(own, tag);
-      if (!war)
-        throw new CommandInputError(
-          "That round's war data is not available yet.",
-        );
-      return warReply(ctx, tag, war, true, season, settings, "cwl", round);
-    }
-    const ranked = cwlRanking(result.group, result.wars);
-    const emoji = await emojis(ctx),
-      standing = ranked
-        .map(
-          ([clan, score]) =>
-            `**${score.rank}. ${escapeMarkdown(score.name)}${clan === tag ? " ←" : ""}** · ${emoji.get("war_star")} ${score.stars}`,
-        )
-        .join("\n");
-    const rounds =
-      roundsByIndex
-        .map((war, i) => {
-          if (!war) return `**${i + 1}.** War data not available yet.`;
-          const side = war.clan.tag === tag ? war.clan : war.opponent,
-            other = side === war.clan ? war.opponent : war.clan;
-          return `**${i + 1}.** ${escapeMarkdown(other.name)} · ${war.state === "preparation" ? "Preparation" : `${side.stars}–${other.stars} stars`}${war.state === "inWar" ? " · In war" : ""}`;
-        })
-        .join("\n") || "No round data recorded yet.";
-    return legacyMessage({
-      allowed_mentions: { parse: [] },
-      embeds: [
-        {
-          title: `Clan War League · ${result.group.season}`,
-          description: standing,
-          color: await serverEmbedColor(ctx),
-          fields: [{ name: "Clan rounds", value: rounds }],
-          footer: {
-            text: "10 bonus stars only for completed wins · standings may be provisional",
-          },
-        },
-      ],
-      components: await controls(ctx, "cwl", tag, season, settings),
-    });
+    return cwlSearch(ctx);
   },
 };
 function readSettings(ctx: CommandContext) {
-  const view = stringOption(ctx, "view") ?? "overview",
-    limit = Number(ctx.options.get("limit")?.value ?? 30);
-  if (
-    !views.includes(view) ||
-    !Number.isInteger(limit) ||
-    limit < 1 ||
-    limit > 50
-  )
-    throw new CommandInputError("Choose a valid view and row limit.");
-  return { view, limit };
+  const view=stringOption(ctx,"view")??"overview",page=Number(ctx.options.get("round")?.value??0);
+  if(!views.includes(view)||!Number.isInteger(page)||page<0||page>1000)throw new CommandInputError("Choose a valid war view.");
+  return {view,limit:50,page};
 }
 async function controls(
   ctx: CommandContext,
@@ -294,94 +216,13 @@ async function controls(
     actionRow({
       type: 2,
       style: 2,
-      label: "Refresh",
-      ...(icon ? { emoji: icon } : {}),
+      emoji: icon ?? { name: "↻" },
       custom_id: `ck:war:${kind}|${tag}|${period}|${settings.view}|${settings.limit}|${round}`,
     }),
   ];
 }
-async function warReply(
-  ctx: CommandContext,
-  tag: string,
-  war: War,
-  cwl: boolean,
-  period: string,
-  settings: { view: string; limit: number },
-  kind = "war",
-  round = 0,
-) {
-  const own = war.clan.tag === tag ? war.clan : war.opponent,
-    other = own === war.clan ? war.opponent : war.clan,
-    emoji = await emojis(ctx),
-    maximum = war.teamSize * (war.attacksPerMember ?? (cwl ? 1 : 2));
-  const date = war.state === "preparation" ? war.startTime : war.endTime,
-    when =
-      date && Number.isFinite(warTime(date))
-        ? `<t:${Math.floor(warTime(date) / 1000)}:R>`
-        : "time unavailable";
-  let description: string;
-  if (settings.view === "overview") {
-    const count = (side: WarSide) =>
-      side.members.reduce((n, p) => n + (p.attacks?.length ?? 0), 0);
-    description = `**${escapeMarkdown(own.name)} vs ${escapeMarkdown(other.name)}**\n${own.stars} ${emoji.get("war_star")} ${other.stars}\n${own.destructionPercentage.toFixed(2)}% · ${other.destructionPercentage.toFixed(2)}%\nAttacks: ${count(own)}/${maximum} · ${count(other)}/${maximum}\n${war.state === "preparation" ? "Starts" : war.state === "warEnded" ? "Ended" : "Ends"} ${when}`;
-  } else {
-    const side = settings.view === "opponent" ? other : own,
-      opponents = new Map(
-        [...own.members, ...other.members].map((p) => [p.tag, p]),
-      );
-    const lines = side.members
-      .slice()
-      .sort((a, b) => a.mapPosition - b.mapPosition)
-      .slice(0, settings.limit)
-      .map((member) => {
-        const head = `**#${member.mapPosition}** ${emoji.get(member.townhallLevel)} ${escapeMarkdown(member.name)}`;
-        if (["roster", "opponent"].includes(settings.view)) return head;
-        const attacks =
-          settings.view === "attacks"
-            ? (member.attacks ?? [])
-            : other.members
-                .flatMap((p) => p.attacks ?? [])
-                .filter((a) => a.defenderTag === member.tag);
-        return (
-          head +
-          "\n" +
-          (attacks.length
-            ? attacks
-                .map(
-                  (a) =>
-                    `${a.stars}${emoji.get("war_star")} ${a.destructionPercentage}% · #${opponents.get(settings.view === "attacks" ? a.defenderTag : a.attackerTag)?.mapPosition ?? "?"}`,
-                )
-                .join("; ")
-            : settings.view === "attacks"
-              ? "No attacks used"
-              : "No defense recorded")
-        );
-      });
-    description = lines.join("\n\n");
-    if (side.members.length > settings.limit)
-      description += `\n\nShowing ${settings.limit}/${side.members.length} players.`;
-  }
-  if (description.length > 3800)
-    description =
-      description.slice(0, 3750) +
-      "\n… Use a smaller row limit to view the full entries.";
-  return legacyMessage({
-    allowed_mentions: { parse: [] },
-    embeds: [
-      {
-        title: `${cwl ? "CWL" : "War"} · ${{overview:"Overview",attacks:"Attacks",defenses:"Defenses",roster:"Roster",opponent:"Opponent roster"}[settings.view] ?? settings.view}`,
-        description,
-        color: await serverEmbedColor(ctx),
-        ...(own.badgeUrls?.large
-          ? { thumbnail: { url: own.badgeUrls.large } }
-          : {}),
-        footer: {
-          text: `${war.teamSize}v${war.teamSize} · ${{preparation:"Preparation",inWar:"Battle day",warEnded:"War ended"}[war.state] ?? war.state}${round ? ` · Round ${round}` : ""}`,
-        },
-      },
-    ],
-    components: await controls(ctx, kind, tag, period, settings, round),
-  });
+async function warReply(ctx:CommandContext,tag:string,war:War,cwl:boolean,period:string,settings:{view:string;limit:number;page:number}){
+ return warSearchView(ctx,tag,war,cwl,period,settings.view,settings.page);
 }
 export async function dispatchWar(
   ctx: CommandContext,
@@ -394,7 +235,7 @@ export async function dispatchWar(
   if (parts.length === 6 && kind === "family") {
     if (
       clan !== ctx.interaction.guild_id ||
-      !["rankings", "status"].includes(period ?? "")
+      period !== "rankings"
     )
       throw new CommandInputError("This report belongs to a different server.");
     const run = familyCwl({
@@ -421,14 +262,8 @@ export async function dispatchWar(
             reply.data ?? {},
           ),
         )
-        .catch(() =>
-          ctx.services.discordRest.createInteractionFollowup(
-            ctx.interaction.token,
-            {
-              content: "Could not refresh this family report. Try again.",
-              flags: 64,
-            },
-          ),
+        .catch((error) =>
+          sendInteractionError(ctx,error),
         ),
     );
     return { type: InteractionResponseType.DeferredUpdateMessage };
@@ -440,6 +275,8 @@ export async function dispatchWar(
     !period
   )
     throw new CommandInputError("Invalid war control.");
+  const selectedView=view==="select"?ctx.interaction.data?.values?.[0]:view;
+  if(!selectedView||!views.includes(selectedView))throw new CommandInputError("Choose a war view.");
   const options = [
     { name: "clan", type: OptionType.String, value: clan },
     {
@@ -447,7 +284,7 @@ export async function dispatchWar(
       type: OptionType.String,
       value: period,
     },
-    { name: "view", type: OptionType.String, value: view },
+    { name: "view", type: OptionType.String, value: selectedView },
     { name: "limit", type: OptionType.Integer, value: Number(limit) },
     { name: "round", type: OptionType.Integer, value: Number(round) },
   ];
@@ -468,16 +305,7 @@ export async function dispatchWar(
         ),
       )
       .catch((error) =>
-        ctx.services.discordRest.createInteractionFollowup(
-          ctx.interaction.token,
-          {
-            content:
-              error instanceof CommandInputError
-                ? error.message
-                : "Could not refresh this war. Try again.",
-            flags: 64,
-          },
-        ),
+        sendInteractionError(ctx,error),
       ),
   );
   return { type: InteractionResponseType.DeferredUpdateMessage };

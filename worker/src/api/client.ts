@@ -8,6 +8,7 @@ export class ClashKingApiError extends Error {
   constructor(
     readonly status: number,
     readonly body: string,
+    readonly path?: string,
   ) {
     super(`ClashKing API request failed with ${status}`);
   }
@@ -37,6 +38,12 @@ export class ClashKingApiClient {
 
   post<T>(path: string, body: unknown): Promise<T> {
     return this.#write<T>("POST", path, body);
+  }
+
+  postIfAbsent<T>(path: string, body: unknown): Promise<T> {
+    return this.#request<T>(new URL(`${this.#baseUrl}${normalizePath(path)}`), {
+      method: "POST", body: JSON.stringify(body), headers: { "X-ClashKing-Create-Only": "true" },
+    });
   }
 
   postEmpty<T>(path: string): Promise<T> {
@@ -72,14 +79,16 @@ export class ClashKingApiClient {
   async #request<T>(url: URL, init: RequestInit): Promise<T> {
     const response = await this.#fetch(url, {
       ...init,
+      signal: init.signal ? AbortSignal.any([init.signal, AbortSignal.timeout(30000)]) : AbortSignal.timeout(30000),
       headers: {
+        ...Object.fromEntries(new Headers(init.headers)),
         Accept: "application/json",
         Authorization: `Bearer ${this.#token}`,
         ...(typeof init.body === "string" ? { "Content-Type": "application/json" } : {}),
       },
     });
     if (!response.ok) {
-      throw new ClashKingApiError(response.status, await response.text());
+      throw new ClashKingApiError(response.status, await response.text(), url.pathname);
     }
     if (response.status === 204) {
       return undefined as T;

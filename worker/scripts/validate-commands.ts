@@ -15,7 +15,9 @@ for (const command of commandDefinitions) {
   names.add(command.name);
   validateName(command.name, command.name);
   validateDescription(command.name, command.description);
-  for (const [locale, name] of Object.entries(command.name_localizations ?? {})) validateName(`${command.name}/${locale}`, name);
+  // Slash paths stay canonical across locales so shared instructions and
+  // command discovery never mix translated roots with English subcommands.
+  if (Object.keys(command.name_localizations ?? {}).length) errors.push(`${command.name} must keep its canonical name across locales`);
   for (const [locale, description] of Object.entries(command.description_localizations ?? {})) validateDescription(`${command.name}/${locale}`, description);
   validateOptions(command.name, command.options ?? []);
 }
@@ -35,7 +37,7 @@ function validateOptions(parent: string, options: ApplicationCommandOption[]): v
     const path = `${parent} ${option.name}`;
     validateName(path, option.name);
     validateDescription(path, option.description);
-    for (const [locale, name] of Object.entries(option.name_localizations ?? {})) validateName(`${path}/${locale}`, name);
+    if (Object.keys(option.name_localizations ?? {}).length) errors.push(`${path} must keep its canonical name across locales`);
     for (const [locale, description] of Object.entries(option.description_localizations ?? {})) validateDescription(`${path}/${locale}`, description);
     if (option.required === false || option.required === undefined) {
       optionalSeen = true;

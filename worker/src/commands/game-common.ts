@@ -41,7 +41,10 @@ export const playerUrl = (tag: string) => `https://link.clashofclans.com/en?acti
 // Links must follow the bot environment, never send Beta users to production.
 export const playerAppUrl = (tag: string, environment: AppEnvironment) =>
   `https://${environment === "dev" ? "local-app" : "app"}.clashk.ing/player/${encodeURIComponent(tag.replace(/^#/u,""))}`;
-export const playerLabel = (player: { name: string; tag: string }) => `[${escapeMarkdown(player.name)}](${playerUrl(player.tag)})`;
+/** Discord masked links do not reliably decode escaped inner brackets. Use
+ * visually equivalent brackets only in the label; keep the real name/tag intact. */
+export const escapeLinkLabel = (value:string) => escapeMarkdown(value.replaceAll("[","［").replaceAll("]","］"));
+export const playerLabel = (player: { name: string; tag: string }) => `[${escapeLinkLabel(player.name)}](${playerUrl(player.tag)})`;
 export async function linkedAccounts(ctx: CommandContext): Promise<LinkedAccount[]> {
   const result = await ctx.services.api.get<{ items: LinkedAccount[] }>(`/v2/links/${stringOption(ctx, "discord_user") ?? invokingUserId(ctx)}`);
   return result.items;

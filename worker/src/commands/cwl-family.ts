@@ -1,33 +1,14 @@
 import { actionRow, legacyMessage } from "../discord/components";
 import {
   CommandInputError,
-  OptionType,
   requireGuildId,
   stringOption,
 } from "./command-utils";
 import { emojis, escapeMarkdown } from "./game-common";
 import { serverEmbedColor } from "./embed-color";
 import { cwlRanking, cwlStatus, loadCwl, type War } from "./war-data";
-import type { ApplicationCommandOption, CommandContext } from "./types";
+import type { CommandContext } from "./types";
 
-export const familyCwlOptions: ApplicationCommandOption[] = [
-  {
-    name: "limit",
-    description: "Clan rows to show (default 30)",
-    type: OptionType.Integer,
-    min_value: 1,
-    max_value: 50,
-  },
-  {
-    name: "sort_order",
-    description: "League order (default Highest first)",
-    type: OptionType.String,
-    choices: [
-      { name: "Highest first", value: "desc" },
-      { name: "Lowest first", value: "asc" },
-    ],
-  },
-];
 interface Clan {
   name: string;
   tag: string;
@@ -43,15 +24,9 @@ interface Row {
 export async function familyCwl(ctx: CommandContext) {
   const guild = requireGuildId(ctx),
     action = ctx.path[0],
-    limit = Number(ctx.options.get("limit")?.value ?? 30),
-    order = stringOption(ctx, "sort_order") ?? "desc",
     season = stringOption(ctx, "season") ?? "current";
   if (
-    !["rankings", "status"].includes(action ?? "") ||
-    !Number.isInteger(limit) ||
-    limit < 1 ||
-    limit > 50 ||
-    !["asc", "desc"].includes(order) ||
+    action !== "rankings" ||
     (season !== "current" && !/^\d{4}-(0[1-9]|1[0-2])$/u.test(season))
   )
     throw new CommandInputError("Choose valid CWL report options.");
@@ -75,8 +50,7 @@ export async function familyCwl(ctx: CommandContext) {
             clan = await ctx.services.api.get<Clan>(
               `/v2/bot/clash/clans/${encodeURIComponent(reference.tag)}`,
             );
-            if (action === "status")
-              return { clan, state: await cwlStatus(ctx, clan.tag) };
+            if((season==="current"||season===new Date().toISOString().slice(0,7))&&await cwlStatus(ctx,clan.tag)==="spinning")return {clan,state:"spinning"};
             const data = await loadCwl(
               ctx,
               clan.tag,
@@ -98,9 +72,9 @@ export async function familyCwl(ctx: CommandContext) {
               )?.[1];
             return {
               clan,
-              ...(score && data.wars.length
-                ? { rank: score.rank, stars: score.stars }
-                : { state: "No available group" }),
+              ...(score && data?.wars.some(war=>war.state!=="preparation")
+                ? { rank: score.rank, stars: score.stars, state:data.group.state }
+                : { state: data?.group.state??"No available group" }),
             };
           } catch {
             return { clan, unavailable: true };
@@ -111,13 +85,14 @@ export async function familyCwl(ctx: CommandContext) {
   rows.sort((a, b) => {
     const league = (a.clan.warLeague?.id ?? 0) - (b.clan.warLeague?.id ?? 0);
     return (
-      (order === "desc" ? -league : league) ||
+      -league ||
       (a.rank ?? Infinity) - (b.rank ?? Infinity) ||
       a.clan.name.localeCompare(b.clan.name)
     );
   });
   const emoji = await emojis(ctx),
     states: Record<string, string> = {
+      spinning: "Spinning",
       inWar: "In war",
       preparation: "Preparation",
       ended: "Ended",
@@ -127,29 +102,30 @@ export async function familyCwl(ctx: CommandContext) {
     };
   let description = "",
     shown = 0;
-  for (const row of rows.slice(0, limit)) {
+  const visible=rows.filter(row=>row.state&&row.state!=="No available group");
+  const statusIcons:Record<string,string>={spinning:"animated_clash_swords",preparation:"green_check",inWar:"wood_swords",ended:"green_check",warEnded:"green_check"};
+  for (const row of visible) {
     const detail = row.unavailable
       ? "Unavailable — retry later"
-      : action === "status"
-        ? (states[row.state ?? ""] ?? row.state ?? "Unknown")
-        : row.rank
-          ? `Group rank #${row.rank} · ${row.stars} stars`
-          : row.state;
-    const line = `**${escapeMarkdown(row.clan.name)}** · ${escapeMarkdown(row.clan.warLeague?.name ?? "Unranked")}\n${detail}`;
+      : row.rank
+        ? `${emoji.get("trophy")} #${row.rank} ${emoji.get("war_star")} ${row.stars} | ${emoji.get(statusIcons[row.state??""]??"")} ${states[row.state??""]??row.state??""}`
+        : `${emoji.get(statusIcons[row.state??""]??"")} ${states[row.state??""]??row.state??""}`;
+    const line = `**${escapeMarkdown(row.clan.name)}**
+${emoji.get(row.clan.warLeague?.name ?? "Unranked")} ${escapeMarkdown(row.clan.warLeague?.name ?? "Unranked")}\n${detail}`;
     if (description.length + line.length + 2 > 3800) break;
     description += (description ? "\n\n" : "") + line;
     shown++;
   }
-  const refresh = emoji.component("refresh");
+  const refresh = emoji.component("refresh"), server=await ctx.services.discordRest.getGuild(guild);
   return legacyMessage({
     allowed_mentions: { parse: [] },
     embeds: [
       {
-        title: `Family CWL ${action}`,
-        description,
+        author: {name:`${server.name} (CWL)`,...(typeof server.icon==="string"?{icon_url:`https://cdn.discordapp.com/icons/${guild}/${server.icon}.png`}:{})},
+        description:description||"No CWL groups available for this season.",
         color: await serverEmbedColor(ctx),
         footer: {
-          text: `${season === "current" ? new Date().toISOString().slice(0, 7) : season} · ${shown}/${rows.length} clans · ${action === "rankings" ? "Standings may be provisional" : "Current group status"}`,
+          text: `${season === "current" ? new Date().toISOString().slice(0, 7) : season} | ${shown} clans`,
         },
       },
     ],
@@ -157,9 +133,8 @@ export async function familyCwl(ctx: CommandContext) {
       actionRow({
         type: 2,
         style: 2,
-        label: "Refresh",
-        ...(refresh ? { emoji: refresh } : {}),
-        custom_id: `ck:war:family|${guild}|${action}|${season}|${limit}|${order}`,
+        emoji: refresh??{name:"↻"},
+        custom_id: `ck:war:family|${guild}|${action}|${season}|200|desc`,
       }),
     ],
   });

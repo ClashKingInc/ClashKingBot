@@ -1,3 +1,4 @@
+import { sendInteractionError } from "./errors";
 import {
   actionRow,
   type ActionRowComponent,
@@ -5,7 +6,6 @@ import {
 } from "../discord/components";
 import {
   InteractionResponseType,
-  MessageFlags,
   type DiscordInteractionResponse,
   type InteractionOption,
 } from "../discord/types";
@@ -16,7 +16,7 @@ import {
   requireGuildId,
   stringOption,
 } from "./command-utils";
-import { dailyMetrics, graphMetrics } from "./graph-data";
+import { dailyMetrics, graphMetrics, graphMetricIcons } from "./graph-data";
 import { clanSelector } from "./clan-selector";
 import { emojis } from "./game-common";
 import type { CommandContext } from "./types";
@@ -108,7 +108,7 @@ export async function graphControls(
   state: GraphControlState,
   clans: GraphClans,
 ): Promise<ActionRowComponent[]> {
-  const metrics = state.view === "daily" ? dailyMetrics : graphMetrics;
+  const metrics = {...graphMetrics,...dailyMetrics},art=await emojis(ctx);
   const result = [
     actionRow({
       type: 3,
@@ -120,9 +120,14 @@ export async function graphControls(
         label,
         value,
         default: value === state.metric,
+        ...(art.component(graphMetricIcons[value]??"")?{emoji:art.component(graphMetricIcons[value]??"")}:{}) ,
       })),
     }),
   ];
+  result.push(actionRow({type:3,custom_id:id(state,clans,"view"),placeholder:"Chart view",options:[
+    ...(Object.hasOwn(dailyMetrics,state.metric)?[{label:"Daily trend",value:"daily",default:state.view==="daily"}]:[]),
+    ...(Object.hasOwn(graphMetrics,state.metric)?[...(state.metric!=="cwlLeague"?[{label:"Season totals",value:"month",default:state.view==="month"}]:[]),{label:"Season trend",value:"over-time",default:state.view==="over-time"}]:[]),
+  ]}));
   const all = {
     label: clans.custom ? "All selected clans" : "All family clans",
     value: "all" as const,
@@ -131,7 +136,7 @@ export async function graphControls(
   if (clans.custom) {
     // Keep explicit clan choices in the message itself. This preserves the
     // exact custom scope across metric switches without opaque server state.
-    // At most 50 clans occupy three rows, leaving one row each for metric/refresh.
+    // Components V2 lets up to 50 custom clans occupy three selector rows.
     for (let index = 0; index < clans.base.length; index += 24) {
       const options: StringSelectOption[] = clans.base
         .slice(index, index + 24)
@@ -167,15 +172,13 @@ export async function graphControls(
     );
   }
 
-  const icon = (await emojis(ctx)).component("refresh");
-  result.push(
-    actionRow({
-      type: 2,
-      style: 2,
-      emoji: icon ?? { name: "🔄" },
-      custom_id: id(state, clans, "refresh"),
-    }),
-  );
+  if(state.view==="month"){
+    const seasons=Array.from({length:12},(_,index)=>{const date=new Date();date.setUTCDate(1);date.setUTCMonth(date.getUTCMonth()-index);return {label:date.toLocaleDateString("en",{month:"long",year:"numeric",timeZone:"UTC"}),value:date.toISOString().slice(0,7),default:state.period===date.toISOString().slice(0,7)};});
+    result.push(actionRow({type:3,custom_id:id(state,clans,"period"),placeholder:"Season",options:[{label:"Current season",value:"current",default:state.period==="current"},...seasons]}));
+  }
+  const icon=(await emojis(ctx)).component("refresh");
+  const ranges=state.view==="daily"?[7,30,90,180]:state.view==="over-time"?[2,4,6,12]:[];
+  result.push(actionRow(...ranges.map(count=>({type:2 as const,style:state.count===count?1 as const:2 as const,label:state.view==="daily"?`${count}d`:`${count} seasons`,custom_id:id(state,clans,`range${count}`)})),{type:2,style:2,emoji:icon??{name:"↻"},custom_id:id(state,clans,"refresh")}));
   return result;
 }
 function customClans(ctx: CommandContext): string {
@@ -230,7 +233,7 @@ export async function dispatchGraphControl(
     source,
     action,
   ] = parts;
-  const view =
+  let view =
     code === "m"
       ? "month"
       : code === "t"
@@ -241,7 +244,7 @@ export async function dispatchGraphControl(
   if (
     !view ||
     !["c", "f"].includes(source!) ||
-    !["metric", "clan", "clan0", "clan1", "clan2", "refresh"].includes(
+    !["metric", "clan", "clan0", "clan1", "clan2", "refresh", "view", "period", "range2", "range4", "range6", "range7", "range12", "range30", "range90", "range180"].includes(
       action!,
     ) ||
     !["asc", "desc"].includes(order!) ||
@@ -252,10 +255,25 @@ export async function dispatchGraphControl(
   )
     throw new CommandInputError("Invalid chart control.");
   const value = ctx.interaction.data?.values?.[0];
-  const metric = action === "metric" ? value : oldMetric,
-    metrics = view === "daily" ? dailyMetrics : graphMetrics;
-  if (!metric || !Object.hasOwn(metrics, metric))
-    throw new CommandInputError("Choose a valid statistic.");
+  const metric=action==="metric"?value:oldMetric,metrics={...graphMetrics,...dailyMetrics};
+  if(!metric||!Object.hasOwn(metrics,metric))throw new CommandInputError("Choose a valid statistic.");
+  let count=Number(countRaw),selectedPeriod=period!;
+  if(action==="view"){
+    if(!["daily","month","over-time"].includes(value??""))throw new CommandInputError("Choose a chart view.");
+    view=value as typeof view;count=view==="daily"?30:view==="over-time"?4:1;
+    if(view==="over-time")selectedPeriod="current";
+  }
+  if(view==="daily"&&!Object.hasOwn(dailyMetrics,metric)){view="month";count=1;}
+  if(view!=="daily"&&!Object.hasOwn(graphMetrics,metric)){view="daily";count=30;}
+  if(action==="period"){
+    if(!value||value!=="current"&&!/^\d{4}-(0[1-9]|1[0-2])$/u.test(value))throw new CommandInputError("Choose a season.");
+    selectedPeriod=value;
+  }
+  if(action?.startsWith("range")){
+    count=Number(action.slice(5));
+    if(!(view==="daily"?[7,30,90,180]:view==="over-time"?[2,4,6,12]:[]).includes(count))throw new CommandInputError("Choose a valid period.");
+  }
+  if(metric==="cwlLeague"&&view!=="over-time"){view="over-time";count=4;}
   let selected = clan === "all" ? "all" : normalizeTag(clan!, ctx.locale),
     page = Number(pageRaw);
   if (action?.startsWith("clan")) {
@@ -265,13 +283,13 @@ export async function dispatchGraphControl(
   }
   const options: InteractionOption[] = [
     { name: "attribute", type: OptionType.String, value: metric },
-    { name: "season", type: OptionType.String, value: period },
+    { name: "season", type: OptionType.String, value: selectedPeriod },
     { name: "limit", type: OptionType.Integer, value: Number(limitRaw) },
     { name: "sort_order", type: OptionType.String, value: order! },
     {
       name: view === "daily" ? "days" : "months",
       type: OptionType.Integer,
-      value: Number(countRaw),
+      value: count,
     },
     { name: "__graph_clan", type: OptionType.String, value: selected },
     { name: "__graph_clan_page", type: OptionType.Integer, value: page },
@@ -284,9 +302,7 @@ export async function dispatchGraphControl(
     });
   const context: CommandContext = {
     ...ctx,
-    options: new Map([
-      [view, { name: view, type: OptionType.Subcommand, options }],
-    ]),
+    options: new Map([...options,{name:"__view",type:OptionType.String,value:view}].map(option=>[option.name,option])),
   };
   const run = async () =>
     (await import("./graph")).graphCommand.execute(context);
@@ -301,16 +317,7 @@ export async function dispatchGraphControl(
         ),
       )
       .catch((error) =>
-        ctx.services.discordRest.createInteractionFollowup(
-          ctx.interaction.token,
-          {
-            content:
-              error instanceof CommandInputError
-                ? error.message
-                : "Could not update this chart. Try again.",
-            flags: MessageFlags.Ephemeral,
-          },
-        ),
+        sendInteractionError(ctx,error),
       ),
   );
   return { type: InteractionResponseType.DeferredUpdateMessage };

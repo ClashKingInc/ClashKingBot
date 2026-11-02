@@ -1,5 +1,6 @@
+import { sendInteractionError } from "./errors";
 import { actionRow, legacyMessage } from "../discord/components";
-import { InteractionResponseType, InteractionType, MessageFlags } from "../discord/types";
+import { InteractionResponseType, InteractionType, } from "../discord/types";
 import { CommandInputError, OptionType, stringOption } from "./command-utils";
 import { serverEmbedColor } from "./embed-color";
 import { emojis } from "./game-common";
@@ -7,11 +8,11 @@ import type { ApplicationCommandDefinition, ApplicationCommandOption, Command, C
 
 const categories = {
   all: { label: "All commands", roots: [] as string[] },
-  players: { label: "Players & rankings", roots: ["player", "ranked", "legends", "leaderboard", "stats"] },
-  clans: { label: "Clans & wars", roots: ["clan", "family", "war", "cwl", "graph", "boosts"] },
-  accounts: { label: "Your accounts", roots: ["link", "refresh", "main-account", "privacy"] },
-  tools: { label: "Tools & sharing", roots: ["army", "base", "fankit", "pepe", "help", "dashboard", "role-users", "reminders"] },
-  server: { label: "Rosters & moderation", roots: ["roster", "ban", "strike", "ticket"] },
+  players: { label: "Players & rankings", roots: ["player", "ranked", "legends", "leaderboard"] },
+  clans: { label: "Clans & wars", roots: ["clan", "family", "war", "cwl", "graph"] },
+  accounts: { label: "Your accounts", roots: ["link", "refresh"] },
+  tools: { label: "Tools & sharing", roots: ["army", "base", "fankit", "meme", "help", "setup", "role-users", "reminders"] },
+  server: { label: "Rosters & moderation", roots: ["roster", "moderation", "ticket"] },
 };
 type Category = keyof typeof categories;
 function leaves(definitions: ApplicationCommandDefinition[]) {
@@ -101,6 +102,6 @@ export async function dispatchHelpControl(ctx: CommandContext, waitUntil?: (prom
   const run = () => helpCommand.execute({ ...ctx, options });
   if (!waitUntil) return { ...(await run()), type: InteractionResponseType.UpdateMessage };
   waitUntil(run().then(response => ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token, response.data ?? {}))
-    .catch(() => ctx.services.discordRest.createInteractionFollowup(ctx.interaction.token, { content: "Couldn't refresh help. Please try again.", flags: MessageFlags.Ephemeral })));
+    .catch((error) => sendInteractionError(ctx,error)));
   return { type: InteractionResponseType.DeferredUpdateMessage };
 }

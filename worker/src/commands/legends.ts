@@ -1,10 +1,9 @@
-import { CommandInputError, OptionType, normalizeTag, stringOption } from "./command-utils";
+import { actionRow, linkButton, type LegacyEmbed } from "../discord/components";
+import { CommandInputError, OptionType, invokingUserId, normalizeTag, stringOption } from "./command-utils";
 import { emojis, isDailyLegend, escapeMarkdown, fetchPlayer, pagedGameReply, legendDay, personalPlayerAutocomplete, playerOption, resolvePlayerTag, subcommand } from "./game-common";
 import type { Command } from "./types";
 import { legendHistoryReply, type LegendFinish } from "./legend-history";
 import { legendSeasonReply, type LegendSeasonSummary, type LegendSeasonDay, type LegendDayDetails } from "./legend-season";
-import { actionRow, legacyMessage } from "../discord/components";
-import { invokingUserId } from "./command-utils";
 import { globalLegendStats } from "./legend-global";
 
 interface Rank { tag: string; name: string; trophies: number; globalRank: number; location?:{name:string;countryCode?:string} }
@@ -13,23 +12,26 @@ export const legendsCommand: Command = {
   deferred:true,
   definition:{name:"legends",description:"Legend League days, clan rankings, history and season stats",type:1,integration_types:[0,1],contexts:[0,1,2],options:[
     {name:"player",description:"Show a player's Legend day, prior days and season graph",type:OptionType.Subcommand,options:[playerOption]},
-    {name:"poster",description:"Create a shareable Legend season poster",type:OptionType.Subcommand,options:[playerOption,{name:"day",description:"Highlighted day in the current season (YYYY-MM-DD; default today)",type:OptionType.String}]},
-    {name:"clan",description:"Show a clan's current Legend rankings",type:OptionType.Subcommand,options:[{name:"clan",description:"Clan tag",type:OptionType.String,required:true}]},
+    {name:"clan",description:"Show a clan's current Legend rankings",type:OptionType.Subcommand,options:[{name:"clan",description:"Server clan or clan tag",type:OptionType.String,required:true,autocomplete:true}]},
     {name:"history",description:"Show a player's Legend season finishes",type:OptionType.Subcommand,options:[
       {...playerOption,required:true,description:"Player tag or one of your bookmarked or verified linked players"},
       {name:"limit",description:"Number of recent season finishes to show (default: all)",type:OptionType.Integer,min_value:1,max_value:240},
     ]},
     {name:"stats",description:"Global Legend rankings, trophy buckets, season winners and daily stats",type:OptionType.Subcommand,options:[
-      {name:"type",description:"Global statistic to display",type:OptionType.String,required:true,choices:[
-        {name:"Triple Streaks",value:"streaks"},{name:"Rank Cutoff",value:"cutoffs"},{name:"Trophy Buckets",value:"buckets"},{name:"EOS Finishers",value:"winners"},{name:"Daily Performance",value:"daily"},
-      ]},
       {name:"limit",description:"Maximum entries (default 50)",type:OptionType.Integer,min_value:1,max_value:50},
     ]},
-  ]},autocomplete:context=>personalPlayerAutocomplete(context,{legendsOnly:subcommand(context).path[0]==="player"}),
+  ]},async autocomplete(context){
+    const ctx=subcommand(context);
+    if(ctx.path[0]!=="clan")return personalPlayerAutocomplete(context,{legendsOnly:ctx.path[0]==="player"});
+    if(!ctx.interaction.guild_id)return [];
+    const query=String(ctx.options.get("clan")?.value??"").toLowerCase();
+    const clans=await ctx.services.api.get<Array<{name:string;tag:string}>>(`/v2/server/${ctx.interaction.guild_id}/clans-basic`);
+    return clans.filter(clan=>`${clan.name} ${clan.tag}`.toLowerCase().includes(query)).slice(0,25).map(clan=>({name:`${clan.name} (${clan.tag})`.slice(0,100),value:clan.tag}));
+  },
   async execute(context){
     const ctx=subcommand(context),emoji=await emojis(ctx),day=legendDay();
     if(ctx.path[0]==="stats")return globalLegendStats(ctx);
-    if(["history","player","poster"].includes(ctx.path[0]??"")&&!stringOption(ctx,"player")?.trim())throw new CommandInputError("Choose a player or enter a player tag.");
+    if(["history","player"].includes(ctx.path[0]??"")&&!stringOption(ctx,"player")?.trim())throw new CommandInputError("Choose a player or enter a player tag.");
     if(ctx.path[0]==="clan"){
       const tag=normalizeTag(stringOption(ctx,"clan")??"",ctx.locale);
       const clan=await ctx.services.api.get<{name:string;badgeUrls?:{small?:string};memberList:Array<{tag:string;name:string;trophies:number;leagueTier?:{id?:number;name:string};league?:{id?:number;name:string}}> }>(`/v2/bot/clash/clans/${encodeURIComponent(tag)}`);
@@ -47,13 +49,18 @@ export const legendsCommand: Command = {
         const name=`\u2068${escapeMarkdown(member.name.replace(/[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu,""))}\u2069`;
         return `\u2066**${emoji.get("Legend League")} ${member.trophies.toLocaleString("en")} | ${name}**\u2069\n-# \u2066${stats?`${emoji.get("clash_sword")} ${signed(stats.attackTrophies)} (${stats.attacks}/8)  ${emoji.get("shield")} ${signed(stats.defenseTrophies)} (${stats.defenses}/8)  · ${signed(stats.netTrophies)} net`:"No recorded day data"}${rank?` · #${rank.toLocaleString("en")}`:""}\u2069`;
       });
-      const response=await pagedGameReply(ctx,`${clan.name} · Legend League`,entries,"lc",[tag]);
-      for(const embed of (response.data?.embeds??[]) as Array<{author?:{name:string;icon_url?:string};description?:string;footer?:{text:string}}>){
+      const response=await pagedGameReply(ctx,"Legend League",entries,"lc",[tag]);
+      for(const embed of (response.data?.embeds??[]) as LegacyEmbed[]){
+        delete embed.title;
         embed.author={name:clan.name,...(clan.badgeUrls?.small?{icon_url:clan.badgeUrls.small}:{})};
         embed.footer={text:day};
-        const url=`https://${ctx.env.APP_ENV==="dev"?"local-app":"app"}.clashk.ing/clan/${encodeURIComponent(tag.slice(1))}?tab=competitive`;
-        embed.description=`[Open in ClashKing](${url})\n\n${entries.length?embed.description:"No current Legend players in this clan."}`;
+        if(!entries.length)embed.description="No current Legend players in this clan.";
       }
+      const url=`https://${ctx.env.APP_ENV==="dev"?"local-app":"app"}.clashk.ing/clan/${encodeURIComponent(tag.slice(1))}?tab=competitive`;
+      response.data!.components=[...(response.data?.components as unknown[]??[]),actionRow(
+        {type:2,style:2,emoji:emoji.component("refresh")??{name:"↻"},custom_id:`ck:page:lc:${invokingUserId(ctx)}:${tag}:${ctx.options.get("__page")?.value??0}`},
+        linkButton("Open in app",url),
+      )];
       return response;
     }
     const tag=await resolvePlayerTag(ctx),player=await fetchPlayer(ctx,tag).catch(()=>({name:tag,trophies:undefined})),encoded=encodeURIComponent(tag);
@@ -68,34 +75,21 @@ export const legendsCommand: Command = {
     }
     // Discord clients may cache the old name briefly after registration.
     // Both names use the full player view; never revive the sparse old embed.
-    if(ctx.path[0]==="player"||ctx.path[0]==="search"||ctx.path[0]==="poster"){
+    if(ctx.path[0]==="player"||ctx.path[0]==="search"){
       const result=await ctx.services.api.get<LegendSeasonSummary>(`/v2/player/${encoded}/legend/season`);
       const selected=String(ctx.options.get("__day")?.value??stringOption(ctx,"day")??day);
       // Controls can only select a real day in the current season. Validate
       // again here: persistent component payloads are untrusted input.
       if(!/^\d{4}-\d{2}-\d{2}$/u.test(selected)||!Number.isFinite(Date.parse(selected))||new Date(selected).toISOString().slice(0,10)!==selected||selected<result.seasonStart.slice(0,10)||selected>day)throw new CommandInputError("Choose a day in the current Legend season.");
-      const poster=ctx.path[0]==="poster";
-      const view=poster?"season":ctx.options.get("__view")?.value??"day";
+      const view=ctx.options.get("__view")?.value??"day";
       const [series,details,ranks]=await Promise.all([
         ctx.services.api.get<{items:LegendSeasonDay[]}>(`/v2/player/${encoded}/legend/series`,{"time[after]":result.seasonStart.slice(0,10),"time[before]":day}),
         view==="season"?Promise.resolve(undefined):ctx.services.api.get<LegendDayDetails>(`/v2/player/${encoded}/legend/${selected}/battlelog`),
         ctx.services.api.post<{items:Rank[]}>("/v2/legends/ranks",{tags:[tag]}),
       ]);
       const townHall=emoji.component("townHallLevel" in player?player.townHallLevel:0);
-      if(poster){
-        if(!result.stats.attacks&&!result.stats.defenses)throw new CommandInputError("No recorded Legend battles are available for this season yet.");
-        const {legendPoster}=await import("./legend-poster");
-        const favoriteIcons=Object.fromEntries((result.favorites??[]).flatMap(item=>{const icon=emoji.component(item.name);return icon?[[item.id,`https://cdn.discordapp.com/emojis/${icon.id}.png`]]:[];}));
-        // Preserve an explicit historical day on refresh, but let the default
-        // follow the current Legend day when this message survives a reset.
-        const requestedDay=stringOption(ctx,"day")??"today";
-        const response=legacyMessage({allowed_mentions:{parse:[]},components:[actionRow({type:2,style:2,label:"Refresh",custom_id:["ck","page","lp",invokingUserId(ctx),tag,requestedDay,"0"].join(":")})]});
-        response.data!.attachments=[];
-        response.data!.__files=[{name:"legend-season.png",bytes:await legendPoster({player:{...player,tag,globalRank:ranks.items[0]?.globalRank,location:ranks.items[0]?.location},season:result,days:series.items,selectedDay:selected,today:day,townHallIcon:townHall?`https://cdn.discordapp.com/emojis/${townHall.id}.png`:undefined,favoriteIcons})}];
-        return response;
-      }
       return legendSeasonReply(ctx,{...player,tag,globalRank:ranks.items[0]?.globalRank,location:ranks.items[0]?.location},result,series.items,townHall?`https://cdn.discordapp.com/emojis/${townHall.id}.png`:undefined,details);
     }
-    throw new CommandInputError("Choose player, poster, clan, history, or stats.");
+    throw new CommandInputError("Choose player, clan, history, or stats.");
   },
 };

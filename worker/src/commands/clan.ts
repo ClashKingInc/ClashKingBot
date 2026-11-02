@@ -1,6 +1,9 @@
+import { donationRatio, formatDonationRatio } from "./donation-ratio";
+import { currentRaidWeekend } from "./raid-data";
+import { displayNameColumn } from "./display-width";
+import { donationSortControl } from "./sort-order-control";
 import { withClanSelector } from "./clan-controls";
-import { activityOptions, activityReport } from "./activity";
-import { warPreference, warPreferenceOptions } from "./war-preference";
+import { clanActivityOptions, activityReport } from "./activity";
 import { seasonSummary, seasonSummaryOptions } from "./season-summary";
 import { upgradeProgress, upgradeProgressOptions } from "./upgrade-progress";
 import { clanReports, capitalOptions, warLogOptions } from "./clan-reports";
@@ -23,8 +26,7 @@ const clanOption={name:"clan",description:"Clan tag or name",type:OptionType.Str
 export const clanCommand:Command={
  deferred:true,
  definition:{name:"clan",description:"Clan overview and season donations",type:1,integration_types:[0,1],contexts:[0,1,2],options:[
-  {name:"activity",description:"Recorded activity and current-season last online",type:OptionType.Subcommand,options:[clanOption,...activityOptions]},
-  {name:"war-preference",description:"Current war preferences and recorded history/timers",type:OptionType.Subcommand,options:[clanOption,...warPreferenceOptions]},
+  {name:"activity",description:"Recorded activity and current-season last online",type:OptionType.Subcommand,options:[clanOption,...clanActivityOptions]},
   {name:"summary",description:"Season summary for current members",type:OptionType.Subcommand,options:[clanOption,...seasonSummaryOptions]},
   {name:"progress",description:"Observed unit upgrade changes and levels gained",type:OptionType.Subcommand,options:[clanOption,...upgradeProgressOptions]},
   {name:"capital",description:"Capital raid and recorded donation reports",type:OptionType.Subcommand,options:[clanOption,...capitalOptions]},
@@ -36,14 +38,17 @@ export const clanCommand:Command={
   {name:"donations",description:"View current or historical clan donations",type:OptionType.Subcommand,options:[clanOption,
    {name:"season",description:"Season YYYY-MM (defaults to current)",type:OptionType.String},
    {name:"current_members",description:"Only include current clan members (default false)",type:OptionType.Boolean},
-   {name:"townhall",description:"Only show this Town Hall",type:OptionType.Integer,min_value:1,max_value:30},
    {name:"limit",description:"Number of players (default 50)",type:OptionType.Integer,min_value:1,max_value:50},
-   {name:"sort_by",description:"Sort players by (default Donations)",type:OptionType.String,choices:[{name:"Donations",value:"donated"},{name:"Received",value:"received"},{name:"Name",value:"name"},{name:"Town Hall",value:"townHallLevel"}]},
-   {name:"sort_order",description:"Sort direction (default Descending)",type:OptionType.String,choices:[{name:"Descending",value:"desc"},{name:"Ascending",value:"asc"}]},
   ]},
  ]},
  async autocomplete(context){
-  const ctx=subcommand(context),query=String(ctx.options.get("clan")?.value??"").trim();
+  const ctx=subcommand(context);
+  if(ctx.options.get("weekend")?.focused){
+   const query=String(ctx.options.get("weekend")?.value??"").trim();
+   const latest=Date.parse(`${currentRaidWeekend()}T00:00:00Z`);
+   return Array.from({length:25},(_,index)=>new Date(latest-index*7*86400000).toISOString().slice(0,10)).filter(date=>date.includes(query)).map(date=>({name:date,value:date}));
+  }
+  const query=String(ctx.options.get("clan")?.value??"").trim();
   if(!query&&ctx.interaction.guild_id){
    const clans=await ctx.services.api.get<Array<{name:string;tag:string}>>(`/v2/server/${ctx.interaction.guild_id}/clans-basic`);
    return clans.slice(0,25).map(clan=>({name:`${clan.name} | ${clan.tag}`.slice(0,100),value:clan.tag}));
@@ -58,10 +63,9 @@ async function renderClan(context: Parameters<Command["execute"]>[0]){
   const ctx=subcommand(context);
   // Discord can retain removed command definitions until registration updates.
   // Reject unknown subcommands instead of falling through to a clan overview.
-  if(ctx.path[0]==="war-events")throw new CommandInputError("War event setup is managed in /dashboard.");
+  if(ctx.path[0]==="war-events")throw new CommandInputError("War event setup is managed in /setup.");
   if(ctx.path[0]&&!clanCommand.definition.options?.some(option=>option.name===ctx.path[0]))throw new CommandInputError("This clan command is no longer available.");
   if(ctx.path[0]==="activity")return activityReport(ctx,"clan");
-  if(ctx.path[0]==="war-preference")return warPreference(ctx);
   if(ctx.path[0]==="summary")return seasonSummary(ctx,"clan");
   if(ctx.path[0]==="progress")return upgradeProgress(ctx,"clan");
   if(["capital","war-log"].includes(ctx.path[0]??""))return clanReports(ctx);
@@ -72,9 +76,9 @@ async function renderClan(context: Parameters<Command["execute"]>[0]){
   const membersOnly=ctx.options.get("current_members")?.value===true||stringOption(ctx,"__members_only")==="true";
   const style=stringOption(ctx,"type")??"d";
   if(!["d","b","m"].includes(style))throw new CommandInputError("Choose a valid overview style.");
-  const season=stringOption(ctx,"season")??"current",hall=Number(ctx.options.get("townhall")?.value??0),limit=Number(ctx.options.get("limit")?.value??50),sort=stringOption(ctx,"sort_by")??"donated",order=stringOption(ctx,"sort_order")??"desc";
+  const season=stringOption(ctx,"season")??"current",hall=0,limit=Number(ctx.options.get("limit")?.value??50),sort=stringOption(ctx,"sort_by")??"donated",order=stringOption(ctx,"sort_order")??"desc";
   if(season!=="current"&&!/^\d{4}-(0[1-9]|1[0-2])$/u.test(season))throw new CommandInputError("Use a season in YYYY-MM format.");
-  if(!Number.isInteger(hall)||hall<0||hall>30||!Number.isInteger(limit)||limit<1||limit>50||!["donated","received","name","townHallLevel"].includes(sort)||!["asc","desc"].includes(order))throw new CommandInputError("Choose valid donation filters.");
+  if(!Number.isInteger(hall)||hall<0||hall>30||!Number.isInteger(limit)||limit<1||limit>50||!["donated","received","ratio"].includes(sort)||!["asc","desc"].includes(order))throw new CommandInputError("Choose valid donation filters.");
   const [clan,emoji,stats,color]=await Promise.all([
    ctx.services.api.get<Clan>(`/v2/bot/clash/clans/${encodeURIComponent(tag)}`),emojis(ctx),
    ctx.services.api.get<SeasonStats>(`/v2/bot/clans/${encodeURIComponent(tag)}/season-stats`,season==="current"?{}:{season}),serverEmbedColor(ctx),
@@ -120,23 +124,24 @@ async function renderClan(context: Parameters<Command["execute"]>[0]){
   }else{
    const currentTags=new Set(clan.memberList.map(member=>member.tag));
    const filtered=all.filter(row=>(!hall||row.townHallLevel===hall)&&(!membersOnly||currentTags.has(row.tag)));
-   filtered.sort((a,b)=>{const cmp=sort==="name"?a.name.localeCompare(b.name):Number(a[sort as "donated"|"received"|"townHallLevel"])-Number(b[sort as "donated"|"received"|"townHallLevel"]);return (order==="asc"?cmp:-cmp)||a.tag.localeCompare(b.tag);});
+   filtered.sort((a,b)=>{const cmp=sort==="ratio"?donationRatio(a.donated,a.received)-donationRatio(b.donated,b.received):a[sort as "donated"|"received"]-b[sort as "donated"|"received"];return (order==="asc"?cmp:-cmp)||a.tag.localeCompare(b.tag);});
    const rows: string[] = [];
+   const heading=sort==="ratio"?"` # RATIO   DONO   RECV NAME        `":"` #  DONATED RECEIVED NAME           `";
    for (const row of filtered.slice(0,limit)) {
-    const line = `**${rows.length+1}.** ${emoji.get(row.townHallLevel)} ${safe(row.name)} · ↑ **${compact(row.donated)}**  ↓ **${compact(row.received)}**`;
+    const line = sort==="ratio"?`\`${String(rows.length+1).padStart(2)} ${formatDonationRatio(donationRatio(row.donated,row.received)).padStart(5)} ${compact(row.donated).padStart(6)} ${compact(row.received).padStart(6)} ${displayNameColumn(row.name,12)}\``:`\`${String(rows.length+1).padStart(2)} ${compact(row.donated).padStart(8)} ${compact(row.received).padStart(8)} ${displayNameColumn(row.name,15)}\``;
     if (rows.join("\n").length + line.length + 1 > 3500) break;
     rows.push(line);
    }
    displayed=rows.length;
-   description=rows.join("\n")||"No donations match this season and filter.";
-   footer=`${stats.season} · ${displayed}/${filtered.length} players · ↑ ${compact(filtered.reduce((sum,row)=>sum+row.donated,0))}  ↓ ${compact(filtered.reduce((sum,row)=>sum+row.received,0))}${membersOnly?" · Current members":""}${stats.truncated?" · Partial data":""}`;
+   description=rows.length?[heading,...rows].join("\n"):"No donations match this season and filter.";
+   footer=`${stats.season} | ${displayed}/${filtered.length} players | ↑ ${compact(filtered.reduce((sum,row)=>sum+row.donated,0))}  ↓ ${compact(filtered.reduce((sum,row)=>sum+row.received,0))}${membersOnly?" | Current members":""}${stats.truncated?" | Partial data":""}`;
 
   }
   const id=(mode:string,index:number,only=membersOnly)=>["ck","page","cl",invokingUserId(ctx),tag,mode,season,hall,limit,sort,order,only?"m":"a",style,index].join(":");
   const refresh=emoji.component("refresh");
-  const components=[actionRow(
+  const components=[...(view==="d"?[donationSortControl(id("D",0),sort,order)]:[]),actionRow(
    {type:2,style:2,...(refresh?{emoji:{id:refresh.id,name:refresh.name}}:{label:"Refresh"}),custom_id:id(view.toUpperCase(),0)},
    ...(view==="o"?[{type:2 as const,style:5 as const,label:"Open In-Game",url:clanUrl(tag)}]:[]),
   )];
-  return legacyMessage({allowed_mentions:{parse:[]},embeds:[{...(view==="o"?{title:clan.name}:{author:{name:`${clan.name} · Donations`,...(clan.badgeUrls?.small?{icon_url:clan.badgeUrls.small}:{})}}),...(view==="o"&&clan.badgeUrls?.large?{thumbnail:{url:clan.badgeUrls.large}}:{}),color,description,...(fields.length?{fields}:{}),footer:{text:footer}}],components});
+  return legacyMessage({allowed_mentions:{parse:[]},embeds:[{...(view==="o"?{title:clan.name}:{author:{name:`${clan.name} (Donations)`,...(clan.badgeUrls?.small?{icon_url:clan.badgeUrls.small}:{})}}),...(view==="o"&&clan.badgeUrls?.large?{thumbnail:{url:clan.badgeUrls.large}}:{}),color,description,...(fields.length?{fields}:{}),footer:{text:footer}}],components});
 }

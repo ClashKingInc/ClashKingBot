@@ -1,6 +1,9 @@
-import { actionRow, legacyMessage } from "../discord/components";
-import { CommandInputError, invokingUserId, OptionType, stringOption } from "./command-utils";
-import { compact, emojis, escapeMarkdown } from "./game-common";
+import { donationRatio } from "./donation-ratio";
+import { displayNameColumn } from "./display-width";
+import { donationSortControl } from "./sort-order-control";
+import { actionRow, legacyMessage, type LegacyEmbed } from "../discord/components";
+import { CommandInputError, invokingUserId, OptionType, requireGuildId, stringOption } from "./command-utils";
+import { compact, emojis } from "./game-common";
 import { serverEmbedColor } from "./embed-color";
 import type { CommandContext } from "./types";
 
@@ -10,13 +13,10 @@ interface Row { tag:string; name:string; townHallLevel:number; donated:number; r
 interface Stats { season:string; current:boolean; truncated:boolean; items:Row[] }
 export const contributionOptions = [
   {name:"limit",description:"Top players to show (default 30)",type:OptionType.Integer,min_value:1,max_value:50},
-  {name:"sort_order",description:"Sort direction (default highest first)",type:OptionType.String,choices:[{name:"Highest first",value:"desc"},{name:"Lowest first",value:"asc"}]},
-  {name:"townhall",description:"Only show this Town Hall",type:OptionType.Integer,min_value:1,max_value:30},
 ];
-const clean=(name:string)=>escapeMarkdown(name.replace(/[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu,""));
 const pack=(lines:string[],budget:number)=>{let text="";let count=0;for(const line of lines){if(text.length+line.length+1>budget)break;text+=(text?"\n":"")+line;count++;}return {text,count};};
 export async function contributionReport(ctx:CommandContext,clans:ContributionClan[],kind:"donations"|"games",family:boolean){
-  const limit=Number(ctx.options.get("limit")?.value??30),hall=Number(ctx.options.get("townhall")?.value??0),order=stringOption(ctx,"sort_order")??"desc",sort=kind==="games"?"clanGames":stringOption(ctx,"sort_by")??"donated",season=stringOption(ctx,"season");
+  const limit=Number(ctx.options.get("limit")?.value??30),hall=0,order=kind==="games"?"desc":stringOption(ctx,"sort_order")??"desc",sort=kind==="games"?"clanGames":stringOption(ctx,"sort_by")??"donated",season=stringOption(ctx,"season");
   const currentOnly=kind==="games"||ctx.options.get("current_members")?.value===true;
   if(!Number.isInteger(limit)||limit<1||limit>50||!Number.isInteger(hall)||hall<0||hall>30||!["asc","desc"].includes(order)||!["donated","received","ratio","clanGames"].includes(sort)||season&&!/^\d{4}-(0[1-9]|1[0-2])$/u.test(season))throw new CommandInputError("Choose valid contribution filters.");
   const combined=new Map<string,Row>(),totals:Array<{name:string;value:number}>=[];let partial=false;const seasons=new Set<string>();
@@ -45,15 +45,22 @@ export async function contributionReport(ctx:CommandContext,clans:ContributionCl
       if(stats.current)for(const member of clan.memberList)if((!hall||member.townHallLevel===hall)&&!combined.has(member.tag))combined.set(member.tag,{tag:member.tag,name:member.name,townHallLevel:member.townHallLevel??0,donated:0,received:0,clanGames:0,capitalDonated:0});
     }
   }
-  const metric=(row:Row)=>sort==="ratio"?row.donated/Math.max(1,row.received):row[sort as "donated"|"received"|"clanGames"];
+  const metric=(row:Row)=>sort==="ratio"?donationRatio(row.donated,row.received):row[sort as "donated"|"received"|"clanGames"];
   const selected=[...combined.values()].sort((a,b)=>(order==="asc"?1:-1)*(metric(a)-metric(b))||a.tag.localeCompare(b.tag)).slice(0,limit);
   const emoji=await emojis(ctx),color=await serverEmbedColor(ctx);
-  const lines=selected.map((row,index)=>`**${index+1}.** ${emoji.get(row.townHallLevel)} \u2068${clean(row.name).slice(0,80)}\u2069 · ${kind==="games"?`${compact(row.clanGames)} pts`:sort==="ratio"?`${(row.donated/Math.max(1,row.received)).toFixed(2)} ratio · ↑${compact(row.donated)} ↓${compact(row.received)}`:`↑${compact(row.donated)} ↓${compact(row.received)}`}`);
-  const packed=pack(lines,3300),title=`${family?"Family":clans[0]?.name??"Clan"} · ${kind==="games"?"Clan Games":"Donations"}`;
-  const footer=[...seasons].join(", ")+` · ${packed.count}/${combined.size} players · ${currentOnly?"Current members":"Recorded contributors"}${partial?" · Partial recorded data":""}`;
-  const embeds=[{title,color,description:packed.text||"No recorded contributions for these filters.",footer:{text:footer}}];
-  if(family){const summary=pack(totals.sort((a,b)=>b.value-a.value).map(row=>`**${clean(row.name).slice(0,80)}** · ${compact(row.value)}`),1800);embeds.push({title:"Clan totals",color,description:summary.text||"No linked clans.",footer:{text:`${summary.count}/${clans.length} clans · ${kind==="games"?"Points earned by current members":"Recorded donations"}`}});}
+  const heading=kind==="games"?"` # POINTS NAME           `":"` #  DONATED RECEIVED NAME           `";
+  const lines=selected.map((row,index)=>`\`${String(index+1).padStart(2)} ${kind==="games"?String(row.clanGames).padStart(6):`${compact(row.donated).padStart(8)} ${compact(row.received).padStart(8)}`} ${displayNameColumn(row.name,15)}\``);
+  const packed=pack(lines,3300),title=`${family?"Family":clans[0]?.name??"Clan"} | ${kind==="games"?"Clan Games":"Donations"}`;
+  const footer=[...seasons].join(", ")+` | ${packed.count}/${combined.size} players${currentOnly?" | Current members":""}${partial?" | Partial recorded data":""}`;
+  const embeds:LegacyEmbed[]=[{title,color,description:packed.text?`${heading}\n${packed.text}`:"No recorded contributions for these filters.",footer:{text:footer}}];
+  if(family){
+    const guild=await ctx.services.discordRest.getGuild(requireGuildId(ctx));
+    embeds[0]!.author={name:`${guild.name} ${kind==="games"?"Clan Games":"Donations"} (Top ${packed.count})`,...(typeof guild.icon==="string"?{icon_url:`https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`}:{})};
+    delete embeds[0]!.title;delete embeds[0]!.footer;
+    const summary=pack(totals.sort((a,b)=>b.value-a.value).map(row=>`\`${compact(row.value).padStart(7)} ${displayNameColumn(row.name,20)}\``),1800);
+    embeds.push({author:{name:`${guild.name} Clans`,...(typeof guild.icon==="string"?{icon_url:`https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`}:{})},color,description:summary.text||"No linked clans.",footer:{text:footer}});
+  }
   const values=[kind,season??"current",String(limit),order,String(hall),sort,currentOnly?"m":"a"];
   const id=["ck","page",family?"fm":"cg",invokingUserId(ctx),...(family?[]:[clans[0]!.tag]),...values,"0"].join(":");
-  return legacyMessage({allowed_mentions:{parse:[]},embeds,components:[actionRow({type:2,style:2,label:"Refresh",custom_id:id})]});
+  return legacyMessage({allowed_mentions:{parse:[]},embeds,components:[...(kind==="donations"?[donationSortControl(id,sort,order)]:[]),actionRow({type:2,style:2,emoji:emoji.component("refresh")??{name:"↻"},custom_id:id})]});
 }

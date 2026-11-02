@@ -10,7 +10,10 @@ const headers={Authorization:`Bot ${workspace.env.DISCORD_BOT_TOKEN}`,'Content-T
 const base=`https://discord.com/api/v10/applications/${app}/emojis`;
 const response=await fetch(base,{headers});if(!response.ok)throw Error(`Inventory HTTP ${response.status}`);
 const inventory=(await response.json()).items;
-for(const name of ['gold','elixir','dark_elixir','capital_gold','clan_games','buildergold','builderelixir','shinyore','glowyore','starryore']){
+const names=['gold','elixir','dark_elixir','capital_gold','clan_games','buildergold','builderelixir','shinyore','glowyore','starryore','no_star'];
+const only=process.argv.find(arg=>arg.startsWith('--only='))?.slice(7);
+if(only&&!names.includes(only))throw Error('Unknown emoji selection');
+for(const name of names.filter(name=>!only||name===only)){
  const target=`full_${name}`,source=inventory.find(item=>item.name===name);
  if(inventory.some(item=>item.name===target)){console.log(`${target}: already present`);continue;}
  if(!source)throw Error(`Missing source ${name}`);

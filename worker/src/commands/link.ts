@@ -1,9 +1,12 @@
+import { interactionErrorData } from "./errors";
+import { mainAccountAction } from "./refresh";
 import { ClashKingApiError } from "../api/client";
 import { actionRow, legacyMessage } from "../discord/components";
 import { InteractionResponseType, InteractionType } from "../discord/types";
 import { localizations, translate } from "../localization/catalog";
 import { CommandInputError, OptionType, invokingUserId, normalizeTag, requireGuildId, stringOption } from "./command-utils";
-import { subcommand } from "./game-common";
+import { emojis, linkedAccounts, subcommand, userOption } from "./game-common";
+import { playerAccountsReply } from "./player-profile";
 import { clanLinkList, clanLinksAutocomplete } from "./link-list";
 import { modalFields, textField } from "./modals";
 import type { Command, CommandContext, ComponentHandler } from "./types";
@@ -13,29 +16,40 @@ interface LinksResponse { items: Array<{ player_tag: string; is_verified: boolea
 
 export const linkCommand: Command = {
   ephemeral: (context) => subcommand(context).path[0] !== "list",
-  deferred: (context) => [...context.options.values()].some(option => option.name === "remove" || option.name === "list"),
+  deferred: (context) => [...context.options.values()].some(option => option.name === "remove" || option.name === "list" || option.name === "set-main"),
   definition: {
     contexts: [0], integration_types: [0], name: "link", type: 1,
-    name_localizations: localizations("link.name"),
     description: translate("link.description"), description_localizations: localizations("link.description"),
     options: [
+      {name:"set-main",description:"Choose your main linked account for this server",type:OptionType.Subcommand,options:[{name:"player",description:"One of your linked accounts",type:OptionType.String,required:true,autocomplete:true}]},
       { name: "add", description: "Verify and link a Clash of Clans account", type: OptionType.Subcommand },
       { name: "remove", description: "Remove one of your linked accounts", type: OptionType.Subcommand, options: [
         { name: "player", description: "Your linked player", type: OptionType.String, required: true, autocomplete: true },
       ] },
-      { name: "list", description: "See a clan’s Discord links and unlinked members", type: OptionType.Subcommand, options: [
+      { name: "list", description: "Show linked accounts for yourself, a Discord user, or a clan", type: OptionType.Subcommand, options: [
         { name: "clan", description: "A clan linked to this server", type: OptionType.String, autocomplete: true },
+        userOption,
       ] },
     ],
   },
-  async autocomplete(context) { const ctx = subcommand(context); return ctx.path[0] === "list" ? clanLinksAutocomplete(ctx) : unlinkCommand.autocomplete!(ctx); },
+  async autocomplete(context) { const ctx = subcommand(context); return ctx.path[0] === "list" ? clanLinksAutocomplete(ctx) : ctx.path[0] === "set-main" ? mainAccountAction.autocomplete!(ctx) : unlinkCommand.autocomplete!(ctx); },
   async execute(context) {
     // Old cached /link invocations and persistent Link buttons still open the
     // modal. Only data-fetching subcommands defer; modals must answer promptly.
     if (!context.options.size) return linkModal(context);
     const ctx = subcommand(context);
+    if (ctx.path[0] === "set-main") return mainAccountAction.execute(ctx);
     if (ctx.path[0] === "remove") return unlinkCommand.execute(ctx);
-    if (ctx.path[0] === "list") return clanLinkList(ctx);
+    if (ctx.path[0] === "list") {
+      const clan = stringOption(ctx, "clan");
+      if (clan && stringOption(ctx, "discord_user")) throw new CommandInputError("Choose a clan or a Discord user, not both.");
+      if (clan) return clanLinkList(ctx);
+      // Reuse the account renderer and its persistent paging controls. The
+      // canonical links response remains responsible for hidden accounts.
+      const accounts = (await linkedAccounts(ctx)).filter(account => !account.hidden);
+      if (!accounts.length) return legacyMessage({ content: "No visible linked accounts found.", allowed_mentions: { parse: [] } });
+      return playerAccountsReply(ctx, accounts, await emojis(ctx));
+    }
     return linkModal(ctx);
   },
 };
@@ -89,12 +103,12 @@ const submitLink: ComponentHandler = async (context) => {
       if (error.status === 404) return retry(context, "link.notFound");
       if (error.status === 409) return retry(context, "link.conflict");
     }
-    return retry(context, "link.unavailable");
+    throw error;
   }
 };
 
 function retry(context: CommandContext, key: Parameters<typeof translate>[0]) {
-  return legacyMessage({ content: translate(key, context.locale), components: [actionRow({
+  return legacyMessage({ ...interactionErrorData(new CommandInputError(translate(key, context.locale)),context.interaction), components: [actionRow({
     type: 2, style: 1, custom_id: "ck:link:start", label: translate("link.retry", context.locale),
   })] }, { ephemeral: true });
 }
@@ -113,10 +127,8 @@ export const unlinkCommand: Command = {
   deferred: true, ephemeral: true,
   definition: {
     contexts: [0], integration_types: [0], name: "unlink", type: 1,
-    name_localizations: localizations("unlink.name"),
     description: translate("unlink.description"), description_localizations: localizations("unlink.description"),
     options: [{ name: "player", type: OptionType.String, required: true, autocomplete: true,
-      name_localizations: localizations("player.name"),
       description: translate("player.description"), description_localizations: localizations("player.description") }],
   },
   async autocomplete(context) {

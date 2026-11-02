@@ -1,6 +1,6 @@
+import { interactionErrorReply } from "./errors";
 import { Schema } from "effect";
 import { ApplicationEmojis } from "../discord/emojis";
-import { ClashKingApiError } from "../api/client";
 import { InteractionResponseType, InteractionType, MessageFlags, type DiscordInteraction, type DiscordInteractionResponse } from "../discord/types";
 import { CommandInputError } from "./command-utils";
 import type { Command, CommandServices } from "./types";
@@ -61,7 +61,7 @@ export interface TicketInteractionProof { readonly rawBody: string; readonly tim
 export async function ticketInteraction(interaction: DiscordInteraction, proof: TicketInteractionProof,
   services: CommandServices, background?: (promise: Promise<unknown>) => void): Promise<DiscordInteractionResponse> {
   const path = ticketPath(interaction);
-  if (!interaction.guild_id || !path) return privateMessage("This ticket control is invalid.");
+  if (!interaction.guild_id || !path) return interactionErrorReply(new CommandInputError("This ticket control is invalid."),interaction);
   try {
     const [raw, emojis] = await Promise.all([
       services.api.post<unknown>(path, { interaction: proof }),
@@ -71,18 +71,9 @@ export async function ticketInteraction(interaction: DiscordInteraction, proof: 
     if (background && "state" in result && !["completed", "succeeded", "failed"].includes(result.state)) {
       background(updateTicketProgress(interaction, proof, path, services));
     }
-    return ticketReply(result, interaction.guild_id, interaction.channel_id, emojis);
+    return ticketReply(result, interaction, interaction.guild_id, interaction.channel_id, emojis);
   } catch (error) {
-    let content = "Couldn't process this ticket action. Please try again.";
-    if (error instanceof ClashKingApiError && [400, 403, 404, 409, 429].includes(error.status)) {
-      try {
-        const body: unknown = JSON.parse(error.body);
-        if (typeof body === "object" && body !== null && "message" in body && typeof body.message === "string") {
-          content = body.message.slice(0, 500);
-        }
-      } catch { /* Never expose provider errors or credentials. */ }
-    }
-    return privateMessage(content);
+    return interactionErrorReply(error,interaction);
   }
 }
 
@@ -95,7 +86,7 @@ async function updateTicketProgress(interaction: DiscordInteraction, proof: Tick
       await new Promise(resolve => setTimeout(resolve, 2000));
       const result = Schema.decodeUnknownSync(reply)(await services.api.post<unknown>(path, { interaction: proof }));
       if (!("state" in result) || !["completed", "succeeded", "failed"].includes(result.state)) continue;
-      const response = ticketReply(result, interaction.guild_id!, interaction.channel_id);
+      const response = ticketReply(result, interaction, interaction.guild_id!, interaction.channel_id);
       if (response.data) await services.discordRest.editOriginalInteractionResponse(interaction.token, response.data);
       return;
     }
@@ -134,7 +125,7 @@ const privateMessage = (content: string, components: unknown[] = []): DiscordInt
   data: { content, components, flags: MessageFlags.Ephemeral, allowed_mentions: { parse: [] } },
 });
 
-function ticketReply(result: typeof reply.Type, guild: string, channel?: string,
+function ticketReply(result: typeof reply.Type, interaction:DiscordInteraction, guild: string, channel?: string,
   emojis: readonly {id: string; name: string; animated?: boolean}[] = []): DiscordInteractionResponse {
   if ("form" in result) {
     const value = result.form;
@@ -160,7 +151,7 @@ function ticketReply(result: typeof reply.Type, guild: string, channel?: string,
     if (result.state === "succeeded" && result.messageId && channel) {
       return privateMessage(`[Ticket panel posted](https://discord.com/channels/${guild}/${channel}/${result.messageId}).`);
     }
-    return privateMessage(result.state === "failed" ? "Ticket panel couldn't be posted." : "Posting your ticket panel…");
+    return result.state === "failed" ? interactionErrorReply(new CommandInputError("Ticket panel couldn’t be posted. Ask a server administrator to check the bot’s channel permissions."),interaction) : privateMessage("Posting your ticket panel…");
   }
   if (result.state === "completed") {
     const stored = "result" in result ? result.result : undefined;
@@ -170,8 +161,7 @@ function ticketReply(result: typeof reply.Type, guild: string, channel?: string,
     return privateMessage(channelId && /^\d{1,20}$/u.test(channelId)
       ? `Your ticket is ready: [Open ticket](https://discord.com/channels/${guild}/${channelId}).` : "Ticket updated.");
   }
-  return privateMessage(result.state === "failed" ? "This ticket action failed. Contact your server staff."
-    : "Processing your ticket…");
+  return result.state === "failed" ? interactionErrorReply(new CommandInputError("This ticket action failed. Contact your server staff."),interaction) : privateMessage("Processing your ticket…");
 }
 
 function selectComponents(value: { customId: string; placeholder: string; minValues: number; maxValues: number;

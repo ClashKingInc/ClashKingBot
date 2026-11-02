@@ -1,7 +1,7 @@
 import { CommandInputError, normalizeTag, requireGuildId, stringOption } from "./command-utils";
 import type { CommandContext } from "./types";
 export interface ReportMember{tag:string;name:string;townHallLevel?:number}
-export interface ReportClan{tag:string;name:string;memberList:ReportMember[]}
+export interface ReportClan{tag:string;name:string;badgeUrls?:{small?:string};memberList:ReportMember[]}
 export async function currentReportMembers(ctx:CommandContext,scope:"clan"|"family",hall=0){
  const target=scope==="clan"?normalizeTag(stringOption(ctx,"clan")??"",ctx.locale):requireGuildId(ctx);
  const refs=scope==="clan"?[{tag:target}]:await ctx.services.api.get<Array<{tag:string}>>(`/v2/server/${target}/clans-basic`);

@@ -1,16 +1,15 @@
-import { privacyCommand } from "./privacy";
+import { interactionErrorReply, sendInteractionError } from "./errors";
+import { dispatchCwlSearch } from "./cwl-search";
 import { dispatchLegendStats } from "./legend-global";
 import { dispatchClanControl } from "./clan-controls";
 import { dispatchClanLinks } from "./link-list";
 import { dispatchGraphControl } from "./graph-controls";
 import { fankitCommand, dispatchFankit } from "./fankit";
-import { pepeCommand } from "./pepe";
+import { memeCommand, dispatchMeme } from "./meme";
 import { quickMemberAction } from "./buttons";
 import { botInfoCommand } from "./bot-info";
 import { graphCommand } from "./graph";
 import { roleUsersCommand } from "./role-users";
-import { boostsCommand } from "./boosts";
-import { statsCommand } from "./stats";
 import { dispatchHelpControl, helpCommand } from "./help";
 import { dispatchMemberReport } from "./member-reports";
 import {
@@ -27,7 +26,7 @@ import { baseCommand, baseComponentHandlers } from "./base";
 import { CommandInputError, invokingUserId } from "./command-utils";
 import { linkCommand, linkComponentHandlers, unlinkCommand } from "./link";
 import { dispatchRoster, rosterCommand } from "./roster";
-import { refreshCommand, mainAccountCommand, dispatchRefresh } from "./refresh";
+import { refreshCommand, dispatchRefresh } from "./refresh";
 import { remindersCommand } from "./reminders";
 import { dashboardCommand } from "./dashboard";
 import { ticketCommand } from "./ticket";
@@ -37,7 +36,7 @@ import { rankedCommand } from "./ranked";
 import { legendsCommand } from "./legends";
 import { leaderboardCommand } from "./leaderboard";
 import { armyCommand } from "./army";
-import { banCommand, strikeCommand, dispatchModeration } from "./moderation";
+import { moderationCommand, dispatchModeration } from "./moderation";
 import { warCommand, cwlCommand, dispatchWar } from "./war";
 import { familyCommand } from "./family";
 import { clanCommand } from "./clan";
@@ -46,7 +45,7 @@ import type { Command, CommandContext, CommandServices, ComponentHandler } from 
 
 // Setup and automation live in the dashboard. Keep only member-facing and
 // informational slash commands here; persistent message handlers remain below.
-const commands: readonly Command[] = [privacyCommand,fankitCommand,pepeCommand,botInfoCommand,graphCommand,roleUsersCommand,boostsCommand,statsCommand,helpCommand,baseCommand, linkCommand, rosterCommand, refreshCommand, mainAccountCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand, familyCommand, banCommand, strikeCommand, warCommand, cwlCommand];
+const commands: readonly Command[] = [fankitCommand,memeCommand,botInfoCommand,graphCommand,roleUsersCommand,helpCommand,baseCommand, linkCommand, rosterCommand, refreshCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand, familyCommand, moderationCommand, warCommand, cwlCommand];
 const commandByName = new Map(commands.map((command) => [command.definition.name, command]));
 // Retain cached legacy invocations without registering a separate slash root.
 commandByName.set("unlink", unlinkCommand);
@@ -73,13 +72,15 @@ export async function dispatchInteraction(
       return { type: InteractionResponseType.ApplicationCommandAutocompleteResult, data: { choices: [] } };
     }
   }
+  try {
   if (interaction.type === InteractionType.ApplicationCommand) {
-    return executeCommand(context, waitUntil);
+    return await executeCommand(context, waitUntil);
   }
   if (interaction.type === InteractionType.MessageComponent || interaction.type === InteractionType.ModalSubmit) {
-    return executePersistentHandler(context, waitUntil);
+    return await executePersistentHandler(context, waitUntil);
   }
-  return unknownInteraction(context.locale);
+  return unknownInteraction(context.locale,interaction);
+  } catch(error) { return interactionErrorReply(error,interaction); }
 }
 
 function createContext(interaction: DiscordInteraction, env: Env, services: CommandServices): CommandContext {
@@ -104,7 +105,7 @@ async function executeCommand(
     // retaining a hidden write path through an old Discord command.
     if (name && ["autorefresh", "roles", "giveaway", "buttons"].includes(name)) {
       return { type: InteractionResponseType.ChannelMessageWithSource,
-        data: { content: "Server setup is managed in /dashboard.", flags: MessageFlags.Ephemeral } };
+        data: { content: "Server setup is managed in /setup.", flags: MessageFlags.Ephemeral } };
     }
     return unknownInteraction(context.locale);
   }
@@ -118,15 +119,16 @@ async function executeCommand(
       // Discord fixes visibility at acknowledgement time. A private result
       // after a public defer needs its own follow-up, not an ignored flag edit.
       if(!ephemeral&&typeof response.data?.flags==="number"&&(response.data.flags&MessageFlags.Ephemeral)){
+        await context.services.discordRest.editOriginalInteractionResponse(context.interaction.token,{content:"This result is private.",embeds:[],components:[]});
         await context.services.discordRest.createInteractionFollowup(context.interaction.token,response.data??{});
         await context.services.discordRest.deleteOriginalInteractionResponse(context.interaction.token);
       }else await context.services.discordRest.editOriginalInteractionResponse(context.interaction.token, response.data ?? {});
     },
-    (error: unknown) => context.services.discordRest.editOriginalInteractionResponse(context.interaction.token, {
-      content: error instanceof CommandInputError ? error.message : translate("error.generic", context.locale),
-      flags: MessageFlags.Ephemeral,
-    }),
-  ));
+  ).catch((error: unknown) => {
+    // The first follow-up after a defer can resolve the original response.
+    // Update it in place: deleting it would also delete the visible error.
+    return sendInteractionError(context,error,true);
+  }));
   return {
     data: ephemeral ? { flags: MessageFlags.Ephemeral } : {},
     type: InteractionResponseType.DeferredChannelMessageWithSource,
@@ -138,11 +140,13 @@ async function executePersistentHandler(
   waitUntil?: (promise: Promise<unknown>) => void,
 ): Promise<DiscordInteractionResponse> {
   const customId = context.interaction.data?.custom_id ?? "";
+  if(customId.startsWith("ck:cwl:"))return dispatchCwlSearch(context,waitUntil);
   if(customId.startsWith("ck:legendstats:"))return dispatchLegendStats(context,waitUntil);
   if(customId.startsWith("ck:clans:"))return dispatchClanControl(context,waitUntil);
   if(customId.startsWith("ck:help:"))return dispatchHelpControl(context,waitUntil);
   if(customId.startsWith("ck:chart:"))return dispatchGraphControl(context,waitUntil);
   if(customId.startsWith("ck:links:"))return dispatchClanLinks(context,waitUntil);
+  if(customId.startsWith("ck:meme:"))return dispatchMeme(context,waitUntil);
   if(customId.startsWith("ck:fk:"))return dispatchFankit(context,waitUntil);
   // Old Legend History buttons still exist on Discord messages. Route them
   // through the same renderer as /legends history instead of maintaining a
@@ -210,18 +214,12 @@ async function completeDeferredInteraction(context: CommandContext, pending: Pro
     const response = await pending;
     await context.services.discordRest.editOriginalInteractionResponse(context.interaction.token, response.data ?? {});
   } catch (error) {
-    await context.services.discordRest.editOriginalInteractionResponse(context.interaction.token, {
-      content: error instanceof CommandInputError ? error.message : translate("error.generic", context.locale),
-      flags: MessageFlags.Ephemeral,
-    });
+    await sendInteractionError(context,error,true);
   }
 }
 
-function unknownInteraction(locale: string): DiscordInteractionResponse {
-  return {
-    data: { content: translate("error.unknownCommand", locale), flags: MessageFlags.Ephemeral },
-    type: InteractionResponseType.ChannelMessageWithSource,
-  };
+function unknownInteraction(locale: string, interaction?:DiscordInteraction): DiscordInteractionResponse {
+  return interactionErrorReply(new CommandInputError(translate("error.unknownCommand", locale)),interaction??{id:'unknown'} as DiscordInteraction);
 }
 
 function flattenOptions(options: InteractionOption[]): ReadonlyMap<string, InteractionOption> {

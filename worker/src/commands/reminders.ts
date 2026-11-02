@@ -1,3 +1,4 @@
+import { loadCurrentWar } from "./war-data";
 import { applicationEmojis } from "../discord/emojis";
 import { InteractionResponseType, MessageFlags, type DiscordInteractionResponse } from "../discord/types";
 import { CommandInputError, normalizeTag, requireGuildId, stringOption } from "./command-utils";
@@ -9,32 +10,11 @@ interface Side { tag: string; name: string; stars: number; members: Member[] }
 interface War { state: string; startTime?: string; endTime: string; attacksPerMember?: number; clan: Side; opponent: Side }
 interface Missing { tag: string; name: string; hall: number; count: string }
 const timestamp = (raw: string) => Date.parse(raw.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})\.\d{3}Z$/u, "$1-$2-$3T$4:$5:$6.000Z"));
-const active = (war: War | undefined) => !!war &&
-  (war.state === "inWar" || (war.state === "preparation" && !!war.startTime && Number.isFinite(timestamp(war.startTime)))) &&
-  timestamp(war.endTime) > Date.now();
 
 async function currentWar(ctx: CommandContext, tag: string): Promise<War> {
-  const path = `/v2/bot/clash/clans/${encodeURIComponent(tag)}/currentwar`;
-  const regular = await ctx.services.api.get<War>(path).catch(() => undefined);
-  if (active(regular)) return regular!;
-  // CWL is part of War, but has a separate upstream endpoint. Search newest
-  // rounds first; never select another clan's or an already finished war.
-  const group = await ctx.services.api.get<{ rounds?: Array<{ warTags: string[] }> }>(`${path}/leaguegroup`).catch(() => undefined);
-  let preparation: War | undefined;
-  for (const round of [...(group?.rounds ?? [])].reverse()) {
-    const tags = round.warTags.filter(value => value !== "#0");
-    for (let offset = 0; offset < tags.length; offset += 4) {
-      const wars = await Promise.all(tags.slice(offset, offset + 4).map(value => ctx.services.api.get<War>(`/v2/bot/clash/clanwarleagues/wars/${encodeURIComponent(value)}`).catch(() => undefined)));
-      for (const war of wars) {
-        if (!active(war) || !war || (war.clan.tag !== tag && war.opponent.tag !== tag)) continue;
-        // CWL rounds overlap. A running battle takes priority over the next
-        // preparation day, even though newer rounds are fetched first.
-        if (war.state === "inWar") return { ...war, attacksPerMember: 1 };
-        if (!preparation || timestamp(war.startTime!) < timestamp(preparation.startTime!)) preparation = war;
-      }
-    }
-  }
-  if (preparation) return { ...preparation, attacksPerMember: 1 };
+  const result=await loadCurrentWar(ctx,tag);
+  if(result.war)return result.war;
+  if(result.privateLog)throw new CommandInputError("This clan’s war log is private. Ask a clan leader to make it public in Clash of Clans.");
   throw new CommandInputError("No active war found for this clan.");
 }
 

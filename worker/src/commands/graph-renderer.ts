@@ -1,125 +1,45 @@
-/** Shared image grammar for Discord charts: readable at phone width, with data first. */
-export interface ChartSeries {
-  name: string;
-  values: Array<number | null>;
+/** One quiet chart language, sized for a Discord image on a phone. */
+export interface ChartSeries { name:string; values:Array<number|null>; headline?:number|null; icon?:string }
+interface ChartBase { title:string; subtitle:string; logo:string; note?:string; valueSuffix?:string; icon?:string; accent?:string }
+export interface BarChartInput extends ChartBase {rows:Array<{name:string;value:number;icon?:string}>}
+export interface LineChartInput extends ChartBase {labels:string[];series:ChartSeries[]; axis?:{min:number;max:number;ticks:Array<{value:number;label:string;icon?:string;color?:string}>}; formatValue?:(value:number)=>string; stepped?:boolean}
+const colors=['#0a84ff','#30d5a0','#ffb340','#bf8cff','#ff7487','#64d2ff','#ffd460','#acdc80','#e995cf','#b6c3df'];
+const ink='#f5f5f7',muted='#98989f',grid='#27272a';
+const xml=(v:string)=>v.replace(/[&<>"']/gu,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'})[c]!);
+const text=(x:number,y:number,value:string,size=26,color=muted,anchor='start',weight=400)=>`<text x="${x}" y="${y}" text-anchor="${anchor}" fill="${color}" font-family="Inter Variable" font-size="${size}" font-weight="${weight}" letter-spacing="${size>=38?-.8:0}">${xml(value)}</text>`;
+const short=(value:string,length=32)=>[...value].length>length?[...value].slice(0,length-1).join('')+'…':value;
+export const chartNumber=(value:number)=>new Intl.NumberFormat('en',{notation:Math.abs(value)>=10000?'compact':'standard',maximumFractionDigits:1}).format(value);
+function scale(value:number){
+ const maximum=Math.max(1,Math.ceil(value)),raw=maximum/4,magnitude=10**Math.floor(Math.log10(raw));
+ const step=Math.max(1,([1,2,5,10].find(n=>n*magnitude>=raw)??10)*magnitude);
+ const max=step*Math.ceil(maximum/step);
+ return {max,ticks:Array.from({length:Math.round(max/step)+1},(_,i)=>i*step)};
 }
-interface ChartBase {
-  title: string;
-  subtitle: string;
-  logo: string;
-  note?: string;
+const axisNumber=(value:number)=>{
+ for(const [unit,suffix] of [[1e9,'B'],[1e6,'M'],[1e3,'K']] as const)if(value>=unit&&value%unit===0)return `${value/unit}${suffix}`;
+ return new Intl.NumberFormat('en',{maximumFractionDigits:0}).format(value);
+};
+function frame(input:ChartBase,height:number){
+ return `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="${height}" viewBox="0 0 1280 ${height}"><title>${xml(input.title)}</title><desc>${xml(input.subtitle)}</desc><rect width="1280" height="${height}" fill="#000000"/>${input.icon?`<image href="${input.icon}" x="64" y="35" width="48" height="48"/>`:""}${text(input.icon?130:64,76,short(input.title,47),42,ink,'start',600)}${text(64,120,short(input.subtitle,78),25)}<image href="${input.logo}" x="1105" y="46" width="111" height="41" preserveAspectRatio="xMidYMid meet"/>`;
 }
-export interface BarChartInput extends ChartBase {
-  rows: Array<{ name: string; value: number }>;
+const finish=(input:ChartBase,height:number)=>`${input.note?text(64,height-30,input.note,21):''}</svg>`;
+export function barChartSvg(input:BarChartInput){
+ const pitch=70,height=Math.max(330,210+input.rows.length*pitch+(input.note?32:0)),left=405,right=1050,width=right-left;
+ const max=Math.max(1,...input.rows.map(row=>row.value));
+ let svg=frame(input,height);
+ input.rows.forEach((row,index)=>{
+  const y=187+index*pitch,length=width*row.value/max;
+  svg+=`${row.icon?`<image href="${row.icon}" x="64" y="${y-6}" width="38" height="38"/>`:""}`+text(row.icon?116:64,y+21,short(row.name,18),30,ink);
+  if(row.value>0)svg+=`<rect x="${left}" y="${y}" width="${length}" height="26" rx="${Math.min(8,length/2)}" fill="${input.accent??colors[0]}"/>`;
+  svg+=text(1216,y+23,chartNumber(row.value)+(input.valueSuffix??""),32,ink,'end',500);
+ });
+ if(!input.rows.length)svg+=text(64,225,'No data for this period',28);
+ return svg+finish(input,height);
 }
-export interface LineChartInput extends ChartBase {
-  labels: string[];
-  series: ChartSeries[];
-}
-const colors = [
-  "#ef6677",
-  "#67cdb2",
-  "#7aafff",
-  "#d3a0ef",
-  "#eac56c",
-  "#74d3e3",
-  "#eaa27b",
-  "#b0ce7c",
-  "#d88eaa",
-  "#b6b9ce",
-];
-const ink = "#f4f5f8",
-  muted = "#969eaf",
-  grid = "#272d38";
-const xml = (value: string) =>
-  value.replace(
-    /[&<>"']/gu,
-    (character) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&apos;",
-      })[character]!,
-  );
-const label = (
-  x: number,
-  y: number,
-  value: string,
-  size = 24,
-  color = muted,
-  anchor = "start",
-  weight = 400,
-) =>
-  `<text x="${x}" y="${y}" text-anchor="${anchor}" fill="${color}" font-family="Blogger Sans" font-size="${size}" font-weight="${weight}">${xml(value)}</text>`;
-const short = (value: string, length = 32) =>
-  [...value].length > length
-    ? [...value].slice(0, length - 1).join("") + "…"
-    : value;
-export const chartNumber = (value: number) =>
-  new Intl.NumberFormat("en", {
-    notation: value >= 10000 ? "compact" : "standard",
-    maximumFractionDigits: 1,
-  }).format(value);
-function ceiling(value: number) {
-  const maximum = Math.max(1, value),
-    magnitude = 10 ** Math.floor(Math.log10(maximum));
-  return (
-    ([1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find(
-      (step) => step * magnitude >= maximum,
-    ) ?? 10) * magnitude
-  );
-}
-function frame(input: ChartBase, height: number) {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="${height}" viewBox="0 0 1280 ${height}"><title>${xml(input.title)}</title><desc>${xml(input.subtitle)}</desc><rect width="1280" height="${height}" rx="32" fill="#101319"/><rect x="48" y="52" width="5" height="38" rx="2.5" fill="${colors[0]}"/>${label(70, 86, input.title, 48, ink, "start", 600)}${label(70, 126, short(input.subtitle, 72), 26)}<image href="${input.logo}" x="1090" y="49" width="135" height="50" preserveAspectRatio="xMidYMid meet"/>`;
-}
-function footer(note: string | undefined, height: number) {
-  return (note ? label(70, height - 30, note, 20) : "") + "</svg>";
-}
-export function barChartSvg(input: BarChartInput) {
-  const rowHeight = 78,
-    height = Math.max(
-      350,
-      224 + input.rows.length * rowHeight + (input.note ? 30 : 0),
-    ),
-    x = 430,
-    right = 1120;
-  const max = Math.max(1, ...input.rows.map((row) => row.value)),
-    width = right - x;
-  let svg = frame(input, height);
-  // Every bar already has an exact value. A second numeric axis adds noise,
-  // so keep only the shared zero baseline and let the lengths show comparison.
-  svg += `<path d="M${x} 181V${180 + input.rows.length * rowHeight}" stroke="${grid}"/>`;
-  input.rows.forEach((row, index) => {
-    const y = 181 + index * rowHeight,
-      length = (width * row.value) / max;
-    svg += label(70, y + 36, short(row.name, 20), 36, ink);
-    svg += `<rect x="${x}" y="${y + 5}" width="${Math.max(2, length)}" height="43" rx="8" fill="${index === 0 ? colors[0] : "#465064"}"/>`;
-    svg += label(
-      x + length + 12,
-      y + 36,
-      chartNumber(row.value),
-      36,
-      index === 0 ? ink : "#c6ccda",
-    );
-  });
-  if (!input.rows.length)
-    svg += label(640, 258, "No data for this period", 30, muted, "middle");
-  return svg + footer(input.note, height);
-}
-export function chartDate(value: string, monthOnly = false) {
-  if (value === "current") return "Current season";
-  const date = new Date(
-    value.length === 7 ? `${value}-01T12:00:00Z` : `${value}T12:00:00Z`,
-  );
-  if (!Number.isFinite(+date)) return value;
-  return new Intl.DateTimeFormat(
-    "en",
-    monthOnly
-      ? { month: "short", year: "numeric", timeZone: "UTC" }
-      : { month: "short", day: "numeric", timeZone: "UTC" },
-  ).format(date);
+export function chartDate(value:string,monthOnly=false){
+ if(value==='current')return 'Current season';
+ const date=new Date(value.length===7?`${value}-01T12:00:00Z`:`${value}T12:00:00Z`);
+ return Number.isFinite(+date)?new Intl.DateTimeFormat('en',monthOnly?{month:'short',year:'numeric',timeZone:'UTC'}:{month:'short',day:'numeric',timeZone:'UTC'}).format(date):value;
 }
 interface Point {
   x: number;
@@ -154,81 +74,76 @@ function curve(points: Point[]) {
   }
   return path;
 }
-export function lineChartSvg(input: LineChartInput) {
-  const legendRows = Math.ceil(input.series.length / 2),
-    height = Math.max(700, 638 + legendRows * 42),
-    top = 188,
-    bottom = 510,
-    left = 116,
-    right = 1195;
-  const max = ceiling(
-    Math.max(
-      0,
-      ...input.series.flatMap((series) =>
-        series.values.filter((value): value is number => value !== null),
-      ),
-    ),
-  );
-  const x = (index: number) =>
-    input.labels.length <= 1
-      ? (left + right) / 2
-      : left + ((right - left) * index) / (input.labels.length - 1);
-  const y = (value: number) => bottom - (value / max) * (bottom - top);
-  let svg = frame(input, height);
-  if (input.series.length === 1)
-    svg += `<defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${colors[0]}" stop-opacity=".24"/><stop offset="100%" stop-color="${colors[0]}" stop-opacity=".015"/></linearGradient></defs>`;
-  for (let tick = 0; tick <= 4; tick++) {
-    const py = y((max * tick) / 4);
-    svg +=
-      `<path d="M${left} ${py}H${right}" stroke="${grid}" stroke-dasharray="3 8"/>` +
-      label(left - 18, py + 7, chartNumber((max * tick) / 4), 20, muted, "end");
-  }
-  const stride = Math.max(1, Math.ceil((input.labels.length - 1) / 5));
-  input.labels.forEach((value, index) => {
-    if (index % stride === 0 || index === input.labels.length - 1)
-      svg += label(x(index), bottom + 41, value, 26, muted, "middle");
-  });
-  input.series.forEach((series, index) => {
-    const segments: Point[][] = [];
-    let segment: Point[] = [];
-    series.values.forEach((value, at) => {
-      if (value === null) {
-        if (segment.length) segments.push(segment);
-        segment = [];
-        return;
-      }
-      segment.push({ x: x(at), y: y(value) });
-    });
-    if (segment.length) segments.push(segment);
-    for (const points of segments) {
-      const path = curve(points),
-        first = points[0]!,
-        last = points.at(-1)!;
-      if (input.series.length === 1 && points.length > 1)
-        svg += `<path d="${path} L${last.x},${bottom} L${first.x},${bottom} Z" fill="url(#area)"/>`;
-      svg += `<path d="${path}" fill="none" stroke="${colors[index % colors.length]}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
-      points.forEach((point, at) => {
-        if (input.labels.length <= 12 || at === 0 || at === points.length - 1)
-          svg += `<circle cx="${point.x}" cy="${point.y}" r="4.5" fill="${colors[index % colors.length]}" stroke="#101319" stroke-width="2"/>`;
-      });
-    }
-    const lx = 70 + (index % 2) * 590,
-      ly = 602 + Math.floor(index / 2) * 42;
-    svg +=
-      `<circle cx="${lx + 5}" cy="${ly - 8}" r="5" fill="${colors[index % colors.length]}"/>` +
-      label(lx + 22, ly, short(series.name, 22), 32, ink) +
-      label(
-        lx + 525,
-        ly,
-        series.values.at(-1) === null || series.values.at(-1) === undefined
-          ? "—"
-          : chartNumber(series.values.at(-1)!),
-        36,
-        colors[index % colors.length],
-        "end",
-      );
-  });
-  if (!input.series.length)
-    svg += label(640, 348, "No data for this period", 30, muted, "middle");
-  return svg + footer(input.note, height);
+function segments(series:ChartSeries,x:(index:number)=>number,y:(value:number)=>number){
+ const result:Point[][]=[];let points:Point[]=[];
+ series.values.forEach((value,index)=>{
+  if(value===null||!Number.isFinite(value)){if(points.length)result.push(points);points=[];}
+  else points.push({x:x(index),y:y(value)});
+ });
+ if(points.length)result.push(points);
+ return result;
+}
+function marks(series:ChartSeries,x:(index:number)=>number,y:(value:number)=>number,color:string,bottom:number,areaId?:string,stepped=false){
+ let svg='';
+ for(const points of segments(series,x,y)){
+  const path=stepped?points.map((p,i)=>i===0?`M${p.x},${p.y}`:`H${p.x}V${p.y}`).join(" "):curve(points),first=points[0]!,last=points.at(-1)!;
+  if(areaId&&points.length>1)svg+=`<path d="${path} L${last.x},${bottom} L${first.x},${bottom} Z" fill="url(#${areaId})"/>`;
+  svg+=`<path d="${path}" fill="none" stroke="${color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
+  // Isolated observations remain visible; no line crosses a missing period.
+  if(points.length===1)svg+=`<circle cx="${last.x}" cy="${last.y}" r="5" fill="${color}"/>`;
+ }
+ const last=series.values.at(-1);
+ if(last!==null&&last!==undefined)svg+=`<circle cx="${x(series.values.length-1)}" cy="${y(last)}" r="5" fill="${color}" stroke="#000" stroke-width="2"/>`;
+ return svg;
+}
+const area=(id:string,color:string)=>`<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".18"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient>`;
+export function lineChartSvg(input:LineChartInput){
+ const automatic=scale(Math.max(0,...input.series.flatMap(s=>s.values.filter((v):v is number=>v!==null&&Number.isFinite(v)))));
+ // Many overlapping series stop being readable. Give each clan its own plot
+ // with the same vertical scale, so visual comparison stays honest.
+ const min=input.axis?.min??0,max=input.axis?.max??automatic.max;
+ const ticks:Array<{value:number;label:string;icon?:string;color?:string}>=input.axis?.ticks??automatic.ticks.map(value=>({value,label:axisNumber(value)+(input.valueSuffix??"")}));
+ if(input.series.length>3&&!input.axis)return multiples(input,max);
+ const dense=input.series.length>3,top=dense?190+Math.ceil(input.series.length/2)*54:260,bottom=top+372,height=bottom+108+(input.note?32:0),left=64,right=input.axis?1010:1110;
+ const x=(i:number)=>input.labels.length<=1?(left+right)/2:left+(right-left)*i/(input.labels.length-1);
+ const y=(v:number)=>bottom-(v-min)/(max-min)*(bottom-top);
+ let svg=frame(input,height)+`<defs>${area('area',colors[0]!)}</defs>`;
+ input.series.forEach((series,index)=>{
+  const col=dense?64+(index%2)*576:64+index*(1152/Math.max(1,input.series.length));
+  const base=dense?185+Math.floor(index/2)*54:183;
+  if(series.icon)svg+=`<image href="${series.icon}" x="${col}" y="${base-28}" width="34" height="34"/>`;
+  svg+=text(series.icon?col+46:col,base,short(series.name,input.series.length===1?48:22),27,colors[index], 'start',500);
+  const last=series.headline!==undefined?series.headline:series.values.at(-1);
+  svg+=text(dense?col+535:col,dense?base:230,last===null||last===undefined?'—':input.formatValue?.(last)??chartNumber(last)+(input.valueSuffix??""),input.formatValue?28:38,ink,dense?'end':'start',600);
+ });
+ for(const tick of ticks){
+  const py=y(tick.value);
+  if(tick.icon)svg+=`<image href="${tick.icon}" x="${right+17}" y="${py-16}" width="32" height="32"/>`;
+  svg+=`<path d="M${left} ${py}H${right}" stroke="${grid}" stroke-width="1"/>`+text(1216,py+8,tick.label,input.axis?21:23,tick.color??muted,'end');
+ }
+ const xTicks=Math.min(5,input.labels.length);
+ for(let i=0;i<xTicks;i++){
+  const index=xTicks<=1?0:Math.round(i*(input.labels.length-1)/(xTicks-1));
+  svg+=text(x(index),bottom+45,input.labels[index]!,24,muted,index===0?'start':index===input.labels.length-1?'end':'middle');
+ }
+ input.series.forEach((series,index)=>svg+=marks(series,x,y,colors[index]!,bottom,input.series.length===1&&!input.stepped?'area':undefined,input.stepped));
+ if(!input.series.length||!input.series.some(series=>series.values.some(v=>v!==null)))svg+=text(64,435,'No data for this period',28);
+ return svg+finish(input,height);
+}
+function multiples(input:LineChartInput,max:number){
+ const pitch=236,columns=2,height=190+Math.ceil(input.series.length/columns)*pitch+(input.note?32:0);
+ let svg=frame(input,height)+'<defs>'+input.series.map((_,i)=>area(`area${i}`,colors[i%colors.length]!)).join('')+'</defs>';
+ input.series.forEach((series,i)=>{
+  const left=64+(i%columns)*610,right=left+520,top=225+Math.floor(i/columns)*pitch,bottom=top+123;
+  const x=(index:number)=>input.labels.length<=1?(left+right)/2:left+(right-left)*index/(input.labels.length-1),y=(v:number)=>bottom-v/max*(bottom-top);
+  const color=colors[i%colors.length]!;
+  if(series.icon)svg+=`<image href="${series.icon}" x="${left}" y="${top-52}" width="32" height="32"/>`;
+  svg+=text(series.icon?left+42:left,top-25,short(series.name,20),27,color,'start',500);
+  const last=series.headline!==undefined?series.headline:series.values.at(-1);
+  svg+=text(right,top-25,last===null||last===undefined?'—':chartNumber(last)+(input.valueSuffix??""),30,ink,'end',500);
+  for(let t=0;t<=2;t++)svg+=`<path d="M${left} ${y(max*t/2)}H${right}" stroke="${grid}" stroke-width="1"/>`;
+  svg+=marks(series,x,y,color,bottom,`area${i}`);
+  if(input.labels.length){svg+=text(left,bottom+32,input.labels[0]!,22)+text(right,bottom+32,input.labels.at(-1)!,22,muted,'end');}
+ });
+ return svg+finish(input,height);
 }

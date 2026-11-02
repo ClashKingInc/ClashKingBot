@@ -1,6 +1,7 @@
+import { sendInteractionError } from "./errors";
 import { clanSelector, type ClanChoice } from "./clan-selector";
 import { CommandInputError, invokingUserId } from "./command-utils";
-import { InteractionResponseType, InteractionType, MessageFlags, type DiscordInteractionResponse } from "../discord/types";
+import { InteractionResponseType, InteractionType, type DiscordInteractionResponse } from "../discord/types";
 import type { CommandContext } from "./types";
 
 type Row = { type: number; components?: Array<{ type: number; custom_id?: string }> };
@@ -9,9 +10,9 @@ const pageKinds = new Set(["cl", "ca", "cg", "sc", "uc", "cr", "wp"]);
 function anchor(rows: Row[]): { id: string; tag: string; member: boolean } | undefined {
   for (const row of rows) for (const control of row.components ?? []) {
     const id = control.custom_id ?? "", parts = id.split(":");
-    if (parts[0] === "ck" && parts[1] === "page" && pageKinds.has(parts[2] ?? "") && /^#[0289PYLQGRJCUV]+$/u.test(parts[4] ?? ""))
+    if (parts[0] === "ck" && parts[1] === "page" && pageKinds.has(parts[2] ?? "") && !id.includes(":sort:") && !id.includes(":donation-sort:") && !id.includes(":progress-type:") && /^#[0289PYLQGRJCUV]+$/u.test(parts[4] ?? ""))
       return { id, tag: parts[4]!, member: false };
-    if (id.startsWith("ck:members:clan|")) {
+    if (id.startsWith("ck:members:clan|") && !id.endsWith("|type")) {
       const values = id.slice("ck:members:".length).split("|");
       if (/^#[0289PYLQGRJCUV]+$/u.test(values[1] ?? "")) return { id, tag: values[1]!, member: true };
     }
@@ -23,6 +24,13 @@ async function linked(ctx: CommandContext) {
   const rows = await ctx.services.api.get<ClanChoice[]>(`/v2/server/${ctx.interaction.guild_id}/clans-basic`, {}, AbortSignal.timeout(3000));
   return [...new Map(rows.filter(row => /^#[0289PYLQGRJCUV]+$/u.test(row.tag)).map(row => [row.tag, row])).values()];
 }
+function insertClanPicker(rows: Row[], picker: Row) {
+  const sort = rows.findIndex(row => row.components?.some(item => item.custom_id?.includes(":donation-sort:")));
+  if (sort >= 0) return [...rows.slice(0, sort), picker, ...rows.slice(sort)];
+  // Keep single-button refresh rows after the selectors they refresh.
+  const refresh = rows.findIndex(row => row.components?.length === 1 && row.components[0]?.type === 2);
+  return refresh < 0 ? [...rows, picker] : [...rows.slice(0, refresh), picker, ...rows.slice(refresh)];
+}
 export async function withClanSelector(ctx: CommandContext, response: DiscordInteractionResponse): Promise<DiscordInteractionResponse> {
   const rows = (response.data?.components ?? []) as Row[];
   const current = anchor(rows);
@@ -33,7 +41,7 @@ export async function withClanSelector(ctx: CommandContext, response: DiscordInt
   const ordered = [...clans].sort((a, b) => a.name.localeCompare(b.name) || a.tag.localeCompare(b.tag));
   const selectedPage = Math.floor(Math.max(0, ordered.findIndex(clan => clan.tag === current.tag)) / 23);
   const page = clanSelector({ clans, selectedTag: current.tag, page: selectedPage, customId: selectorId });
-  return { ...response, data: { ...response.data, components: [...rows.filter(row => !row.components?.some(item => item.custom_id === selectorId)), page.row].slice(0, 5) } };
+  return { ...response, data: { ...response.data, components: insertClanPicker(rows.filter(row => !row.components?.some(item => item.custom_id === selectorId)), page.row).slice(0, 5) } };
 }
 export async function dispatchClanControl(ctx: CommandContext, waitUntil?: (promise: Promise<unknown>) => void) {
   if (ctx.interaction.data?.custom_id !== selectorId || ctx.interaction.type !== InteractionType.MessageComponent || ctx.interaction.data?.component_type !== 3 || ctx.interaction.data.values?.length !== 1)
@@ -48,7 +56,7 @@ export async function dispatchClanControl(ctx: CommandContext, waitUntil?: (prom
     if (!clans.length) throw new CommandInputError("No clans are linked to this server.");
     if (/^page:\d{1,4}$/u.test(value)) {
       const page = clanSelector({ clans, selectedTag: current.tag, page: Number(value.slice(5)), customId: selectorId });
-      return { type: InteractionResponseType.UpdateMessage, data: { components: [...rows.filter(row => !row.components?.some(item => item.custom_id === selectorId)), page.row] } };
+      return { type: InteractionResponseType.UpdateMessage, data: { components: insertClanPicker(rows.filter(row => !row.components?.some(item => item.custom_id === selectorId)), page.row) } };
     }
     if (!clans.some(clan => clan.tag === value)) throw new CommandInputError("That clan is no longer linked to this server.");
     let id: string;
@@ -65,6 +73,6 @@ export async function dispatchClanControl(ctx: CommandContext, waitUntil?: (prom
   };
   if (!waitUntil) return run();
   waitUntil(run().then(response => ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token, response.data ?? {})).catch(error =>
-    ctx.services.discordRest.createInteractionFollowup(ctx.interaction.token, { content: error instanceof CommandInputError ? error.message : "Couldn't switch clans. Please try again.", flags: MessageFlags.Ephemeral })));
+    sendInteractionError(ctx,error)));
   return { type: InteractionResponseType.DeferredUpdateMessage };
 }

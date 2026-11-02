@@ -21,6 +21,7 @@ existing=(await response.json()).items;
 }
 const icons={
  account_verified_green:{svg:readFileSync(new URL('../worker/src/assets/account-verified.svg',import.meta.url),'utf8')},
+ account_unlinked:{svg:'<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="4" fill="#E54B4B"/><path d="m8 8 8 8m0-8-8 8" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>'},
  account_unverified:{color:'#E56B2F',paths:'<path d="m10.3 3.8-8.5 14.3A2 2 0 0 0 3.5 21h17a2 2 0 0 0 1.7-2.9L13.7 3.8a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>'},
 };
 for(const [name,icon] of Object.entries(icons)){

@@ -1,10 +1,11 @@
-import { escapeMarkdown, playerAppUrl, type Player } from "./game-common";
+import { escapeLinkLabel } from "./game-common";
+import { playerAppUrl, type Player } from "./game-common";
 import type { CommandContext } from "./types";
 
 interface Clan {tag:string;name:string}
 interface Visit {clan:Clan;start:string;end?:string;role?:string}
 interface HistoryView {description:string;footer:string}
-const link=(clan:Clan)=>`[${escapeMarkdown(clan.name||clan.tag)}](https://link.clashofclans.com/en?action=OpenClanProfile&tag=${encodeURIComponent(clan.tag)})`;
+const link=(clan:Clan)=>`[${escapeLinkLabel(clan.name||clan.tag)}](https://link.clashofclans.com/en?action=OpenClanProfile&tag=${encodeURIComponent(clan.tag)})`;
 const timestamp=(value:string)=>`<t:${Math.floor(Date.parse(value)/1000)}:D>`;
 const span=(minutes:number)=>{
  let days=Math.floor(minutes/1440);const years=Math.floor(days/365);days-=years*365;const months=Math.floor(days/30);days-=months*30;

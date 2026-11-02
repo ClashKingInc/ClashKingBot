@@ -1,3 +1,5 @@
+import { CommandInputError } from "./command-utils";
+import { interactionErrorReply, sendInteractionError } from "./errors";
 import { InteractionResponseType, MessageFlags, type DiscordInteractionResponse } from "../discord/types";
 import type { CommandContext } from "./types";
 import { serverEmbedColor } from "./embed-color";
@@ -22,16 +24,16 @@ export async function warPanelComponentHandler(context: CommandContext, segments
   const messageId = context.interaction.message?.id;
   if (!guildId || !messageId || !action || !rawTag || !/^\d{10}$/u.test(prep ?? "")
     || !["refresh", "attacks", "defenses", "opponent"].includes(action) || !/^[A-Z0-9]{3,15}$/u.test(rawTag)) {
-    return ephemeral({ content: "This war panel is invalid." });
+    return interactionErrorReply(new CommandInputError("This war panel is invalid."),context.interaction);
   }
   let result: WarPanelData;
   try {
     result = await context.services.api.get<WarPanelData>(`/v2/bot/war-panel/${guildId}/${messageId}/${encodeURIComponent(`#${rawTag}`)}`);
-  } catch {
-    return ephemeral({ content: "This war panel is no longer active or its war is unavailable." });
+  } catch (error) {
+    return interactionErrorReply(error,context.interaction);
   }
   if (result.identity !== `#${rawTag}v${result.war.clan.tag === `#${rawTag}` ? result.war.opponent.tag : result.war.clan.tag}-${prep}`) {
-    return ephemeral({ content: "This war panel belongs to a different war." });
+    return interactionErrorReply(new CommandInputError("This war panel belongs to a different war."),context.interaction);
   }
   const war = result.war;
   const own = war.clan.tag === `#${rawTag}` ? war.clan : war.opponent;
@@ -98,6 +100,6 @@ export async function dispatchWarPanel(context: CommandContext, waitUntil?: (pro
   waitUntil(run().then(response => response.type === InteractionResponseType.UpdateMessage
     ? context.services.discordRest.editOriginalInteractionResponse(context.interaction.token, response.data ?? {})
     : context.services.discordRest.createInteractionFollowup(context.interaction.token, response.data ?? {}))
-    .catch(() => context.services.discordRest.createInteractionFollowup(context.interaction.token, { content: "Could not load this war panel. Try again.", flags: MessageFlags.Ephemeral })));
+    .catch((error) => sendInteractionError(context,error)));
   return { type: InteractionResponseType.DeferredUpdateMessage };
 }

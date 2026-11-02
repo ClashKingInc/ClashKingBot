@@ -44,7 +44,7 @@ interface Pointer {
 export interface CwlGroup {
   state: string;
   season: string;
-  clans: Array<{ tag: string; name: string }>;
+  clans: Array<{ tag: string; name: string; badgeUrls?:{small?:string}; members?:Array<{tag:string;name:string;townHallLevel?:number;townhallLevel?:number}> }>;
   rounds: Array<{ warTags: Array<string | War | { tag: string }> }>;
   warLeague?: { id?: number; name: string } | null;
 }
@@ -95,7 +95,7 @@ export async function loadCwl(
     const group = await optional<CwlGroup>(ctx, `/v2/cwl/${encoded}/group`, {
       season,
     });
-    if (!group || group.season !== season) return null;
+    if (!group || group.season.slice(0,7) !== season) return null;
     return {
       group,
       wars: group.rounds.flatMap((round) =>
@@ -107,9 +107,10 @@ export async function loadCwl(
     ctx,
     `/v2/bot/clash/clans/${encoded}/currentwar/leaguegroup`,
   );
-  // Never treat a previous month's group as this month's CWL. A requested
+  // API seasons can include a start day. Compare their month, but never
+  // treat a previous month's group as this month's CWL. A requested
   // historical season is served only by the stored-group endpoint above.
-  if (live && live.season === current && live.state !== "notInWar") {
+  if (live && live.season.slice(0,7) === current && live.state !== "notInWar") {
     const tags = [
       ...new Set(
         live.rounds
@@ -151,7 +152,7 @@ export async function loadCwl(
   const stored = await optional<CwlGroup>(ctx, `/v2/cwl/${encoded}/group`, {
     season: current,
   });
-  return stored && stored.season === current
+  return stored && stored.season.slice(0,7) === current
     ? {
         group: stored,
         wars: stored.rounds.flatMap((round) =>
@@ -247,12 +248,12 @@ export function clanRounds(
 }
 
 export async function cwlStatus(ctx: CommandContext, tag: string) {
-  const group = await optional<CwlGroup>(
-    ctx,
-    `/v2/bot/clash/clans/${encodeURIComponent(tag)}/currentwar/leaguegroup`,
-  );
-  const current = new Date().toISOString().slice(0, 7);
-  return group?.season === current ? group.state : "unavailable";
+  const group=await optional<{state:string;season?:string}>(ctx,`/v2/bot/clash/clans/${encodeURIComponent(tag)}/currentwar/leaguegroup`);
+  const current=new Date().toISOString().slice(0,7);
+  // The API can explicitly report matchmaking without a season/group yet.
+  // This is distinct from a missing group (404), which must not imply spinning.
+  if(group?.state==="notInWar"&&(!group.season||group.season.slice(0,7)===current))return "spinning";
+  return group?.season?.slice(0,7)===current?group.state:"unavailable";
 }
 export function cwlRanking(group: CwlGroup, wars: War[]) {
   const scores = new Map(

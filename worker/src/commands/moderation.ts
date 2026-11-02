@@ -1,6 +1,9 @@
-import { actionRow, legacyMessage } from "../discord/components";
+import { modalFields, textField } from "./modals";
+import { sendInteractionError } from "./errors";
+import { legacyMessage } from "../discord/components";
 import {
   InteractionResponseType,
+  InteractionType,
   type DiscordInteractionResponse,
 } from "../discord/types";
 import {
@@ -12,29 +15,14 @@ import {
   stringOption,
 } from "./command-utils";
 import {
-  emojis,
-  escapeMarkdown,
-  playerAutocomplete,
-  playerOption,
   subcommand,
 } from "./game-common";
 import { serverEmbedColor } from "./embed-color";
 import type { Command, CommandContext } from "./types";
+import { moderationListReply, moderationSavedReply, banSavedReply, dispatchBanRecord, type BanRecord, type ModerationRecord } from "./ban-records";
+import { ClashKingApiError } from "../api/client";
 
 type Kind = "ban" | "strike";
-interface RecordRow {
-  VillageTag?: string;
-  VillageName?: string;
-  Notes?: string;
-  tag?: string;
-  player_name?: string;
-  reason?: string;
-  strike_id?: string;
-  strike_weight?: number;
-  image?: string;
-  DateCreated?: string;
-  date_created?: string;
-}
 function authorize(ctx: CommandContext) {
   requireGuildId(ctx);
   const permissions = ctx.interaction.member?.permissions ?? "0";
@@ -43,113 +31,54 @@ function authorize(ctx: CommandContext) {
       "Manage Server permission is required for moderation records.",
     );
 }
-const reasonOption = {
-  name: "reason",
-  description: "Reason for this moderation record",
-  type: OptionType.String,
-  required: true,
-  min_length: 1,
-  max_length: 1000,
+const kindOption = { name: "type", description: "Moderation record type", type: OptionType.String,
+  required: true, choices: [{name:"Ban",value:"ban"},{name:"Strike",value:"strike"}] };
+export const moderationCommand: Command = {
+  deferred: context => subcommand(context).path[0] !== "add",
+  ephemeral: context => subcommand(context).path[0] === "remove",
+  definition: {name:"moderation",description:"Manage player bans and strikes",type:1,contexts:[0],integration_types:[0],default_member_permissions:"32",options:[
+    {name:"add",description:"Add a player ban or strike",type:OptionType.Subcommand,options:[
+      {name:"player_tag",description:"Clash of Clans player tag",type:OptionType.String,required:true}, kindOption]},
+    {name:"list",description:"View bans and strikes",type:OptionType.Subcommand,options:[{...kindOption,required:false}]},
+    {name:"remove",description:"Remove a ban or strike",type:OptionType.Subcommand,options:[kindOption,
+      {name:"record",description:"Choose an existing record",type:OptionType.String,required:true,autocomplete:true}]},
+  ]},
+  async autocomplete(context) {
+    const ctx=subcommand(context); authorize(ctx);
+    const kind=stringOption(ctx,"type");
+    if(!isKind(kind)||ctx.path[0]!=="remove")return [];
+    const {items}=await ctx.services.api.get<{items:ModerationRecord[]}>(`/v2/server/${requireGuildId(ctx)}/${kind==="ban"?"bans":"strikes"}`);
+    const query=(stringOption(ctx,"record")??"").toLocaleLowerCase();
+    return items.map(row=>({name:`${row.name??row.player_name??row.VillageName??row.tag} (${row.tag??row.VillageTag})${row.strike_id?` [${row.strike_id}]`:""}`.slice(0,100),value:kind==="ban"?(row.tag??row.VillageTag??""):(row.strike_id??"")}))
+      .filter(item=>item.value&&item.name.toLocaleLowerCase().includes(query)).slice(0,25);
+  },
+  async execute(context) {
+    const ctx=subcommand(context); authorize(ctx);
+    const kind=stringOption(ctx,"type");
+    if(ctx.path[0]==="list")return moderationListReply(ctx,0,isKind(kind)?kind:"all");
+    if(!isKind(kind))throw new CommandInputError("Choose Ban or Strike.");
+    if(ctx.path[0]==="add")return moderationForm(ctx,kind);
+    if(ctx.path[0]==="remove") {
+      const id=stringOption(ctx,"record")??"";
+      if(kind==="ban")normalizeTag(id,ctx.locale);
+      else if(!/^[A-Za-z0-9_-]{1,20}$/u.test(id))throw new CommandInputError("Choose a valid strike.");
+      await ctx.services.api.delete(`/v2/server/${requireGuildId(ctx)}/${kind==="ban"?"bans":"strikes"}/${encodeURIComponent(id)}`);
+      return legacyMessage({embeds:[{description:`${kind==="ban"?"Ban":"Strike"} removed.`,color:await serverEmbedColor(ctx)}]},{ephemeral:true});
+    }
+    throw new CommandInputError("Choose add, list or remove.");
+  },
 };
-function command(kind: Kind): Command {
-  return {
-    deferred: true,
-    ephemeral: true,
-    definition: {
-      name: kind,
-      description: `Manage this server's ${kind} records`,
-      type: 1,
-      contexts: [0],
-      integration_types: [0],
-      default_member_permissions: "32",
-      options: [
-        {
-          name: "add",
-          description: `Add ${kind === "ban" ? "or update a ban" : "a strike"} for a player`,
-          type: OptionType.Subcommand,
-          options: [
-            playerOption,
-            reasonOption,
-            ...(kind === "strike"
-              ? [
-                  {
-                    name: "weight",
-                    description: "Strike weight (default 1)",
-                    type: OptionType.Integer,
-                    min_value: 1,
-                    max_value: 100,
-                  },
-                  {
-                    name: "expires_in",
-                    description: "Days until expiry; omit for no expiry",
-                    type: OptionType.Integer,
-                    min_value: 1,
-                    max_value: 3650,
-                  },
-                ]
-              : []),
-            {
-              name: "image",
-              description: "Optional evidence image, up to 10 MB",
-              type: OptionType.Attachment,
-            },
-          ],
-        },
-        {
-          name: "remove",
-          description: `Remove a ${kind} record`,
-          type: OptionType.Subcommand,
-          options: [
-            kind === "ban"
-              ? playerOption
-              : {
-                  name: "strike_id",
-                  description: "Strike ID shown in the list",
-                  type: OptionType.String,
-                  required: true,
-                  max_length: 20,
-                },
-          ],
-        },
-        {
-          name: "list",
-          description: `View this server's ${kind} records`,
-          type: OptionType.Subcommand,
-          options: [
-            {
-              name: "limit",
-              description: "Records to show (default 20)",
-              type: OptionType.Integer,
-              min_value: 1,
-              max_value: 50,
-            },
-            ...(kind === "strike"
-              ? [
-                  { ...playerOption, required: false },
-                  {
-                    name: "expired",
-                    description: "Include expired strikes",
-                    type: OptionType.Boolean,
-                  },
-                ]
-              : []),
-          ],
-        },
-      ],
-    },
-    async autocomplete(context) {
-      authorize(context);
-      return playerAutocomplete(context);
-    },
-    async execute(context) {
-      const ctx = subcommand(context);
-      authorize(ctx);
-      return executeModeration(ctx, kind);
-    },
-  };
+function isKind(value:string|undefined):value is Kind{return value==="ban"||value==="strike";}
+function moderationForm(ctx:CommandContext,kind:Kind):DiscordInteractionResponse {
+  const tag=normalizeTag(stringOption(ctx,"player_tag")??"",ctx.locale);
+  const optionalField=(id:string,label:string,placeholder:string)=>({type:18,label,component:{type:4,custom_id:id,style:1,required:false,max_length:4,placeholder}});
+  return {type:InteractionResponseType.Modal,data:{title:`${kind==="ban"?"Ban":"Strike"} ${tag}`,
+    custom_id:`ck:moderation:submit:${requireGuildId(ctx)}:${invokingUserId(ctx)}:${kind}:${tag}`,
+    components:[textField("reason","Reason",1000,true),
+      ...(kind==="strike"?[optionalField("weight","Strike weight","1"),optionalField("expires_in","Expires after (days)","Leave blank for no expiry")]:[]),
+      {type:18,label:"Evidence image (optional)",description:"PNG, JPEG, GIF or WebP up to 10 MB",component:{type:19,custom_id:"image",required:false,min_values:0,max_values:1,file_types:[".png",".jpg",".jpeg",".gif",".webp"]}},
+    ]}};
 }
-export const banCommand = command("ban"),
-  strikeCommand = command("strike");
 
 async function executeModeration(
   ctx: CommandContext,
@@ -158,93 +87,17 @@ async function executeModeration(
   const server = requireGuildId(ctx),
     base = `/v2/server/${server}/${kind === "ban" ? "bans" : "strikes"}`,
     action = ctx.path[0];
-  if (action === "list") {
-    const limit = Number(ctx.options.get("limit")?.value ?? 20),
-      filter = stringOption(ctx, "player"),
-      expired = ctx.options.get("expired")?.value === true;
-    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50)
-      throw new CommandInputError("Choose a limit from 1 to 50.");
-    const result = await ctx.services.api.get<{
-      items: RecordRow[];
-      count: number;
-    }>(
-      base,
-      kind === "strike"
-        ? {
-            ...(filter ? { player_tag: normalizeTag(filter, ctx.locale) } : {}),
-            view_expired: expired,
-          }
-        : {},
-    );
-    const emoji = await emojis(ctx);
-    let description = "",
-      shown = 0;
-    const rows = [...result.items].sort((a, b) =>
-      (b.date_created ?? b.DateCreated ?? "").localeCompare(
-        a.date_created ?? a.DateCreated ?? "",
-      ),
-    );
-    for (const row of rows.slice(0, limit)) {
-      const line = `**${escapeMarkdown(row.player_name ?? row.VillageName ?? row.tag ?? row.VillageTag ?? "Player")}** · ${row.tag ?? row.VillageTag ?? ""}${row.strike_id ? ` · ID: \`${row.strike_id}\` · weight ${row.strike_weight ?? 1}` : ""}\n${escapeMarkdown(row.reason ?? row.Notes ?? "No reason").slice(0, 200)}`;
-      if (description.length + line.length + 2 > 3500) break;
-      description += (description ? "\n\n" : "") + line;
-      shown++;
-    }
-    const id = [
-      "ck",
-      "moderation",
-      kind,
-      invokingUserId(ctx),
-      limit,
-      filter ? normalizeTag(filter, ctx.locale) : "all",
-      expired ? "1" : "0",
-    ].join(":");
-    return legacyMessage(
-      {
-        allowed_mentions: { parse: [] },
-        embeds: [
-          {
-            title: `${kind === "ban" ? "Bans" : "Strikes"} · ${shown}/${result.count}`,
-            description: description || "No matching records.",
-            color: await serverEmbedColor(ctx),
-          },
-        ],
-        components: [
-          actionRow({
-            type: 2,
-            style: 2,
-            label: "Refresh",
-            ...(emoji.component("refresh")
-              ? { emoji: emoji.component("refresh") }
-              : {}),
-            custom_id: id,
-          }),
-        ],
-      },
-      { ephemeral: true },
-    );
-  }
-  if (action === "remove") {
-    const raw = stringOption(ctx, kind === "ban" ? "player" : "strike_id");
-    if (!raw) throw new CommandInputError("Choose a record to remove.");
-    const id = kind === "ban" ? normalizeTag(raw, ctx.locale) : raw;
-    if (kind === "strike" && !/^[A-Za-z0-9_-]{1,20}$/u.test(id))
-      throw new CommandInputError("Choose a valid strike ID.");
-    await ctx.services.api.delete(`${base}/${encodeURIComponent(id)}`);
-    return legacyMessage(
-      {
-        content: `Removed ${kind} record for ${id}.`,
-        allowed_mentions: { parse: [] },
-      },
-      { ephemeral: true },
-    );
-  }
   if (action !== "add")
     throw new CommandInputError("Choose add, remove or list.");
-  const tag = normalizeTag(stringOption(ctx, "player") ?? "", ctx.locale),
+  const tag = normalizeTag(stringOption(ctx, "player_tag") ?? "", ctx.locale),
     reason = stringOption(ctx, "reason");
   if (!reason || reason.length > 1000)
     throw new CommandInputError("Enter a reason of up to 1,000 characters.");
+  if (kind === "ban") {
+    const existing = await ctx.services.api.get<{items:BanRecord[]}>(base);
+    if (existing.items.some(row => (row.tag ?? row.VillageTag) === tag))
+      throw new CommandInputError(`${tag} is already banned.`);
+  }
   const weight = Number(ctx.options.get("weight")?.value ?? 1),
     days = Number(ctx.options.get("expires_in")?.value ?? 0);
   if (
@@ -299,78 +152,49 @@ async function executeModeration(
           strike_weight: weight,
           rollover_days: days,
         };
-  const result = await ctx.services.api.post<{
-    strike_id?: string;
-    player_name?: string;
-  }>(`${base}/${encodeURIComponent(tag)}`, body);
-  return legacyMessage(
-    {
-      allowed_mentions: { parse: [] },
-      embeds: [
-        {
-          title: kind === "ban" ? "Ban record saved" : "Strike added",
-          description: `**${escapeMarkdown(result.player_name ?? tag)}** · ${tag}\n${escapeMarkdown(reason)}${result.strike_id ? `\nID: \`${result.strike_id}\`` : ""}`,
-          color: await serverEmbedColor(ctx),
-          ...(image ? { image: { url: image } } : {}),
-        },
-      ],
-    },
-    { ephemeral: true },
-  );
+  const result = await (kind === "ban"
+    ? ctx.services.api.postIfAbsent<{strike_id?:string;player_name?:string}>(`${base}/${encodeURIComponent(tag)}`, body)
+    : ctx.services.api.post<{strike_id?:string;player_name?:string}>(`${base}/${encodeURIComponent(tag)}`, body)
+  ).catch(error => {
+    if (kind === "ban" && error instanceof ClashKingApiError && error.status === 409)
+      throw new CommandInputError(`${tag} is already banned.`);
+    throw error;
+  });
+  if (kind === "ban") {
+    // The mutation has already succeeded. Optional display enrichment must
+    // never turn that success into a failure that encourages duplicate writes.
+    const saved = await ctx.services.api.get<{items:BanRecord[]}>(base)
+      .then(value => value.items.find(row => (row.tag ?? row.VillageTag) === tag))
+      .catch(() => undefined);
+    return banSavedReply(ctx, saved ?? {tag,player_name:result.player_name,reason,
+      added_by:invokingUserId(ctx),date_created:new Date().toISOString(),...(image?{image}:{})});
+  }
+  const saved=await ctx.services.api.get<{items:ModerationRecord[]}>(base)
+    .then(value=>value.items.find(row=>row.strike_id===result.strike_id)).catch(()=>undefined);
+  return moderationSavedReply(ctx,saved??{tag,player_name:result.player_name,reason,added_by:invokingUserId(ctx),date_created:new Date().toISOString(),strike_id:result.strike_id,strike_weight:weight,...(days?{rollover_date:Math.floor(Date.now()/1000)+days*86400}:{}),...(image?{image}:{})},"strike");
 }
+
 export function dispatchModeration(
   ctx: CommandContext,
   waitUntil?: (promise: Promise<unknown>) => void,
 ): Promise<DiscordInteractionResponse> | DiscordInteractionResponse {
   authorize(ctx);
-  const parts = (ctx.interaction.data?.custom_id ?? "").split(":");
-  if (
-    parts.length !== 7 ||
-    parts[0] !== "ck" ||
-    parts[1] !== "moderation" ||
-    !["ban", "strike"].includes(parts[2]!) ||
-    parts[3] !== invokingUserId(ctx) ||
-    !["0", "1"].includes(parts[6]!)
-  )
-    throw new CommandInputError(
-      "This private moderation control belongs to another user.",
-    );
-  const options = new Map(ctx.options);
-  options.set("limit", {
-    name: "limit",
-    type: OptionType.Integer,
-    value: Number(parts[4]),
-  });
-  options.set("expired", {
-    name: "expired",
-    type: OptionType.Boolean,
-    value: parts[6] === "1",
-  });
-  if (parts[5] !== "all")
-    options.set("player", {
-      name: "player",
-      type: OptionType.String,
-      value: parts[5],
-    });
-  const run = executeModeration(
-    { ...ctx, path: ["list"], options },
-    parts[2] as Kind,
-  );
-  if (!waitUntil) return run;
-  waitUntil(
-    run
-      .then((reply) =>
-        ctx.services.discordRest.editOriginalInteractionResponse(
-          ctx.interaction.token,
-          reply.data ?? {},
-        ),
-      )
-      .catch(() =>
-        ctx.services.discordRest.editOriginalInteractionResponse(
-          ctx.interaction.token,
-          { content: "Unable to refresh moderation records." },
-        ),
-      ),
-  );
-  return { type: InteractionResponseType.DeferredUpdateMessage };
+  const record=dispatchBanRecord(ctx,waitUntil);
+  if(record)return record;
+  const match=/^ck:moderation:submit:([0-9]{15,22}):([0-9]{15,22}):(ban|strike):(#[0289PYLQGRJCUV]+)$/u.exec(ctx.interaction.data?.custom_id??"");
+  if(!match||match[1]!==requireGuildId(ctx)||match[2]!==invokingUserId(ctx)||ctx.interaction.type!==InteractionType.ModalSubmit)
+    throw new CommandInputError("Open a new moderation form with /moderation add.");
+  const fields=modalFields(ctx.interaction.data?.components),options=new Map(ctx.options);
+  options.set("player_tag",{name:"player_tag",type:OptionType.String,value:match[4]!});
+  for(const name of ["reason","weight","expires_in"]) {
+    const value=fields.get(name)?.value?.trim();
+    if(value)options.set(name,{name,type:OptionType.String,value});
+  }
+  const images=fields.get("image")?.values??[];
+  if(images.length>1)throw new CommandInputError("Choose one evidence image.");
+  if(images[0])options.set("image",{name:"image",type:OptionType.Attachment,value:images[0]});
+  const run=()=>executeModeration({...ctx,path:["add"],options},match[3] as Kind);
+  if(!waitUntil)return run();
+  waitUntil(run().then(reply=>ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token,reply.data??{})).catch(error=>sendInteractionError(ctx,error,true)));
+  return {type:InteractionResponseType.DeferredChannelMessageWithSource};
 }

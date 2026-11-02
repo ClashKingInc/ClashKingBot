@@ -1,4 +1,4 @@
-import { legacyMessage } from "../discord/components";
+import { componentsV2 } from "../discord/components";
 import { CommandInputError } from "./command-utils";
 import type { CommandContext } from "./types";
 import { lineChartSvg, chartDate } from "./graph-renderer";
@@ -68,23 +68,24 @@ export async function graphCapitalWeekly(
         latest(b.values) - latest(a.values) || a.tag.localeCompare(b.tag),
     )
     .slice(0, limit);
-  const { posterArtwork, renderPosterSvg } = await import("./legend-poster");
+  const { posterArtwork } = await import("./legend-poster");
+  const { renderGraphSvg, graphDecoration } = await import("./graph-image");
+  const decoration=await graphDecoration(ctx,"capitalTrophies",selected);
   const missing =
     failed > 0 ||
     selected.some((row) => row.values.some((value) => value === null));
   const svg = lineChartSvg({
     title: "Capital trophies",
-    subtitle: `${graphScope(clans, selected.length)} · ${chartDate(weeks[0]!)} – ${chartDate(weeks.at(-1)!)}`,
+    subtitle: `${graphScope(clans, selected.length)} | ${chartDate(weeks[0]!)} – ${chartDate(weeks.at(-1)!)}`,
     logo: posterArtwork.logo,
+    icon: decoration.icon,
     labels: weeks.map((week) => chartDate(week)),
-    series: selected,
+    series: decoration.rows,
     note: missing
-      ? "Weekly snapshots · missing periods are left as gaps"
-      : "Weekly snapshots · this week is still in progress",
+      ? "Some weeks unavailable"
+      : undefined,
   });
-  const response = legacyMessage({
-    allowed_mentions: { parse: [] },
-    components: await graphControls(
+  const response = componentsV2([{type:12,items:[{media:{url:"attachment://capital-trophy-history.png"}}]},...await graphControls(
       ctx,
       {
         view: "over-time",
@@ -96,10 +97,10 @@ export async function graphCapitalWeekly(
       },
       clans,
     ),
-  });
+  ]);
   response.data!.attachments = [];
   response.data!.__files = [
-    { name: "capital-trophy-history.png", bytes: await renderPosterSvg(svg) },
+    { name: "capital-trophy-history.png", bytes: await renderGraphSvg(svg) },
   ];
   return response;
 }

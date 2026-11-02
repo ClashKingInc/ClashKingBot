@@ -1,36 +1,26 @@
 import type { CommandContext } from "./types";
 export const graphMetrics = {
+  clanMoves: "Joins and leaves",
   donated: "Donations",
   received: "Troops received",
-  clanGames: "Clan Games points",
   capitalDonated: "Capital Gold donated",
   gold: "Gold looted",
   elixir: "Elixir looted",
   darkElixir: "Dark Elixir looted",
-  attackWins: "Attack wins",
   activity: "Activity",
-  troopLevels: "Troop / spell levels gained",
-  heroLevels: "Hero / pet levels gained",
+  upgrades: "Upgrades",
   warStars: "War stars",
+  warWinRate: "War win rate",
+  cwlLeague: "CWL league",
   warsWon: "Wars won",
   warsSpun: "Wars started",
   capitalRaided: "Capital Gold raided",
-  raidParticipants: "Average raid participants",
-  capitalTrophies: "Capital trophies",
 };
 export const dailyMetrics = {
   activity: "Activity",
-  troopLevels: "Troop / spell levels gained",
-  heroLevels: "Hero / pet levels gained",
-  equipmentLevels: "Equipment levels gained",
-  townhallLevels: "Town Hall levels gained",
-  bestTrophies: "Personal-best trophy gains",
-  experienceLevels: "Experience levels gained",
-  nameChanges: "Name changes",
-  warPreferenceChanges: "War preference changes",
+  upgrades: "Upgrades",
   donated: "Donations",
   received: "Troops received",
-  clanGames: "Clan Games points",
   capitalDonated: "Capital Gold donated",
   clanMoves: "Joins and leaves",
 };
@@ -47,8 +37,7 @@ export const graphBasis = (metric: string) =>
     "elixir",
     "darkElixir",
     "attackWins",
-    "troopLevels",
-    "heroLevels",
+    "upgrades",
   ].includes(metric)
     ? "Latest stored clan members"
     : "Clan recorded on each event or war";
@@ -82,4 +71,6 @@ export async function graphTotal(
 export const validGraphValue = (metric: string, value: number) =>
   Number.isFinite(value) &&
   value >= 0 &&
-  (metric === "raidParticipants" ? value <= 50 : Number.isSafeInteger(value));
+  (metric === "raidParticipants" ? value <= 50 : metric === "warWinRate" ? value <= 100 : Number.isSafeInteger(value));
+
+export const graphMetricIcons:Record<string,string>={activity:'clock',upgrades:'Barbarian King',donated:'up_green_arrow',received:'down_red_arrow',capitalDonated:'capital_gold',gold:'gold',elixir:'elixir',darkElixir:'dark_elixir',warStars:'war_star',warWinRate:'wood_swords',warsWon:'wood_swords',warsSpun:'animated_clash_swords',capitalRaided:'capital_gold',raidParticipants:'people',capitalTrophies:'capital_trophy',cwlLeague:'Master League I',clanMoves:'people'};
