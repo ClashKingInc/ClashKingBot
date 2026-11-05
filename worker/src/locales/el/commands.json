@@ -1,0 +1,14 @@
+{
+  "link.description": "Επαλήθευσε και σύνδεσε έναν λογαριασμό Clash of Clans με εσένα",
+  "unlink.description": "Αποσύνδεσε έναν λογαριασμό Clash of Clans από το προφίλ σου",
+  "base.description": "Δημοσίευσε μια βάση με εικόνες και παρακολούθησε τις λήψεις",
+  "player.description": "Ετικέτα παίκτη όπως εμφανίζεται στο παιχνίδι",
+  "link.name": "σύνδεση",
+  "unlink.name": "αποσύνδεση",
+  "base.name": "βάση",
+  "player.name": "παίκτης",
+  "refresh.name": "refresh",
+  "refresh.description": "Refresh your roles and nickname, or refresh a member or role",
+  "mainAccount.name": "main-account",
+  "mainAccount.description": "Choose your main Clash account for this server's nickname"
+}

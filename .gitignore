@@ -9,3 +9,20 @@ venv
 *.xml
 .DS_Store
 .python-version
+worker/.dev.vars
+worker/.env.dev
+worker/.env.prod
+worker/node_modules/
+worker/.wrangler/
+worker/coverage/
+.local/
+
+# Full production-derived research outputs are local artifacts, not source or test fixtures.
+# Keep the scripts/README so the analysis can be reproduced without committing bulk data.
+/research/legend-rates/full-export-2026-10-14/*.csv
+/research/legend-rates/full-export-2026-10-14/*.json
+/research/legend-rates/full-export-2026-10-14/*.csv.gz
+/research/legend-rates/followup-2026-10-14/*.csv
+/research/legend-rates/followup-2026-10-14/*.json
+/research/legend-rates/trophy-rate-2026-10-14/*.csv
+/research/legend-rates/trophy-rate-2026-10-14/*.json

@@ -1,0 +1,14 @@
+{
+  "link.description": "Zweryfikuj i połącz konto Clash of Clans ze swoim profilem",
+  "unlink.description": "Odłącz konto Clash of Clans od swojego profilu",
+  "base.description": "Udostępnij bazę ze zdjęciami i śledź pobrania",
+  "player.description": "Tag gracza widoczny w grze",
+  "link.name": "połącz",
+  "unlink.name": "odłącz",
+  "base.name": "baza",
+  "player.name": "gracz",
+  "refresh.name": "refresh",
+  "refresh.description": "Refresh your roles and nickname, or refresh a member or role",
+  "mainAccount.name": "main-account",
+  "mainAccount.description": "Choose your main Clash account for this server's nickname"
+}
