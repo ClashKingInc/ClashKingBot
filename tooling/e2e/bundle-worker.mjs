@@ -10,7 +10,7 @@ export async function bundleWorker() {
   const require=createRequire(new URL('../../worker/package.json',import.meta.url));
   const {build}=require('esbuild'),assets=new Map();
   const result=await build({entryPoints:[resolve(root,'worker/src/index.ts')],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022',plugins:[{
-    name:'worker-asset-modules',setup(build){build.onResolve({filter:/\.(wasm|ttf|png)$/},args=>{
+    name:'worker-asset-modules',setup(build){build.onResolve({filter:/\.(wasm|ttf|png|jpg)$/},args=>{
       const source=args.path.startsWith('@')?require.resolve(args.path):resolve(args.resolveDir,args.path);
       const name=`poster-${basename(source)}`;
       if(!assets.has(name))assets.set(name,{type:source.endsWith('.wasm')?'CompiledWasm':'Data',path:`/${name}`,contents:readFileSync(source)});

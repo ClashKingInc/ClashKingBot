@@ -78,3 +78,5 @@ Coverage:
   HTTP, no auto-save on preview, unknown-composition insertion only on Save,
   clicking-user ownership, repeated-save idempotency, bot-message/hash checks,
   absent-user rollback without orphan compositions, and Discord URL limits.
+
+`node tooling/e2e/command-activity.mjs` exercises signed guild commands through the real Bot Worker, API Worker, and owned local SQL. It verifies the activity window, guild isolation, replay behavior, and exclusions for DMs and autocomplete.
