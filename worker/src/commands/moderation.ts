@@ -31,12 +31,12 @@ function authorize(ctx: CommandContext) {
       "Manage Server permission is required for moderation records.",
     );
 }
-const kindOption = { name: "type", description: "Moderation record type", type: OptionType.String,
+const kindOption = { name: "type", description: "Ban or strike", type: OptionType.String,
   required: true, choices: [{name:"Ban",value:"ban"},{name:"Strike",value:"strike"}] };
 export const moderationCommand: Command = {
   deferred: context => subcommand(context).path[0] !== "add",
   ephemeral: context => subcommand(context).path[0] === "remove",
-  definition: {name:"moderation",description:"Manage player bans and strikes",type:1,contexts:[0],integration_types:[0],default_member_permissions:"32",options:[
+  definition: {name:"record",description:"Manage player bans and strikes",type:1,contexts:[0],integration_types:[0],default_member_permissions:"32",options:[
     {name:"add",description:"Add a player ban or strike",type:OptionType.Subcommand,options:[
       {name:"player_tag",description:"Clash of Clans player tag",type:OptionType.String,required:true}, kindOption]},
     {name:"list",description:"View bans and strikes",type:OptionType.Subcommand,options:[{...kindOption,required:false}]},
@@ -183,7 +183,7 @@ export function dispatchModeration(
   if(record)return record;
   const match=/^ck:moderation:submit:([0-9]{15,22}):([0-9]{15,22}):(ban|strike):(#[0289PYLQGRJCUV]+)$/u.exec(ctx.interaction.data?.custom_id??"");
   if(!match||match[1]!==requireGuildId(ctx)||match[2]!==invokingUserId(ctx)||ctx.interaction.type!==InteractionType.ModalSubmit)
-    throw new CommandInputError("Open a new moderation form with /moderation add.");
+    throw new CommandInputError("Open a new record form with /record add.");
   const fields=modalFields(ctx.interaction.data?.components),options=new Map(ctx.options);
   options.set("player_tag",{name:"player_tag",type:OptionType.String,value:match[4]!});
   for(const name of ["reason","weight","expires_in"]) {

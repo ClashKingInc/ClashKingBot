@@ -12,7 +12,7 @@ const categories = {
   clans: { label: "Clans & wars", roots: ["clan", "family", "war", "cwl", "graph"] },
   accounts: { label: "Your accounts", roots: ["link", "refresh"] },
   tools: { label: "Tools & sharing", roots: ["army", "base", "fankit", "meme", "help", "setup", "role-users", "reminders"] },
-  server: { label: "Rosters & moderation", roots: ["roster", "moderation", "ticket"] },
+  server: { label: "Rosters & records", roots: ["roster", "record", "ticket"] },
 };
 type Category = keyof typeof categories;
 function leaves(definitions: ApplicationCommandDefinition[]) {

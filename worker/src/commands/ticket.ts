@@ -42,6 +42,7 @@ export const ticketCommand: Command = {
     name: "ticket", description: "Update the current ticket", type: 1,
     contexts: [0], integration_types: [0],
     options: [
+      { name: "messages", description: "Use a shared message in this ticket", type: 1 },
       { name: "status", description: "Change this ticket's status", type: 1,
         options: [{ name: "status", description: "Ticket status", type: 3, required: true,
           choices: ["open", "sleep", "close"].map(value => ({ name: value, value })) }] },
@@ -101,7 +102,7 @@ export function ticketPath(interaction: DiscordInteraction): string | undefined 
   const base = "/v2/runtime";
   if (interaction.type === InteractionType.ApplicationCommand && interaction.data?.name === "ticket") {
     // Old cached slash definitions must not publish setup panels after removal.
-    return ["status", "add"].includes(interaction.data.options?.[0]?.name ?? "")
+    return ["status", "add", "messages"].includes(interaction.data.options?.[0]?.name ?? "")
       ? `${base}/tickets/actions` : undefined;
   }
   if (interaction.type !== InteractionType.MessageComponent && interaction.type !== InteractionType.ModalSubmit) return undefined;

@@ -126,7 +126,7 @@ export async function moderationListReply(ctx:CommandContext,requestedPage=0,fil
     {type:2 as const,style:2 as const,emoji:emoji.component("refresh")??{name:"↻"},custom_id:id(page)},
     ...(last?[{type:2 as const,style:2 as const,label:"Next",disabled:page===last,custom_id:id(page+1)}]:[]),linkButton("Open dashboard",dashboard.toString())];
   const count=`-# ${rows.length} ${filter==="all"?"records":filter==="ban"?(rows.length===1?"ban":"bans"):(rows.length===1?"strike":"strikes")}`;
-  return cards(ctx,pages[page]!,filter==="ban"?"## Ban List":filter==="strike"?"## Strike List":"## Moderation",1000,[
+  return cards(ctx,pages[page]!,filter==="ban"?"## Ban List":filter==="strike"?"## Strike List":"## Records",1000,[
     actionRow({type:3,custom_id:`ck:moderation:filter:${server}`,placeholder:"Record type",options:[{label:"All records",value:"all",default:filter==="all"},{label:"Bans",value:"ban",default:filter==="ban"},{label:"Strikes",value:"strike",default:filter==="strike"}]}),
     actionRow(...buttons)],true,false,count);
 }
