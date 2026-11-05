@@ -79,6 +79,16 @@ export default {
       }
     }
 
+    // Count actual signed guild commands, including handlers that only render
+    // locally. Autocomplete, DMs and passive component views do not keep a
+    // server active. This best-effort write must not delay Discord's response.
+    if (interaction.type === InteractionType.ApplicationCommand && interaction.guild_id) {
+      executionContext.waitUntil(createServices(env).api.post("/v2/bot/server-activity", {
+        interaction: { rawBody: body, timestamp: request.headers.get("X-Signature-Timestamp")!,
+          signature: request.headers.get("X-Signature-Ed25519")! },
+      }).catch(() => { console.error("Guild command activity could not be recorded"); }));
+    }
+
     try {
       const response = await runWithServices(env, Effect.gen(function* () {
         const services = yield* Services;
