@@ -89,6 +89,18 @@ export class DiscordRestClient {
     });
   }
 
+  async getOriginalInteractionResponse(interactionToken: string): Promise<{id:string;channel_id:string}> {
+    for(let attempt=0;;attempt++){
+      try{return await this.request(`/webhooks/${this.#applicationId}/${interactionToken}/messages/@original`,{method:"GET"},false);}
+      catch(error){
+        // The deferred HTTP acknowledgement can still be in flight when the
+        // background handler first asks Discord for its public message.
+        if(!(error instanceof DiscordRestError)||error.status!==404||attempt>=3)throw error;
+        await new Promise(resolve=>setTimeout(resolve,100));
+      }
+    }
+  }
+
   async editOriginalInteractionResponse(
     interactionToken: string,
     data: NonNullable<DiscordInteractionResponse["data"]>,

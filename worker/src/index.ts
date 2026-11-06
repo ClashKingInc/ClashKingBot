@@ -27,10 +27,16 @@ export default {
     if (env.LOCAL_TEST_USER_ID) return;
     const services = createServices(env);
     ctx.waitUntil((async () => {
-      await publishManualRefreshes(services,env);
+      const requests=await publishManualRefreshes(services,env);
       const started = Date.now();
+      let manualIndex=0;
       for (let batch = 0; batch < 10 && Date.now() - started < 45_000; batch++) {
-        if (await drainRefreshJobs(services) === 0) break;
+        // User-requested work must not wait behind the global automatic queue
+        // while tenure work is paused. Alternate bounded passes so automatic work still
+        // progresses while active manual requests are served round-robin.
+        const manual= batch%2===0 && requests.length ? requests[manualIndex++%requests.length] : undefined;
+        const claimed=await drainRefreshJobs(services,manual?.id,manual?.server_id);
+        if(claimed===0 && !manual && requests.length===0)break;
         await publishManualRefreshes(services,env);
       }
     })());

@@ -93,7 +93,8 @@ a successful build. A source merge or dry-run build is not deployment evidence.
 `/refresh` defers immediately, then asks the API to resolve authorized members and
 create a request in `role_refresh_requests` with existing `role_refresh_jobs`.
 The minute scheduler continues those jobs across Worker restarts. It publishes
-progress to a normal bot-owned channel message; interaction tokens are never
+progress to the original public interaction message using bot-authenticated
+channel edits; no second message is created and interaction tokens are never
 stored and are not needed after the initial acknowledgement. Schema migration
 066 must precede the API and Bot deployment.
 
@@ -109,3 +110,8 @@ Progress is best effort and retried by the scheduler, including after the last
 member completes. Deleted/inaccessible messages surface a publication error;
 member work is retained. Successful unchanged members count in totals but do not
 fill result pages. Results remain for seven days.
+
+Manual requests receive dedicated bounded claim passes before older automatic work.
+The cron alternates manual and global passes so automatic refreshes also progress;
+tenure scheduling and execution are temporarily disabled. Saved tenure rules,
+existing grants, and pending tenure jobs are retained until explicitly re-enabled.
