@@ -113,4 +113,5 @@ fill result pages. Results remain for seven days.
 
 Manual requests receive dedicated bounded claim passes before older automatic work.
 The cron alternates manual and global passes so automatic refreshes also progress;
-a manual pass does not execute the global tenure scan.
+tenure scheduling and execution are temporarily disabled. Saved tenure rules,
+existing grants, and pending tenure jobs are retained until explicitly re-enabled.

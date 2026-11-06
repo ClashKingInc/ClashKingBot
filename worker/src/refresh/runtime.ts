@@ -45,7 +45,8 @@ async function processMemberRefresh(services: CommandServices, job: RefreshJob|M
   const data = await services.api.get<RefreshData>(`/v2/bot/role-refresh/${job.server_id}/data`, { userId: job.user_id });
   if (!manual && !job.request_id && !data.settings.autoeval_enabled && !job.categories.every(category=>["tenure","roster"].includes(category))) return { skipped: "Automatic refresh disabled", add: [], remove: [], blocked: [] };
   data.retiredRosterRoleIds=manual?[]:job.roster_role_ids??[];
-  const plan = planRefresh(data, member.roles, job.categories, {
+  // Tenure work is paused; existing tenure grants remain unmanaged.
+  const plan = planRefresh(data, member.roles, job.categories.filter(category => category !== "tenure"), {
     username: member.user?.global_name ?? member.user?.username ?? "",
     joinedAt: member.joined_at,
     displayName: member.nick ?? member.user?.global_name ?? member.user?.username ?? "",
@@ -96,7 +97,7 @@ async function processMemberRefresh(services: CommandServices, job: RefreshJob|M
 
 export async function drainRefreshJobs(services: CommandServices, requestId?: string, serverId?: string) {
   const { jobs } = await services.api.post<{ jobs: RefreshJob[] }>("/v2/bot/role-refresh/claim", {
-    includeRoster: true, includeRoleTreatment: true, includeAutomaticPolicy: true, ...(requestId ? { requestId } : { includeTenure: true }), ...(serverId ? { serverId } : {}),
+    includeRoster: true, includeRoleTreatment: true, includeAutomaticPolicy: true, ...(requestId ? { requestId } : {}), ...(serverId ? { serverId } : {}),
   });
   const states = new Map<string, Promise<GuildState>>();
   let botId: Promise<string> | undefined;

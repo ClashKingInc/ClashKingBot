@@ -78,6 +78,7 @@ try{
  assert.equal(Number((await db.query('SELECT count(*) FROM role_refresh_jobs WHERE request_id=$1',[requestId])).rows[0].count),2,'Idempotent invocation');
  await wait(async()=>ackEdits>0,'initial response');await bot.dispose();expired=true;bot=await startBot();
  await db.query("UPDATE role_refresh_requests SET created_at=now()-interval '20 minutes',published_at=NULL WHERE id=$1",[requestId]);
+ await db.query("INSERT INTO role_refresh_jobs(id,server_id,user_id,categories,due_at) VALUES('tenure:paused',$1,$2,ARRAY['tenure'],now()-interval '2 days')",[guild,actor]);
  await db.query("INSERT INTO role_refresh_jobs(id,server_id,user_id,due_at) SELECT 'older-auto-'||i,$1,(999999999999995000::bigint+i)::text,now()-interval '1 day' FROM generate_series(1,40)i",[guild]);
  const before=ackEdits;await (await bot.getWorker()).scheduled({cron:'* * * * *'});
  await wait(async()=>first429>0,'provider throttle');
@@ -110,6 +111,7 @@ try{
  await db.query('UPDATE role_refresh_requests SET published_at=NULL WHERE id=$1',[revokedId]);await (await bot.getWorker()).scheduled({cron:'* * * * *'});
  await wait(async()=>Boolean((await db.query('SELECT published_complete FROM role_refresh_requests WHERE id=$1',[revokedId])).rows[0]?.published_complete),'failure final progress');
  assert.match(JSON.stringify(messages.at(-1)),/Refresh Incomplete/);assert.match(JSON.stringify(messages.at(-1)),/Before/);
+ const pausedTenure=(await db.query("SELECT attempts,completed_at FROM role_refresh_jobs WHERE id='tenure:paused'")).rows[0];assert.equal(pausedTenure.attempts,0);assert.equal(pausedTenure.completed_at,null);
  console.log('PASS real signed Bot/API/SQL: immediate defer, durable two-member request, idempotent enqueue, single original progress message, older automatic backlog bypassed, restart after token expiry, provider retry-after, combined roles+nickname PATCH preserving unrelated roles, final progress publication');
 }catch(error){console.error(logs.slice(-6000));throw error;}finally{
  if(bot)await bot.dispose();if(api&&api.exitCode===null){api.kill('SIGTERM');await new Promise(r=>api.once('exit',r));}await new Promise(r=>provider.close(r));await db.end();

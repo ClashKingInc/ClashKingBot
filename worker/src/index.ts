@@ -32,7 +32,7 @@ export default {
       let manualIndex=0;
       for (let batch = 0; batch < 10 && Date.now() - started < 45_000; batch++) {
         // User-requested work must not wait behind the global automatic queue
-        // or its tenure scan. Alternate bounded passes so automatic work still
+        // while tenure work is paused. Alternate bounded passes so automatic work still
         // progresses while active manual requests are served round-robin.
         const manual= batch%2===0 && requests.length ? requests[manualIndex++%requests.length] : undefined;
         const claimed=await drainRefreshJobs(services,manual?.id,manual?.server_id);
