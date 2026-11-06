@@ -12,6 +12,7 @@ export interface RefreshData {
   rules: RefreshRule[];
   clans: Array<{ tag: string; category?: string | null; abbreviation: string }>;
   accounts: RefreshPlayer[];
+  skippedAccountTags?: string[];
   mainTag?: string | null;
   settings: { change_nickname: boolean; auto_eval_nickname: boolean; flair_non_family: boolean;
     nickname_rule: string; non_family_nickname_rule: string; autoeval_enabled: boolean };

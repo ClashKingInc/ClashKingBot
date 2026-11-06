@@ -18,11 +18,14 @@ const top='999999999999994510',add='999999999999994511',remove='9999999999999945
 const definitions=[{id:guild,name:'@everyone',position:0,permissions:'0'},{id:top,name:'Bot',position:20,permissions:String((1<<28)+(1<<27))},...[add,remove,keep,late].map((id,i)=>({id,name:id,position:i+1,permissions:id===keep?'32':'0'}))];
 const members=new Map([actor,user].map(id=>[id,{user:{id,username:'Before'},nick:'Before',roles:[remove,keep]}]));
 const claimRequests=[];
+let playerFailure=0,missingTags=new Set(),expectEmptyAccounts=false;
 let api,bot,logs='',expired=false,throttle=true,first429=0,rolePatches=[],messages=[],ackEdits=0,earlyRetries=0;
 const provider=createServer(async(req,res)=>{
  let raw='';for await(const chunk of req)raw+=chunk;const body=raw?JSON.parse(raw):undefined;
  const path=new URL(req.url,'http://local').pathname.replace(/^\/api\/v10/,'');res.setHeader('content-type','application/json');
  const send=(data,status=200)=>{res.statusCode=status;res.end(JSON.stringify(data));};
+ if(path.startsWith('/v1/players/')&&missingTags.has(decodeURIComponent(path.split('/').at(-1))))return send({reason:'notFound'},404);
+ if(path.startsWith('/v1/players/')&&playerFailure)return send({reason:'local fixture failure'},playerFailure);
  if(path.startsWith('/v1/players/'))return send({tag:decodeURIComponent(path.split('/').at(-1)),name:'Updated',townHallLevel:16,trophies:5000});
  if(path===`/guilds/${guild}`)return send({id:guild,name:'Local refresh',owner_id:'999999999999994599'});
  if(path===`/guilds/${guild}/roles`)return send(definitions);
@@ -40,8 +43,8 @@ const provider=createServer(async(req,res)=>{
   if(req.method==='PATCH'){
    if(throttle){throttle=false;first429=Date.now();res.setHeader('retry-after','2');res.setHeader('x-ratelimit-bucket','member-edits');return send({retry_after:2,global:false},429);}
    if(Date.now()-first429<2000)earlyRetries++;
-   assert(body.roles.includes(keep)&&body.roles.includes(late));assert(body.roles.includes(add)&&!body.roles.includes(remove));assert.equal(body.nick,'Updated');
-   rolePatches.push({id:match[1],body});Object.assign(member,{roles:body.roles,nick:body.nick});res.setHeader('x-ratelimit-bucket','member-edits');res.setHeader('x-ratelimit-remaining','0');res.setHeader('x-ratelimit-reset-after','0.05');return send(member);
+   assert(body.roles.includes(keep)&&body.roles.includes(late));if(expectEmptyAccounts){assert(!body.roles.includes(add)&&!body.roles.includes(remove));assert.equal(body.nick,undefined);}else{assert(body.roles.includes(add)&&!body.roles.includes(remove));assert.equal(body.nick,'Updated');}
+   rolePatches.push({id:match[1],body});Object.assign(member,{roles:body.roles,...(body.nick===undefined?{}:{nick:body.nick})});res.setHeader('x-ratelimit-bucket','member-edits');res.setHeader('x-ratelimit-remaining','0');res.setHeader('x-ratelimit-reset-after','0.05');return send(member);
   }
  }
  send({message:'Unrecognized local provider route',path},404);
@@ -94,6 +97,8 @@ try{
  assert.equal(ackEdits,before,'Expired interaction token never used by continued work');assert.equal(earlyRetries,0);assert.equal(rolePatches.length,2,'One successful combined member PATCH per member');assert.match(JSON.stringify(messages.at(-1)),/Refresh Complete/);
  assert.equal(Number((await db.query('SELECT max(attempts) AS attempts FROM role_refresh_jobs WHERE request_id=$1',[requestId])).rows[0].attempts),1,'Rate limiting does not spend a failure attempt');
  assert.match(JSON.stringify(messages.at(-1)),/Updated/);assert(!JSON.stringify(messages.at(-1)).includes('None'));
+ await db.query("UPDATE role_refresh_jobs SET result=result||'{\"error\":\"old retry message\"}'::jsonb WHERE request_id=$1",[requestId]);
+ const legacyReport=await request(`/v2/bot/role-refresh/${guild}/manual-progress?requestId=${requestId}`);assert(legacyReport.results.every(item=>item.result.error===undefined),'Completed pre-fix rows cannot display a stale retry error');
  const repeatId='999999999999994520';
  await request(`/v2/bot/role-refresh/${guild}/manual-start`,{actorId:actor,requestId:repeatId,channelId:channel,messageId,targetId:guild,targetKind:'role',preview:false,categories:['family','clan','leadership','townhall','builderhall','league','builder_league','category','nicknames','tenure','roster'],treatment:'both'});
  await db.query('UPDATE discord_cache.gateway_shards SET heartbeat_at=now() WHERE application_id=$1',[app]);
@@ -102,19 +107,62 @@ try{
  await db.query('UPDATE role_refresh_requests SET published_at=NULL WHERE id=$1',[repeatId]);await (await bot.getWorker()).scheduled({cron:'* * * * *'});
  await wait(async()=>Boolean((await db.query('SELECT published_complete FROM role_refresh_requests WHERE id=$1',[repeatId])).rows[0]?.published_complete),'unchanged final progress');
  assert.equal(rolePatches.length,2,'Unchanged members perform no member PATCH');assert.match(JSON.stringify(messages.at(-1)),/No changes needed/);assert(!JSON.stringify(messages.at(-1)).includes('<@'),'Unchanged people omitted');
+ // A recent publication must not hide pending work. Missing accounts retain
+ // their saved links but behave exactly like absent accounts in the planner.
+ const missingId='999999999999994522',missingTag='#PYLQGRP';
+ await db.query("INSERT INTO player_links(tag,user_id,source) VALUES($1,$2,'discord')",[missingTag,actor]);missingTags.add(missingTag);
+ members.get(actor).roles=[remove,keep,late];members.get(actor).nick='Before';
+ await request(`/v2/bot/role-refresh/${guild}/manual-start`,{actorId:actor,requestId:missingId,channelId:channel,messageId,targetId:actor,targetKind:'user',preview:false,categories:['townhall','nicknames'],treatment:'both'});
+ await db.query('UPDATE role_refresh_requests SET published_at=now() WHERE id=$1',[missingId]);
+ await db.query('UPDATE discord_cache.gateway_shards SET heartbeat_at=now() WHERE application_id=$1',[app]);
+ await (await bot.getWorker()).scheduled({cron:'* * * * *',scheduledTime:0});
+ await wait(async()=>Boolean((await db.query('SELECT completed_at FROM role_refresh_jobs WHERE request_id=$1',[missingId])).rows[0]?.completed_at),'mixed missing and valid accounts complete');
+ const missingReport=await request(`/v2/bot/role-refresh/${guild}/manual-progress?requestId=${missingId}`);
+ assert.equal(missingReport.completed,1);assert.equal(missingReport.failed,0);assert.equal(missingReport.finished,true);assert.deepEqual(missingReport.results[0].result.skippedAccountTags,[missingTag]);
+ assert.equal(rolePatches.length,3,'Remaining valid account refreshes roles and nickname');
+ assert.equal(Number((await db.query('SELECT count(*) FROM player_links WHERE user_id=$1',[actor])).rows[0].count),2,'404 never deletes saved links');
+ await db.query('UPDATE role_refresh_requests SET published_at=NULL WHERE id=$1',[missingId]);await (await bot.getWorker()).scheduled({cron:'* * * * *',scheduledTime:0});
+ await wait(async()=>Boolean((await db.query('SELECT published_complete FROM role_refresh_requests WHERE id=$1',[missingId])).rows[0]?.published_complete),'missing account note published');
+ assert.match(JSON.stringify(messages.at(-1)),/Missing accounts skipped/);
+ const emptyResults=[];expectEmptyAccounts=true;
+ for(const [i,emptyId] of ['999999999999994524','999999999999994525'].entries()){
+   members.get(actor).roles=[add,remove,keep,late];members.get(actor).nick='Keep nickname';
+   if(i===0)playerFailure=404;else{playerFailure=0;await db.query('DELETE FROM player_links WHERE user_id=$1',[actor]);}
+   await request(`/v2/bot/role-refresh/${guild}/manual-start`,{actorId:actor,requestId:emptyId,channelId:channel,messageId,targetId:actor,targetKind:'user',preview:false,categories:['townhall','nicknames'],treatment:'both'});
+   await (await bot.getWorker()).scheduled({cron:'* * * * *',scheduledTime:0});
+   await wait(async()=>Boolean((await db.query('SELECT completed_at FROM role_refresh_jobs WHERE request_id=$1',[emptyId])).rows[0]?.completed_at),'empty account set completes');
+   const result=(await db.query('SELECT result FROM role_refresh_jobs WHERE request_id=$1',[emptyId])).rows[0].result;
+   emptyResults.push({add:result.add,remove:result.remove,nickname:result.nickname});
+   assert.deepEqual(members.get(actor).roles,[keep,late]);assert.equal(members.get(actor).nick,'Keep nickname');
+ }
+ assert.deepEqual(emptyResults[0],emptyResults[1],'All 404 accounts have the normal no-linked-accounts semantics');
+ expectEmptyAccounts=false;missingTags.clear();await db.query("INSERT INTO player_links(tag,user_id,source) VALUES('#PYLQGRU',$1,'discord')",[actor]);
+ const patchesBeforeRetry=rolePatches.length;
+ const retryId='999999999999994523';playerFailure=503;
+ await request(`/v2/bot/role-refresh/${guild}/manual-start`,{actorId:actor,requestId:retryId,channelId:channel,messageId,targetId:actor,targetKind:'user',preview:false,categories:['townhall','nicknames'],treatment:'both'});
+ await (await bot.getWorker()).scheduled({cron:'* * * * *',scheduledTime:0});
+ await wait(async()=>Number((await db.query('SELECT attempts FROM role_refresh_jobs WHERE request_id=$1',[retryId])).rows[0]?.attempts)===1,'transient player retry');
+ const retryReport=await request(`/v2/bot/role-refresh/${guild}/manual-progress?requestId=${retryId}`);assert.equal(retryReport.finished,false);assert.equal(retryReport.failed,0);assert.match(retryReport.waiting[0].result.error,/temporarily unavailable/);assert(retryReport.waiting[0].nextRetryAt);
+ await db.query('UPDATE role_refresh_requests SET published_at=NULL WHERE id=$1',[retryId]);await (await bot.getWorker()).scheduled({cron:'* * * * *',scheduledTime:0});
+ assert.match(JSON.stringify(messages.at(-1)),/Next attempt/);assert.match(JSON.stringify(messages.at(-1)),/Before/);assert.equal(rolePatches.length,patchesBeforeRetry);
+ playerFailure=0;await db.query('UPDATE role_refresh_jobs SET due_at=now() WHERE request_id=$1',[retryId]);
+ await (await bot.getWorker()).scheduled({cron:'* * * * *',scheduledTime:0});
+ await wait(async()=>Boolean((await db.query('SELECT completed_at FROM role_refresh_jobs WHERE request_id=$1',[retryId])).rows[0]?.completed_at),'transient player recovered');
+ assert.equal((await db.query('SELECT result FROM role_refresh_jobs WHERE request_id=$1',[retryId])).rows[0].result.error,undefined,'Recovered retries must not retain a failure label');
+ const patchesBeforeRevocation=rolePatches.length;
  const revokedId='999999999999994521';
  await request(`/v2/bot/role-refresh/${guild}/manual-start`,{actorId:actor,requestId:revokedId,channelId:channel,messageId,targetId:guild,targetKind:'role',preview:false,categories:['townhall','nicknames'],treatment:'both'});
  for(const member of members.values()){member.roles=[remove,keep,late];member.nick='Before';}
  await db.query("UPDATE discord_cache.roles SET data=jsonb_set(data,'{permissions}','\"0\"'::jsonb) WHERE guild_id=$1 AND id=$2",[guild,keep]);
  await (await bot.getWorker()).scheduled({cron:'* * * * *'});
  await wait(async()=>Number((await db.query('SELECT sum(attempts) AS attempts FROM role_refresh_jobs WHERE request_id=$1',[revokedId])).rows[0].attempts)>=2,'revoked actor checked');
- assert.equal(rolePatches.length,2,'Revoked manager cannot apply queued changes');
+ assert.equal(rolePatches.length,patchesBeforeRevocation,'Revoked manager cannot apply queued changes');
  await db.query('UPDATE role_refresh_jobs SET attempts=12 WHERE request_id=$1',[revokedId]);
  await db.query('UPDATE role_refresh_requests SET published_at=NULL WHERE id=$1',[revokedId]);await (await bot.getWorker()).scheduled({cron:'* * * * *'});
  await wait(async()=>Boolean((await db.query('SELECT published_complete FROM role_refresh_requests WHERE id=$1',[revokedId])).rows[0]?.published_complete),'failure final progress');
  assert.match(JSON.stringify(messages.at(-1)),/Refresh Incomplete/);assert.match(JSON.stringify(messages.at(-1)),/Before/);
  const pausedTenure=(await db.query("SELECT attempts,completed_at FROM role_refresh_jobs WHERE id='tenure:paused'")).rows[0];assert.equal(pausedTenure.attempts,0);assert.equal(pausedTenure.completed_at,null);
- console.log('PASS real signed Bot/API/SQL: immediate defer, durable two-member request, idempotent enqueue, single original progress message, older automatic backlog bypassed, restart after token expiry, provider retry-after, combined roles+nickname PATCH preserving unrelated roles, final progress publication');
+ console.log('PASS real signed Bot/API/SQL: immediate defer, durable two-member request, idempotent enqueue, single original progress message, older automatic backlog bypassed, restart after token expiry, provider retry-after, combined roles+nickname PATCH preserving unrelated roles, final progress publication, mixed 404 accounts skipped, all 404 equals no linked accounts, temporary outage retry and recovered error cleared');
 }catch(error){console.error(logs.slice(-6000));throw error;}finally{
  if(bot)await bot.dispose();if(api&&api.exitCode===null){api.kill('SIGTERM');await new Promise(r=>api.once('exit',r));}await new Promise(r=>provider.close(r));await db.end();
 }
