@@ -42,8 +42,8 @@ export const refreshCommand: Command = {
   },
 };
 
-interface ManualResult {user_id:string;result:{displayName?:string;add?:string[];remove?:string[];nickname?:string;blocked?:string[];preview?:boolean;skipped?:string;error?:string}}
-interface ManualReport {requestId:string;actorId:string;channelId:string;messageId:string|null;createdAt:string;updatedAt:string;finished:boolean;results:ManualResult[];total:number;completed:number;failed:number;target:string;kind:string;preview:boolean;categories:RefreshCategory[];treatment:RoleTreatment}
+interface ManualResult {user_id:string;result:{displayName?:string;skippedAccountTags?:string[];add?:string[];remove?:string[];nickname?:string;blocked?:string[];preview?:boolean;skipped?:string;error?:string}}
+interface ManualReport {requestId:string;actorId:string;channelId:string;messageId:string|null;createdAt:string;updatedAt:string;finished:boolean;waiting?:Array<ManualResult&{nextRetryAt:string}>;results:ManualResult[];total:number;completed:number;failed:number;target:string;kind:string;preview:boolean;categories:RefreshCategory[];treatment:RoleTreatment}
 async function runManualRefresh(ctx: CommandContext, kind: string, target: string, preview: boolean, categories: RefreshCategory[], treatment: RoleTreatment = "both") {
   const guild=requireGuildId(ctx),actor=invokingUserId(ctx),channelId=ctx.interaction.channel_id;
   if(!channelId)throw new CommandInputError("Run refresh in a server channel.");
@@ -67,7 +67,7 @@ async function publishManualRefresh(ctx:CommandContext,guild:string,requestId:st
 }
 
 export async function publishManualRefreshes(services:CommandServices,env:Env){
-  const {requests}=await services.api.get<{requests:{id:string;server_id:string}[]}>("/v2/bot/role-refresh/progress");
+  const {requests,activeRequests}=await services.api.get<{requests:{id:string;server_id:string}[];activeRequests?:{id:string;server_id:string}[]}>("/v2/bot/role-refresh/progress");
   for(const request of requests){
     try{
       const report=await services.api.get<ManualReport>(`/v2/bot/role-refresh/${request.server_id}/manual-progress`,{requestId:request.id});
@@ -77,7 +77,7 @@ export async function publishManualRefreshes(services:CommandServices,env:Env){
       await publishManualRefresh(ctx,request.server_id,request.id);
     }catch{console.error("Manual refresh progress could not be published",{requestId:request.id});}
   }
-  return requests;
+  return activeRequests??requests;
 }
 
 async function status(ctx: CommandContext, requestId: string, requestedPage=0, supplied?:ManualReport) {
@@ -85,9 +85,14 @@ async function status(ctx: CommandContext, requestId: string, requestedPage=0, s
   const report=supplied??await ctx.services.api.get<ManualReport>(`/v2/bot/role-refresh/${guild}/manual-report`,{requestId,actorId:invokingUserId(ctx)});
   if(!report.finished){
     const processed=report.completed+report.failed,elapsed=Math.max(0,Math.floor((Date.now()-Date.parse(report.createdAt))/1000));
-    return legacyMessage({allowed_mentions:{parse:[]},embeds:[{color:await serverEmbedColor(ctx),title:"Role Refresh In Progress",description:`**${processed} / ${report.total} members processed**\n${report.failed?`${report.failed} could not be refreshed.\n`:""}This message updates as the refresh continues.`,footer:{text:`Time Elapsed: ${elapsed} seconds${report.preview?" | Test mode":""}`}}]});
+    const waiting=(report.waiting??[]).filter(item=>item.result.error).slice(0,5).map(item=>{
+      const name=escapeMarkdown(item.result.displayName??`Member ${item.user_id}`),retry=Math.floor(Date.parse(item.nextRetryAt)/1000);
+      return `**${name}** (<@${item.user_id}>): ${escapeMarkdown(item.result.error!)}${Number.isFinite(retry)?` Next attempt <t:${retry}:R>.`:""}`;
+    });
+    const duration=elapsed>=3600?`${Math.floor(elapsed/3600)}h ${Math.floor(elapsed%3600/60)}m`:`${Math.floor(elapsed/60)}m ${elapsed%60}s`;
+    return legacyMessage({allowed_mentions:{parse:[]},embeds:[{color:await serverEmbedColor(ctx),title:"Role Refresh In Progress",description:`**${processed} / ${report.total} members processed**\n${report.failed?`${report.failed} could not be refreshed.\n`:""}${report.total-processed} remaining. This message updates as the refresh continues.${waiting.length?`\n\n${waiting.join("\n\n")}`:""}`,footer:{text:`Time Elapsed: ${duration}${report.preview?" | Test mode":""}`}}]});
   }
-  const visible=report.results.filter(({result})=>result.error||result.skipped||result.blocked?.length||result.add?.length||result.remove?.length||result.nickname);
+  const visible=report.results.filter(({result})=>result.error||result.skipped||result.skippedAccountTags?.length||result.blocked?.length||result.add?.length||result.remove?.length||result.nickname);
   const last=Math.max(0,Math.ceil(visible.length/size)-1),page=Math.min(requestedPage,last);
   const result={...report,results:visible.slice(page*size,(page+1)*size)};
   const [server,emoji,identities]=await Promise.all([
@@ -106,6 +111,7 @@ async function status(ctx: CommandContext, requestId: string, requestedPage=0, s
       if(value.nickname)lines.push(`**Name Change:** ${escapeMarkdown(value.nickname)}`);
       if(value.blocked?.length)lines.push(`**Blocked:** ${value.blocked.map(entry=>{const match=/^(\d{15,20}): (.*)$/u.exec(entry);return match?`<@&${match[1]}>: ${escapeMarkdown(match[2]!)}`:escapeMarkdown(entry);}).join('; ')}`);
     }
+    if(value.skippedAccountTags?.length)lines.push(`**Missing accounts skipped:** ${value.skippedAccountTags.map(escapeMarkdown).join(', ')}`);
     return lines.join('\n');
   });
   const chunks=[''];

@@ -74,7 +74,7 @@ async function processMemberRefresh(services: CommandServices, job: RefreshJob|M
   if (!job.preview) {
     if (!manual) {
     const valid = await services.api.post<{ valid: boolean }>("/v2/bot/role-refresh/validate", {
-      id: job.id, token: job.token, accountTags: data.accounts.map(account => account.tag), rosterFingerprint: data.roster?.fingerprint,
+      id: job.id, token: job.token, accountTags: [...data.accounts.map(account => account.tag),...(data.skippedAccountTags??[])], rosterFingerprint: data.roster?.fingerprint,
       ...(gameAutomatic ? {automaticRoleTreatment: treatment, automaticBlacklistRoles: job.auto_role_blacklist_ids ?? []} : {}),
     });
     if (!valid.valid) throw new Error("Refresh inputs changed; retry with current accounts");
@@ -92,7 +92,7 @@ async function processMemberRefresh(services: CommandServices, job: RefreshJob|M
       await rest.request(`/guilds/${job.server_id}/members/${job.user_id}`,{method:"PATCH",body:JSON.stringify({...(add.length||remove.length?{roles:merged}:{}),...(nickname!==undefined?{nick:nickname}:{})})});
     }
   }
-  return { displayName:nickname??member.nick??member.user?.global_name??member.user?.username, add, remove, ...(nickname === undefined ? {} : { nickname }), blocked, preview: job.preview, mainTag: plan.mainTag };
+  return { displayName:nickname??member.nick??member.user?.global_name??member.user?.username, add, remove, ...(nickname === undefined ? {} : { nickname }), blocked, preview: job.preview, skippedAccountTags: data.skippedAccountTags, mainTag: plan.mainTag };
 }
 
 export async function drainRefreshJobs(services: CommandServices, requestId?: string, serverId?: string) {
@@ -118,13 +118,15 @@ export async function drainRefreshJobs(services: CommandServices, requestId?: st
         await services.api.post("/v2/bot/role-refresh/complete", { id: job.id, token: job.token, success: true, result });
       } catch (error) {
         let retryAfterSeconds:number|undefined;
+        let message="Refresh could not finish; retry queued";
+        if(error instanceof ClashKingApiError&&error.status===503)message="Player data is temporarily unavailable; existing roles are unchanged. Retry queued.";
         if(error instanceof DiscordRestError&&error.status===429)retryAfterSeconds=error.retryAfterSeconds??1;
         if(error instanceof ClashKingApiError&&error.status===429){try{const body=JSON.parse(error.body);retryAfterSeconds=error.retryAfterSeconds??Number(body.retryAfterSeconds??body.retry_after??30);}catch{retryAfterSeconds=30;}}
 
-        // Partial external delivery is retried by computing a fresh delta; role
-        // PUT/DELETE are idempotent. Never log provider bodies or linked accounts.
+        // Retry partial external work by computing a fresh member delta.
+        // Never log provider bodies or linked accounts.
         await services.api.post("/v2/bot/role-refresh/complete", { id: job.id, token: job.token, success: false,
-          ...(retryAfterSeconds?{retryAfterSeconds}:{}), result: { error: retryAfterSeconds?"Waiting for Discord; refresh will continue automatically.":"Refresh could not finish; retry queued" } });
+          ...(retryAfterSeconds?{retryAfterSeconds}:{}), result: { error: retryAfterSeconds?"Waiting for Discord; refresh will continue automatically.":message } });
       }
     }));
   }
