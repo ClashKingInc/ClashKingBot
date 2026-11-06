@@ -127,7 +127,7 @@ const provider=createServer(async(req,res)=>{
  if(p==='/v1/clans/#PYLQGRJJ/currentwar')return res.end(JSON.stringify({...warBody,endTime:opponentNextWar?new Date(fixtureNow+7200000).toISOString():endTime}));
  if(p===`/v1/clans/${group}/currentwar`)return res.end(JSON.stringify(reminderWarActive&&!reminderCwl?warBody:{state:'notInWar'}));
  if(p===`/v1/clans/${group}/currentwar/leaguegroup`||p==='/v1/clans/#PYLQGRJJ/currentwar/leaguegroup')return res.end(JSON.stringify({state:reminderCwl?'inWar':'notInWar',season:new Date().toISOString().slice(0,7),clans:[{tag:group,name:own.name},{tag:opponent.tag,name:opponent.name}],rounds:reminderCwl?[...(cwlGap?[{warTags:['#0']}]:[]),{warTags:['#PYLQGRJQ']}]:[]}));
- if(p==='/v1/clanwarleagues/wars/#PYLQGRJQ')return res.end(JSON.stringify({...warBody,attacksPerMember:1,clan:opponent,opponent:own}));
+ if(p==='/v1/clanwarleagues/wars/#PYLQGRJQ')return res.end(JSON.stringify({...warBody,attacksPerMember:undefined,clan:opponent,opponent:{...own,members:own.members.map(member=>({...member,attacks:member.attacks.slice(0,1)}))}}));
  if(p==='/v1/clans/#PYLQGRJJ')return res.end(JSON.stringify({tag:opponent.tag,name:opponent.name,warLeague:{id:48000019,name:'Champion League I'},memberList:[]}));
  if(roleMode&&p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Role Clan',description:'',clanLevel:10,members:1,isWarLogPublic:true,warWins:1,warWinStreak:0,clanPoints:1000,badgeUrls:{},memberList:[{tag,name:'Current Player',townHallLevel:16,donations:0,donationsReceived:0}]}));
  if(p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Reminder Clan',description:verificationDescription,warLeague:{id:48000019,name:'Champion League I'},memberList:[{tag,name:'Missing Player',townHallLevel:16},{tag:tags[1],name:'Finished Player',townHallLevel:16}]}));
@@ -607,10 +607,16 @@ try{
    await db.query("UPDATE server_clan_verifications SET started_at=now()-interval '3 minutes',check_after=now()-interval '1 second',next_check_at=now()-interval '1 second' WHERE server_id=$1 AND clan_tag=$2",[server,group]);
    if((await call(server,'/check')).state!=='verified')throw Error('Description verification failed');
    if(handoffMode){
+    const firstUser='999999999999996599';
+    if((await db.query('SELECT 1 FROM auth_users WHERE user_id=$1',[firstUser])).rowCount)throw Error('First-use fixture already exists');
+    const firstSetup=await interact({type:2,data:{name:'setup'}},firstUser,'32');
+    const firstURL=new URL(firstSetup.components?.[0]?.components?.[0]?.url);
+    if(firstURL.pathname!=='/login'||firstURL.hash||!firstSetup.content.includes('Sign in with Discord'))throw Error('First use setup did not offer normal sign-in '+text(firstSetup));
+    if((await db.query('SELECT 1 FROM auth_users WHERE user_id=$1',[firstUser])).rowCount)throw Error('Setup fabricated an app account');
     await db.query("INSERT INTO auth_refresh_tokens(token_hash,user_id,device_id,expires_at) VALUES('local-handoff-refresh',$1,'',now()+interval '10 minutes')",[actor]);
     const createRoster=async(serverId)=>{const response=await fetch(`http://127.0.0.1:${port}/v2/roster?server_id=${serverId}`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({alias:'Settings handoff',roster_type:'family'})});const value=await response.json();if(!response.ok)throw Error('Create handoff roster failed');return value.roster_id;};
     const rosterId=await createRoster(server),foreignRoster=await createRoster(second);
-    const settings=await interact({type:2,data:{name:'dashboard'}},actor,'32');
+    const settings=await interact({type:2,data:{name:'setup'}},actor,'32');
     const destination=new URL(settings.components?.[0]?.components?.[0]?.url);
     const params=new URLSearchParams(destination.hash.slice(1)),code=params.get('code');
     if(destination.pathname!=='/access'||destination.search||params.has('roster')||!/^[a-f0-9]{64}$/u.test(code??''))throw Error('Settings handoff target invalid');
@@ -624,13 +630,13 @@ try{
     if((await exchange(verificationToken)).status!==401)throw Error('One-use grant replay accepted');
     const scoped=await fetch(`http://127.0.0.1:${port}/v2/server/${server}/rosters/${rosterId}`,{headers:{authorization:`Bearer ${session.access_token}`}});if(!scoped.ok)throw Error('Scoped session cannot open own roster');
     const blocked=await fetch(`http://127.0.0.1:${port}/v2/server/${second}/rosters/${foreignRoster}`,{headers:{authorization:`Bearer ${session.access_token}`}});if(blocked.status!==403)throw Error('Scoped session escaped server');
-    const expired=await interact({type:2,data:{name:'dashboard'}},actor,'32');
+    const expired=await interact({type:2,data:{name:'setup'}},actor,'32');
     const expiredCode=new URLSearchParams(new URL(expired.components[0].components[0].url).hash.slice(1)).get('code');
     await db.query("UPDATE dashboard_access_grants SET expires_at=now()-interval '1 minute' WHERE token_hash=$1",[createHash('sha256').update(expiredCode).digest('hex')]);
     const expiry=await fetch(`http://127.0.0.1:${port}/v2/auth/server-dashboard/exchange`,{method:'POST',headers:{authorization:`Bearer ${verificationToken}`,'content-type':'application/json'},body:JSON.stringify({code:expiredCode})});if(expiry.status!==401)throw Error('Expired grant accepted');
     await db.query("DELETE FROM auth_refresh_tokens WHERE token_hash='local-handoff-refresh' AND user_id=$1",[actor]);
     const revoked=await fetch(`http://127.0.0.1:${port}/v2/server/${server}/rosters/${rosterId}`,{headers:{authorization:`Bearer ${session.access_token}`}});if(revoked.status!==401)throw Error('Signed-out browser retained scoped access');
-    console.log(JSON.stringify({dashboardHandoff:'passed' ,checks:['current server from signed interaction','fragment target','grant ownership and expiry','wrong user rejected','one use only','scoped roster read','cross-server rejection','expired code rejected','parent session revocation'],browserNavigation:'not exercised'}));
+    console.log(JSON.stringify({dashboardHandoff:'passed' ,checks:['first-use setup offers login without creating account','current server from signed interaction','fragment target','grant ownership and expiry','wrong user rejected','one use only','scoped roster read','cross-server rejection','expired code rejected','parent session revocation'],browserNavigation:'not exercised'}));
    }
    console.log(JSON.stringify({clanVerification:'passed',checks:['real API/SQL','random initial challenge','stable pending challenge','cross-server collision exclusion','full word rotation/wrap','description verification'],externalDiscordWrites:0}));
   }finally{verificationDescription='';await db.query("DELETE FROM auth_refresh_tokens WHERE token_hash='local-handoff-refresh' AND user_id=$1",[actor]);await db.query('DELETE FROM dashboard_scoped_sessions WHERE server_id=ANY($1::text[])',[[server,second]]);await db.query('DELETE FROM dashboard_access_grants WHERE server_id=ANY($1::text[])',[[server,second]]);await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,second]]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);await db.query('DELETE FROM discord_cache.guilds WHERE id=ANY($1::text[])',[[server,second]]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);}
@@ -1517,7 +1523,7 @@ try{
  if(preparation.content!=='Reminder sent.'||sentReminders.length!==2||!sentReminders.at(-1).content.includes('War starts <t:')||!sentReminders.at(-1).content.includes('Finished Player')||sentReminders.at(-1).content.includes('War ends'))throw Error('Preparation reminder failed');
  reminderPreparation=false;
  reminderWarActive=false;const inactive=await remind('War');if(!text(inactive).includes('No active war')||sentReminders.length!==2)throw Error('Inactive war claimed success '+text({inactive,sends:sentReminders.length}));
- reminderCwl=true;const cwl=await remind('War');if(cwl.content!=='Reminder sent.'||!sentReminders.at(-1).content.includes('(1/1)'))throw Error('CWL reminder failed');reminderCwl=false;
+ reminderCwl=true;const cwl=await remind('War');if(cwl.content!=='Reminder sent.'||(!sentReminders.at(-1).content.includes('(1/1)')||sentReminders.at(-1).content.includes('Finished Player')))throw Error('CWL reminder failed');reminderCwl=false;
  reminderCwl=true;reminderPreparation=true;const cwlPrep=await remind('War');
  if(cwlPrep.content!=='Reminder sent.'||!sentReminders.at(-1).content.includes('War starts <t:')||!sentReminders.at(-1).content.includes('(1/1)'))throw Error('CWL preparation reminder failed');
  reminderCwl=false;reminderPreparation=false;
