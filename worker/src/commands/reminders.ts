@@ -13,7 +13,9 @@ const timestamp = (raw: string) => Date.parse(raw.replace(/^(\d{4})(\d{2})(\d{2}
 
 async function currentWar(ctx: CommandContext, tag: string): Promise<War> {
   const result=await loadCurrentWar(ctx,tag);
-  if(result.war)return result.war;
+  // CWL responses omit attacksPerMember. Preserve the loader's explicit
+  // league classification so one used hit completes that member's round.
+  if(result.war)return { ...result.war, attacksPerMember: result.cwl || result.war.tag ? 1 : result.war.attacksPerMember ?? 2 };
   if(result.privateLog)throw new CommandInputError("This clan’s war log is private. Ask a clan leader to make it public in Clash of Clans.");
   throw new CommandInputError("No active war found for this clan.");
 }
