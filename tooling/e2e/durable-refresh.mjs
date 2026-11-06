@@ -17,6 +17,7 @@ const app='999999999999994501',actor='999999999999994502',guild='999999999999994
 const top='999999999999994510',add='999999999999994511',remove='999999999999994512',keep='999999999999994513',late='999999999999994514';
 const definitions=[{id:guild,name:'@everyone',position:0,permissions:'0'},{id:top,name:'Bot',position:20,permissions:String((1<<28)+(1<<27))},...[add,remove,keep,late].map((id,i)=>({id,name:id,position:i+1,permissions:id===keep?'32':'0'}))];
 const members=new Map([actor,user].map(id=>[id,{user:{id,username:'Before'},nick:'Before',roles:[remove,keep]}]));
+const claimRequests=[];
 let api,bot,logs='',expired=false,throttle=true,first429=0,rolePatches=[],messages=[],ackEdits=0,earlyRetries=0;
 const provider=createServer(async(req,res)=>{
  let raw='';for await(const chunk of req)raw+=chunk;const body=raw?JSON.parse(raw):undefined;
@@ -52,7 +53,7 @@ const wait=async(fn,label)=>{for(let i=0;i<150;i++){if(await fn())return;await n
 const request=async(path,body)=>{const r=await fetch(origin+path,{method:body?'POST':'GET',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});const json=await r.json();assert.equal(r.status,200,JSON.stringify(json));return json;};
 let bundle;
 async function startBot(){return new Miniflare(convertV4MiniflareOptions({host:'127.0.0.1',port:0,workers:[{name:'durable-refresh',...bundle,compatibilityDate:'2026-09-02',compatibilityFlags:['nodejs_compat'],bindings:{APP_ENV:'dev',LOCAL_TEST_USER_ID:'',DASHBOARD_BASE_URL:'https://dash.clashk.ing',CLASHKING_API_BASE_URL:origin,CLASHKING_API_TOKEN:keys.API_BOT_TOKEN,DISCORD_APPLICATION_ID:app,DISCORD_BOT_TOKEN:'local-only',DISCORD_PUBLIC_KEY:publicHex},outboundService:async req=>{
- const u=new URL(req.url);assert([new URL(origin).host,'discord.com'].includes(u.host),'External request blocked');const destination=u.host==='discord.com'?providerOrigin+u.pathname+u.search:req.url;
+ const u=new URL(req.url);if(u.pathname==='/v2/bot/role-refresh/claim')claimRequests.push(await req.clone().json());assert([new URL(origin).host,'discord.com'].includes(u.host),'External request blocked');const destination=u.host==='discord.com'?providerOrigin+u.pathname+u.search:req.url;
  return fetch(destination,{method:req.method,headers:Object.fromEntries(req.headers),...(!['GET','HEAD'].includes(req.method)?{body:await req.arrayBuffer()}:{})});
  }}]}));}
 try{
@@ -80,7 +81,8 @@ try{
  await db.query("UPDATE role_refresh_requests SET created_at=now()-interval '20 minutes',published_at=NULL WHERE id=$1",[requestId]);
  await db.query("INSERT INTO role_refresh_jobs(id,server_id,user_id,categories,due_at) VALUES('tenure:paused',$1,$2,ARRAY['tenure'],now()-interval '2 days')",[guild,actor]);
  await db.query("INSERT INTO role_refresh_jobs(id,server_id,user_id,due_at) SELECT 'older-auto-'||i,$1,(999999999999995000::bigint+i)::text,now()-interval '1 day' FROM generate_series(1,40)i",[guild]);
- const before=ackEdits;await (await bot.getWorker()).scheduled({cron:'* * * * *'});
+ const before=ackEdits;await (await bot.getWorker()).scheduled({cron:'* * * * *',scheduledTime:60_000});
+ await wait(async()=>claimRequests.length>0,'automatic pass');assert.equal(claimRequests[0].automaticOnly,true);assert.equal(claimRequests[0].requestId,undefined);
  await wait(async()=>first429>0,'provider throttle');
  await new Promise(r=>setTimeout(r,3500));
  await db.query('UPDATE discord_cache.gateway_shards SET heartbeat_at=now() WHERE application_id=$1',[app]);

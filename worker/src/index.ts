@@ -23,7 +23,7 @@ const JSON_HEADERS = {
 } as const;
 
 export default {
-  async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     if (env.LOCAL_TEST_USER_ID) return;
     const services = createServices(env);
     ctx.waitUntil((async () => {
@@ -34,7 +34,9 @@ export default {
         // User-requested work must not wait behind the global automatic queue
         // while tenure work is paused. Alternate bounded passes so automatic work still
         // progresses while active manual requests are served round-robin.
-        const manual= batch%2===0 && requests.length ? requests[manualIndex++%requests.length] : undefined;
+        // A paced batch can consume the entire time budget. Rotate the
+        // first class between minutes so the other class still gets a turn.
+        const manual= (batch+Math.floor(controller.scheduledTime/60_000))%2===0 && requests.length ? requests[manualIndex++%requests.length] : undefined;
         const claimed=await drainRefreshJobs(services,manual?.id,manual?.server_id);
         if(claimed===0 && !manual && requests.length===0)break;
         await publishManualRefreshes(services,env);

@@ -115,3 +115,7 @@ Manual requests receive dedicated bounded claim passes before older automatic wo
 The cron alternates manual and global passes so automatic refreshes also progress;
 tenure scheduling and execution are temporarily disabled. Saved tenure rules,
 existing grants, and pending tenure jobs are retained until explicitly re-enabled.
+
+The scheduler alternates its first work class across minute invocations because
+a Discord-paced batch can consume the full run budget. Automatic passes exclude
+manual request jobs, so an older manual request cannot take the automatic turn.
