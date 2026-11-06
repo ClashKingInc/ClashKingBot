@@ -48,22 +48,20 @@ async function runManualRefresh(ctx: CommandContext, kind: string, target: strin
   const guild=requireGuildId(ctx),actor=invokingUserId(ctx),channelId=ctx.interaction.channel_id;
   if(!channelId)throw new CommandInputError("Run refresh in a server channel.");
   const requestId=ctx.interaction.id;
-  await ctx.services.api.post(`/v2/bot/role-refresh/${guild}/manual-start`,{actorId:actor,requestId,channelId,targetId:target,targetKind:kind,preview,categories,treatment});
-  const messageId=await publishManualRefresh(ctx,guild,requestId);
-  return legacyMessage({allowed_mentions:{parse:[]},content:`[Role Refresh In Progress](https://discord.com/channels/${guild}/${channelId}/${messageId})`});
+  // A public deferred response is a durable channel message. Store its ID
+  // before enqueueing work, then edit it with bot auth after the token expires.
+  const original=await ctx.services.discordRest.getOriginalInteractionResponse(ctx.interaction.token);
+  await ctx.services.api.post(`/v2/bot/role-refresh/${guild}/manual-start`,{actorId:actor,requestId,channelId,messageId:original.id,targetId:target,targetKind:kind,preview,categories,treatment});
+  return status(ctx,requestId);
+
 }
 
 async function publishManualRefresh(ctx:CommandContext,guild:string,requestId:string){
   const report=await ctx.services.api.get<ManualReport>(`/v2/bot/role-refresh/${guild}/manual-progress`,{requestId});
   const payload=(await status(ctx,requestId,0,report)).data??{};
-  let messageId=report.messageId;
-  if(messageId)await ctx.services.discordRest.editChannelMessage(report.channelId,messageId,payload);
-  else{
-    // Discord's nonce deduplication covers a lost create response. Work starts
-    // only after this normal bot-owned message is recorded by the API.
-    const message=await ctx.services.discordRest.request<{id:string}>(`/channels/${report.channelId}/messages`,{method:"POST",body:JSON.stringify({...payload,nonce:requestId,enforce_nonce:true})});
-    messageId=message.id;
-  }
+  const messageId=report.messageId;
+  if(!messageId)return;
+  await ctx.services.discordRest.editChannelMessage(report.channelId,messageId,payload);
   await ctx.services.api.post(`/v2/bot/role-refresh/${guild}/manual-progress?requestId=${requestId}`,{messageId,updatedAt:report.updatedAt,finished:report.finished});
   return messageId;
 }
@@ -79,6 +77,7 @@ export async function publishManualRefreshes(services:CommandServices,env:Env){
       await publishManualRefresh(ctx,request.server_id,request.id);
     }catch{console.error("Manual refresh progress could not be published",{requestId:request.id});}
   }
+  return requests;
 }
 
 async function status(ctx: CommandContext, requestId: string, requestedPage=0, supplied?:ManualReport) {

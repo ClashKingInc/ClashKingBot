@@ -29,8 +29,8 @@ const provider=createServer(async(req,res)=>{
  if(path===`/guilds/${guild}/members/${app}`)return send({user:{id:app,username:'Bot',bot:true},roles:[top]});
  if(path===`/channels/${channel}`)return send({id:channel,guild_id:guild,type:0,name:'refresh'});
  if(path===`/applications/${app}/emojis`)return send({items:[]});
- if(path.startsWith('/webhooks/')){ackEdits++;return expired?send({message:'Unknown webhook',code:10015},404):send({id:'999999999999994599'});}
- if(path===`/channels/${channel}/messages`&&req.method==='POST'){assert.equal(req.headers.authorization,'Bot local-only');assert.deepEqual(body.allowed_mentions,{parse:[]});messages.push(body);return send({id:messageId});}
+ if(path.startsWith('/webhooks/')){if(expired)return send({message:'Unknown webhook',code:10015},404);if(req.method==='PATCH'){ackEdits++;messages.push(body);}return send({id:messageId,channel_id:channel});}
+ if(path===`/channels/${channel}/messages`&&req.method==='POST')throw Error('Refresh must reuse the original interaction message');
  if(path===`/channels/${channel}/messages/${messageId}`&&req.method==='PATCH'){assert.equal(req.headers.authorization,'Bot local-only');assert.deepEqual(body.allowed_mentions,{parse:[]});messages.push(body);return send({id:messageId});}
  const match=new RegExp(`^/guilds/${guild}/members/(\\d+)$`).exec(path);
  if(match&&members.has(match[1])){
@@ -70,13 +70,15 @@ try{
  const value={id:requestId,application_id:app,guild_id:guild,channel_id:channel,member:members.get(actor),type:2,data:{name:'refresh',options:[{name:'role_or_user',type:9,value:guild}],resolved:{roles:{[guild]:definitions[0]}}},token:'local-expiring-token',version:1};
  const raw=JSON.stringify(value),timestamp=String(Math.floor(Date.now()/1000)),signature=sign(null,Buffer.from(timestamp+raw),privateKey).toString('hex'),started=Date.now();
  const response=await bot.dispatchFetch('http://local/interactions',{method:'POST',headers:{'x-signature-ed25519':signature,'x-signature-timestamp':timestamp},body:raw});assert.equal((await response.json()).type,5);assert(Date.now()-started<3000,'Immediate deferred acknowledgement');
- await wait(async()=>Boolean((await db.query('SELECT message_id FROM role_refresh_requests WHERE id=$1',[requestId])).rows[0]?.message_id),'normal progress message');
+ await wait(async()=>Boolean((await db.query('SELECT message_id FROM role_refresh_requests WHERE id=$1',[requestId])).rows[0]?.message_id),'stored original response');
+ await wait(async()=>ackEdits>0,'initial progress response');
  assert.equal(rolePatches.length,0,'HTTP invocation does not run member work');assert.match(JSON.stringify(messages[0]),/Role Refresh In Progress/);
  assert.equal(Number((await db.query('SELECT count(*) FROM role_refresh_jobs WHERE request_id=$1',[requestId])).rows[0].count),2);
- await request(`/v2/bot/role-refresh/${guild}/manual-start`,{actorId:actor,requestId,channelId:channel,targetId:guild,targetKind:'role',preview:false,categories:['family','clan','leadership','townhall','builderhall','league','builder_league','category','nicknames','tenure','roster'],treatment:'both'});
+ await request(`/v2/bot/role-refresh/${guild}/manual-start`,{actorId:actor,requestId,channelId:channel,messageId,targetId:guild,targetKind:'role',preview:false,categories:['family','clan','leadership','townhall','builderhall','league','builder_league','category','nicknames','tenure','roster'],treatment:'both'});
  assert.equal(Number((await db.query('SELECT count(*) FROM role_refresh_jobs WHERE request_id=$1',[requestId])).rows[0].count),2,'Idempotent invocation');
  await wait(async()=>ackEdits>0,'initial response');await bot.dispose();expired=true;bot=await startBot();
  await db.query("UPDATE role_refresh_requests SET created_at=now()-interval '20 minutes',published_at=NULL WHERE id=$1",[requestId]);
+ await db.query("INSERT INTO role_refresh_jobs(id,server_id,user_id,due_at) SELECT 'older-auto-'||i,$1,(999999999999995000::bigint+i)::text,now()-interval '1 day' FROM generate_series(1,40)i",[guild]);
  const before=ackEdits;await (await bot.getWorker()).scheduled({cron:'* * * * *'});
  await wait(async()=>first429>0,'provider throttle');
  await new Promise(r=>setTimeout(r,3500));
@@ -90,7 +92,7 @@ try{
  assert.equal(Number((await db.query('SELECT max(attempts) AS attempts FROM role_refresh_jobs WHERE request_id=$1',[requestId])).rows[0].attempts),1,'Rate limiting does not spend a failure attempt');
  assert.match(JSON.stringify(messages.at(-1)),/Updated/);assert(!JSON.stringify(messages.at(-1)).includes('None'));
  const repeatId='999999999999994520';
- await request(`/v2/bot/role-refresh/${guild}/manual-start`,{actorId:actor,requestId:repeatId,channelId:channel,targetId:guild,targetKind:'role',preview:false,categories:['family','clan','leadership','townhall','builderhall','league','builder_league','category','nicknames','tenure','roster'],treatment:'both'});
+ await request(`/v2/bot/role-refresh/${guild}/manual-start`,{actorId:actor,requestId:repeatId,channelId:channel,messageId,targetId:guild,targetKind:'role',preview:false,categories:['family','clan','leadership','townhall','builderhall','league','builder_league','category','nicknames','tenure','roster'],treatment:'both'});
  await db.query('UPDATE discord_cache.gateway_shards SET heartbeat_at=now() WHERE application_id=$1',[app]);
  await (await bot.getWorker()).scheduled({cron:'* * * * *'});
  await wait(async()=>Number((await db.query('SELECT count(*) FROM role_refresh_jobs WHERE request_id=$1 AND completed_at IS NOT NULL',[repeatId])).rows[0].count)===2,'unchanged members complete');
@@ -98,7 +100,7 @@ try{
  await wait(async()=>Boolean((await db.query('SELECT published_complete FROM role_refresh_requests WHERE id=$1',[repeatId])).rows[0]?.published_complete),'unchanged final progress');
  assert.equal(rolePatches.length,2,'Unchanged members perform no member PATCH');assert.match(JSON.stringify(messages.at(-1)),/No changes needed/);assert(!JSON.stringify(messages.at(-1)).includes('<@'),'Unchanged people omitted');
  const revokedId='999999999999994521';
- await request(`/v2/bot/role-refresh/${guild}/manual-start`,{actorId:actor,requestId:revokedId,channelId:channel,targetId:guild,targetKind:'role',preview:false,categories:['townhall','nicknames'],treatment:'both'});
+ await request(`/v2/bot/role-refresh/${guild}/manual-start`,{actorId:actor,requestId:revokedId,channelId:channel,messageId,targetId:guild,targetKind:'role',preview:false,categories:['townhall','nicknames'],treatment:'both'});
  for(const member of members.values()){member.roles=[remove,keep,late];member.nick='Before';}
  await db.query("UPDATE discord_cache.roles SET data=jsonb_set(data,'{permissions}','\"0\"'::jsonb) WHERE guild_id=$1 AND id=$2",[guild,keep]);
  await (await bot.getWorker()).scheduled({cron:'* * * * *'});
@@ -108,7 +110,7 @@ try{
  await db.query('UPDATE role_refresh_requests SET published_at=NULL WHERE id=$1',[revokedId]);await (await bot.getWorker()).scheduled({cron:'* * * * *'});
  await wait(async()=>Boolean((await db.query('SELECT published_complete FROM role_refresh_requests WHERE id=$1',[revokedId])).rows[0]?.published_complete),'failure final progress');
  assert.match(JSON.stringify(messages.at(-1)),/Refresh Incomplete/);assert.match(JSON.stringify(messages.at(-1)),/Before/);
- console.log('PASS real signed Bot/API/SQL: immediate defer, durable two-member request, idempotent enqueue, normal progress message, restart after token expiry, provider retry-after, combined roles+nickname PATCH preserving unrelated roles, final progress publication');
+ console.log('PASS real signed Bot/API/SQL: immediate defer, durable two-member request, idempotent enqueue, single original progress message, older automatic backlog bypassed, restart after token expiry, provider retry-after, combined roles+nickname PATCH preserving unrelated roles, final progress publication');
 }catch(error){console.error(logs.slice(-6000));throw error;}finally{
  if(bot)await bot.dispose();if(api&&api.exitCode===null){api.kill('SIGTERM');await new Promise(r=>api.once('exit',r));}await new Promise(r=>provider.close(r));await db.end();
 }
