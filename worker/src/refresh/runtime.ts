@@ -97,7 +97,7 @@ async function processMemberRefresh(services: CommandServices, job: RefreshJob|M
 
 export async function drainRefreshJobs(services: CommandServices, requestId?: string, serverId?: string) {
   const { jobs } = await services.api.post<{ jobs: RefreshJob[] }>("/v2/bot/role-refresh/claim", {
-    includeRoster: true, includeRoleTreatment: true, includeAutomaticPolicy: true, ...(requestId ? { requestId } : {}), ...(serverId ? { serverId } : {}),
+    includeRoster: true, includeRoleTreatment: true, includeAutomaticPolicy: true, ...(requestId ? { requestId } : { automaticOnly: true }), ...(serverId ? { serverId } : {}),
   });
   const states = new Map<string, Promise<GuildState>>();
   let botId: Promise<string> | undefined;
