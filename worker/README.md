@@ -87,3 +87,25 @@ hosting controller before enabling a competing consumer. Use Coolify for every
 lifecycle operation on a Coolify-hosted service. Record actual deployed Worker
 versions and verify API health and signed interaction behavior separately from
 a successful build. A source merge or dry-run build is not deployment evidence.
+
+## Manual role refresh
+
+`/refresh` defers immediately, then asks the API to resolve authorized members and
+create a request in `role_refresh_requests` with existing `role_refresh_jobs`.
+The minute scheduler continues those jobs across Worker restarts. It publishes
+progress to a normal bot-owned channel message; interaction tokens are never
+stored and are not needed after the initial acknowledgement. Schema migration
+066 must precede the API and Bot deployment.
+
+Each member update combines the managed role delta and nickname into one PATCH,
+merging against a fresh member read. The existing member lease serializes our
+workers. Discord has no conditional member update, so another administrator's
+edit between that final read and PATCH cannot be made atomic. Provider bucket
+headers pace requests within a Worker isolate; authoritative 429 delays reschedule
+durable jobs without exhausting their failure attempts. Other processes have
+their own clients, so this is not a global distributed limiter.
+
+Progress is best effort and retried by the scheduler, including after the last
+member completes. Deleted/inaccessible messages surface a publication error;
+member work is retained. Successful unchanged members count in totals but do not
+fill result pages. Results remain for seven days.

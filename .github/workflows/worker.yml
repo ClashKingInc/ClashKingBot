@@ -24,3 +24,42 @@ jobs:
           cache-dependency-path: worker/package-lock.json
       - run: npm ci --ignore-scripts
       - run: npm run check
+
+  refresh-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+      - uses: actions/checkout@v4
+        with:
+          repository: ClashKingInc/ClashKingAPI
+          ref: 79d10240042652f253d6d39cfe4c9df0d5af6aea
+          path: .ci-api
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: ClashKingInc/DevKit
+          ref: eedc5e718bbe735668d68f1a9db01a727e46e814
+          path: .ci-schema
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: ClashKingInc/ClashKingAssets
+          ref: 82887e25ff520a522d5d673619a9277f276a3327
+          path: .ci-assets
+          persist-credentials: false
+      - run: npm ci --ignore-scripts --prefix worker
+      - run: npm ci --ignore-scripts --prefix .ci-api
+      - run: npm run typecheck --prefix .ci-api
+      - run: go install github.com/pressly/goose/v3/cmd/goose@v3.26.0
+      - name: Verify actual durable refresh services locally
+        env:
+          CLASHKING_E2E_API_REPO: ${{ github.workspace }}/.ci-api
+          CLASHKING_E2E_STATIC_ASSETS_ROOT: ${{ github.workspace }}/.ci-assets/assets/static_data
+        run: bash .ci-schema/scripts/with-test-timescale.sh --profile retained-api -- node tooling/e2e/durable-refresh.mjs

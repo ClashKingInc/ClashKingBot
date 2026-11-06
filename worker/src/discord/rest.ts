@@ -1,3 +1,4 @@
+import { discordRateLimitedFetch, DiscordRateWait } from "./rate-limits";
 import { normalizeMessageControls } from "./message-controls";
 import type {
   DiscordApplicationEmoji,
@@ -15,6 +16,7 @@ export class DiscordRestError extends Error {
   constructor(
     readonly status: number,
     readonly body: string,
+    readonly retryAfterSeconds?: number,
   ) {
     super(`Discord API request failed with ${status}`);
   }
@@ -169,7 +171,7 @@ export class DiscordRestClient {
   }
 
   async request<T>(path: string, init: RequestInit, authenticated = true): Promise<T> {
-    const response = await this.#fetch(`${DISCORD_API_BASE_URL}${path}`, {
+    const send = () => this.#fetch(`${DISCORD_API_BASE_URL}${path}`, {
       ...init,
       signal: init.signal ?? AbortSignal.timeout(10_000),
       headers: {
@@ -177,8 +179,13 @@ export class DiscordRestClient {
         ...(init.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       },
     });
+    let response:Response;
+    try{response=authenticated?await discordRateLimitedFetch(this.#applicationId,path,init,send):await send();}
+    catch(error){if(error instanceof DiscordRateWait)throw new DiscordRestError(429,"",error.seconds);throw error;}
     if (!response.ok) {
-      throw new DiscordRestError(response.status, await response.text());
+      const body=await response.text();let delay:number|undefined;
+      if(response.status===429){let seconds=Number(response.headers.get("retry-after"));try{seconds=Math.max(seconds,Number(JSON.parse(body).retry_after)||0);}catch{/* Header remains authoritative. */}delay=Number.isFinite(seconds)&&seconds>0?Math.ceil(seconds)+1:1;}
+      throw new DiscordRestError(response.status, body,delay);
     }
     if (response.status === 204) {
       return undefined as T;

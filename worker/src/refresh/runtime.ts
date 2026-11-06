@@ -1,3 +1,4 @@
+import { ClashKingApiError } from "../api/client";
 import { DiscordRestError } from "../discord/rest";
 import type { DiscordMember, DiscordRole } from "../discord/types";
 import type { CommandServices } from "../commands/types";
@@ -77,14 +78,20 @@ async function processMemberRefresh(services: CommandServices, job: RefreshJob|M
     });
     if (!valid.valid) throw new Error("Refresh inputs changed; retry with current accounts");
     }
-    // Individual role endpoints preserve unrelated/concurrent role assignments.
-    // Apply additions first so moving family clans does not briefly drop access.
     const checkDeadline = () => { if (!manual && Date.now() >= Date.parse(job.expires_at) - 15_000) throw new Error("Refresh lease deadline exceeded"); };
-    for (const role of add) { checkDeadline(); await rest.request(`/guilds/${job.server_id}/members/${job.user_id}/roles/${role}`, { method: "PUT" }); }
-    for (const role of remove) { checkDeadline(); await rest.request(`/guilds/${job.server_id}/members/${job.user_id}/roles/${role}`, { method: "DELETE" }); }
-    if (nickname !== undefined) { checkDeadline(); await rest.request(`/guilds/${job.server_id}/members/${job.user_id}`, { method: "PATCH", body: JSON.stringify({ nick: nickname }) }); }
+    if(add.length||remove.length||nickname!==undefined){
+      checkDeadline();
+      // Discord accepts roles and nickname in one member PATCH. Merge the
+      // managed delta into a fresh membership read so unrelated assignments
+      // added while player data was loading are retained. The member lease
+      // serializes our workers; Discord offers no conditional external edit.
+      const current=await rest.getGuildMember(job.server_id,job.user_id);
+      const merged=[...new Set([...current.roles.filter(id=>!remove.includes(id)),...add])];
+      checkDeadline();
+      await rest.request(`/guilds/${job.server_id}/members/${job.user_id}`,{method:"PATCH",body:JSON.stringify({...(add.length||remove.length?{roles:merged}:{}),...(nickname!==undefined?{nick:nickname}:{})})});
+    }
   }
-  return { add, remove, ...(nickname === undefined ? {} : { nickname }), blocked, preview: job.preview, mainTag: plan.mainTag };
+  return { displayName:nickname??member.nick??member.user?.global_name??member.user?.username, add, remove, ...(nickname === undefined ? {} : { nickname }), blocked, preview: job.preview, mainTag: plan.mainTag };
 }
 
 export async function drainRefreshJobs(services: CommandServices, requestId?: string, serverId?: string) {
@@ -108,11 +115,15 @@ export async function drainRefreshJobs(services: CommandServices, requestId?: st
         }
         const result = await processRefreshJob(services, job, await state);
         await services.api.post("/v2/bot/role-refresh/complete", { id: job.id, token: job.token, success: true, result });
-      } catch {
+      } catch (error) {
+        let retryAfterSeconds:number|undefined;
+        if(error instanceof DiscordRestError&&error.status===429)retryAfterSeconds=error.retryAfterSeconds??1;
+        if(error instanceof ClashKingApiError&&error.status===429){try{const body=JSON.parse(error.body);retryAfterSeconds=error.retryAfterSeconds??Number(body.retryAfterSeconds??body.retry_after??30);}catch{retryAfterSeconds=30;}}
+
         // Partial external delivery is retried by computing a fresh delta; role
         // PUT/DELETE are idempotent. Never log provider bodies or linked accounts.
         await services.api.post("/v2/bot/role-refresh/complete", { id: job.id, token: job.token, success: false,
-          result: { error: "Refresh could not finish; retry queued" } });
+          ...(retryAfterSeconds?{retryAfterSeconds}:{}), result: { error: retryAfterSeconds?"Waiting for Discord; refresh will continue automatically.":"Refresh could not finish; retry queued" } });
       }
     }));
   }
