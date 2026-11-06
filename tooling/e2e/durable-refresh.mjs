@@ -97,6 +97,8 @@ try{
  assert.equal(ackEdits,before,'Expired interaction token never used by continued work');assert.equal(earlyRetries,0);assert.equal(rolePatches.length,2,'One successful combined member PATCH per member');assert.match(JSON.stringify(messages.at(-1)),/Refresh Complete/);
  assert.equal(Number((await db.query('SELECT max(attempts) AS attempts FROM role_refresh_jobs WHERE request_id=$1',[requestId])).rows[0].attempts),1,'Rate limiting does not spend a failure attempt');
  assert.match(JSON.stringify(messages.at(-1)),/Updated/);assert(!JSON.stringify(messages.at(-1)).includes('None'));
+ await db.query("UPDATE role_refresh_jobs SET result=result||'{\"error\":\"old retry message\"}'::jsonb WHERE request_id=$1",[requestId]);
+ const legacyReport=await request(`/v2/bot/role-refresh/${guild}/manual-progress?requestId=${requestId}`);assert(legacyReport.results.every(item=>item.result.error===undefined),'Completed pre-fix rows cannot display a stale retry error');
  const repeatId='999999999999994520';
  await request(`/v2/bot/role-refresh/${guild}/manual-start`,{actorId:actor,requestId:repeatId,channelId:channel,messageId,targetId:guild,targetKind:'role',preview:false,categories:['family','clan','leadership','townhall','builderhall','league','builder_league','category','nicknames','tenure','roster'],treatment:'both'});
  await db.query('UPDATE discord_cache.gateway_shards SET heartbeat_at=now() WHERE application_id=$1',[app]);
