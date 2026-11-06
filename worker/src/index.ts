@@ -1,6 +1,7 @@
 import { interactionErrorReply } from "./commands/errors";
 import { normalizeMessageControls } from "./discord/message-controls";
 import { createServices } from "./services";
+import { publishManualRefreshes } from "./commands/refresh";
 import { drainRefreshJobs } from "./refresh/runtime";
 import { Effect } from "effect";
 import { dispatchInteraction } from "./commands/registry";
@@ -26,9 +27,11 @@ export default {
     if (env.LOCAL_TEST_USER_ID) return;
     const services = createServices(env);
     ctx.waitUntil((async () => {
+      await publishManualRefreshes(services,env);
       const started = Date.now();
       for (let batch = 0; batch < 10 && Date.now() - started < 45_000; batch++) {
         if (await drainRefreshJobs(services) === 0) break;
+        await publishManualRefreshes(services,env);
       }
     })());
   },

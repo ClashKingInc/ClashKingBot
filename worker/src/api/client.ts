@@ -9,6 +9,7 @@ export class ClashKingApiError extends Error {
     readonly status: number,
     readonly body: string,
     readonly path?: string,
+    readonly retryAfterSeconds?: number,
   ) {
     super(`ClashKing API request failed with ${status}`);
   }
@@ -88,7 +89,7 @@ export class ClashKingApiClient {
       },
     });
     if (!response.ok) {
-      throw new ClashKingApiError(response.status, await response.text(), url.pathname);
+      throw new ClashKingApiError(response.status, await response.text(), url.pathname, response.status===429?Number(response.headers.get("retry-after"))||undefined:undefined);
     }
     if (response.status === 204) {
       return undefined as T;
