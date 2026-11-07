@@ -140,6 +140,17 @@ async function executePersistentHandler(
   waitUntil?: (promise: Promise<unknown>) => void,
 ): Promise<DiscordInteractionResponse> {
   const customId = context.interaction.data?.custom_id ?? "";
+  // Preserve legacy Reddit buttons and use the actual clicker's context.
+  const redditPlayer = /^redditplayer_(#[0289PYLQGRJCUV]{1,15})$/u.exec(customId);
+  if (redditPlayer) {
+    const handler: ComponentHandler = async ctx => {
+      const result = await playerCommand.execute({ ...ctx, options: new Map([["lookup", {
+        name: "lookup", type: 1, options: [{ name: "player", type: 3, value: redditPlayer[1]! }],
+      }]]) });
+      return { ...result, data: { ...result.data, flags: Number(result.data?.flags ?? 0) | MessageFlags.Ephemeral } };
+    };
+    return waitUntil ? deferPersistentHandler(context, handler, [], waitUntil) : handler(context, []);
+  }
   if(customId.startsWith("ck:cwl:"))return dispatchCwlSearch(context,waitUntil);
   if(customId.startsWith("ck:legendstats:"))return dispatchLegendStats(context,waitUntil);
   if(customId.startsWith("ck:clans:"))return dispatchClanControl(context,waitUntil);
