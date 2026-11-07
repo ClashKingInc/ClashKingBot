@@ -238,7 +238,13 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(fankitMode){
+ if(process.argv.includes('--reddit-only')){
+  for (const who of [actor,other]) {
+   const result=await interact({type:3,data:{custom_id:'redditplayer_'+tag,component_type:2}},who);
+   if(!(result.flags&64)||!text(result).includes('Current Player')||!result.components?.length)throw Error('Reddit profile must open private current profile for either viewer');
+  }
+  console.log('PASS Reddit profile: signed local interactions, actual API/player service, ephemeral profile for both viewers, legacy custom ID retained');
+ }else if(fankitMode){
   const run=query=>interact({type:2,data:{name:'fankit',options:[{name:'query',type:3,value:query}]}});
   const first=await run('archer & queen');
   if(first.embeds?.[0]?.title!=='Archer'||!first.embeds[0].footer.text.startsWith('1/2')||fankitQueries.at(-1)!=='archer & queen')throw Error('Fan-kit query encoding/filter mismatch '+text(first));
