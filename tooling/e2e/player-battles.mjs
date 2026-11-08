@@ -62,25 +62,40 @@ try{
  }
  const command=(name,sub,tag)=>interact({type:2,data:{name,options:[{name:sub,type:1,options:[{name:'player',type:3,value:tag}]}]}});
  const fields=reply=>(reply.embeds?.[0]?.fields??[]);
- const battles=reply=>fields(reply).filter(f=>/^Attacks|^Defenses/.test(f.name)).map(f=>({...f,value:f.value.trim().replace(/\n\u200b$/u,'')}));
  const lookup=await command('player','lookup',rankedTag);
- assert.ok(fields(lookup)[0].value.includes(`**${member.leagueTrophies.toLocaleString('en')}**`),'Lookup did not use group trophies');
- assert.equal(battles(lookup).length,2);
- assert.ok(!JSON.stringify(lookup).includes('attack wins'));
+ const summary=fields(lookup)[0].value;
+ assert.ok(summary.includes(`**${member.leagueTrophies.toLocaleString('en')}**`),'Lookup did not use group trophies');
+ const tierResponse=await fetch('https://assets.clashk.ing/static_data/league_tiers.json');assert.equal(tierResponse.status,200);
+ const rules=(await tierResponse.json()).items.find(item=>item._id===player.leagueTier.id);
+ assert.ok(rules);
+ const total=group.members.length,rank=1+group.members.filter(row=>row.leagueTrophies>member.leagueTrophies).length;
+ const zone=rank<=Math.round(total*rules.promote_percentage/100)?'Promotion':rank>total-Math.round(total*rules.demote_percentage/100)?'Demotion':'Staying';
+ const iconName=zone==='Promotion'?'up_green_arrow':zone==='Demotion'?'down_red_arrow':'grey_dash';
+ assert.ok(summary.includes(`**#${rank}** · ${zone}`));
+ assert.ok(summary.includes(`:${iconName}:`));
+ assert.ok(summary.includes(`**${member.attackWinCount+member.attackLoseCount}/${rules.battle_count}** attacks`));
+ assert.ok(summary.includes(`**${member.defenseWinCount+member.defenseLoseCount}/${rules.battle_count}** defenses`));
+ assert.equal(summary.replace(/\n\u200b$/u,'').split('\n').length,3,'Ranked summary must remain compact');
+ assert.ok(!summary.includes('<t:'));
+ assert.ok(!summary.includes(`#${rank} /`),'Do not show group size beside rank');
+ assert.ok(!fields(lookup).some(field=>/^Attacks|^Defenses/.test(field.name)),'Lookup must not render battle-list fields');
  const ranked=await command('ranked','player',rankedTag);
- assert.deepEqual(battles(lookup),battles(ranked),'Lookup and Ranked battle details differ');
+ assert.equal(fields(ranked).filter(field=>/^Attacks|^Defenses/.test(field.name)).length,2,'Dedicated Ranked command lost battle details');
  const select=lookup.components[0].components[0];
  const refreshed=await interact({type:3,data:{custom_id:select.custom_id,component_type:3,values:['overview']}});
- assert.deepEqual(battles(refreshed),battles(lookup),'Overview selection lost battle details');
+ assert.equal(fields(refreshed)[0].value,summary,'Overview selection changed summary');
  const legend=await command('player','lookup',legendTag);
  const today=new Date(Date.now()-5*3600000).toISOString().slice(0,10);
  const day=await get(`/v2/player/${encodeURIComponent(legendTag)}/legend/${today}/battlelog`);
- assert.deepEqual(battles(legend).map(f=>f.name),[`Attacks (${day.attacks.length}/8)`,`Defenses (${day.defenses.length}/8)`]);
- assert.ok(battles(legend)[0].value.includes(`**${day.attackTrophies>=0?'+':''}${day.attackTrophies.toLocaleString('en')}**`));
- assert.ok(battles(legend)[1].value.includes(`**${day.defenseTrophies>=0?'+':''}${day.defenseTrophies.toLocaleString('en')}**`));
+ const legendSummary=fields(legend)[0].value;
+ assert.ok(legendSummary.includes(`**${day.attacks.length}/8** attacks`));
+ assert.ok(legendSummary.includes(`**${day.defenses.length}/8** defenses`));
+ assert.ok(!legendSummary.includes('<t:'));
+ assert.ok(!fields(legend).some(field=>/^Attacks|^Defenses/.test(field.name)));
+
  for(const reply of [lookup,ranked,refreshed,legend]){
   assert.deepEqual(reply.allowed_mentions,{parse:[]});
   assert.ok(fields(reply).every(f=>f.value.length<=1024));
  }
- console.log('PASS: signed lookup, Ranked comparison, overview control, and Legend day details against the running local API; no Discord messages sent.');
+ console.log('PASS: compact Ranked trophies/rank/standing/usage, unchanged dedicated details, overview control and compact Legend usage against the running local API; no Discord messages sent.');
 }finally{await bot.dispose();}
