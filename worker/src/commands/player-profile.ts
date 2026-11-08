@@ -2,7 +2,7 @@ import { actionRow, legacyMessage } from "../discord/components";
 import type { ApplicationEmojis } from "../discord/emojis";
 import { invokingUserId, stringOption } from "./command-utils";
 import { serverEmbedColor } from "./embed-color";
-import { compact, escapeMarkdown, fetchPlayer, pagedGameReply, playerAppUrl, playerLabel, playerUrl, type LinkedAccount, type Player } from "./game-common";
+import { compact, escapeMarkdown, fetchPlayer, isDailyLegend, pagedGameReply, playerAppUrl, playerLabel, playerUrl, type LinkedAccount, type Player } from "./game-common";
 import type { CommandContext } from "./types";
 
 const safeName=(value:string)=>`\u2068${escapeMarkdown(value.replace(/[\u202a-\u202e\u2066-\u2069]/gu,""))}\u2069`;
@@ -14,7 +14,9 @@ export async function playerOverviewReply(ctx:CommandContext,player:Player,emoji
  // Discord mobile has narrow embeds, especially beside a thumbnail. Keep each
  // labelled metric on its own line instead of relying on desktop-width wrapping.
  const fields=[
-  {name:player.leagueTier?.name??"Season",value:[metric(player.leagueTier?.name??"trophy",player.trophies,"trophies"),...(!player.currentLeagueGroupTag?[`• ${player.attackWins??0} attack wins`,`• ${player.defenseWins??0} defense wins`]:[])].filter(Boolean).join("\n"),inline:false},
+  // Ranked scores belong to the current group. The legacy trophy field can
+  // legitimately be zero, so never show it as a Ranked score during loading.
+  {name:player.leagueTier?.name??player.league?.name??"Trophies",value:player.leagueTier&&!isDailyLegend(player)?(player.currentLeagueGroupTag?"Ranked data unavailable.":"No active Ranked tournament."):metric(player.leagueTier?.name??"trophy",player.trophies,"trophies"),inline:false},
   {name:"Season stats",value:`${emoji.get("up_green_arrow")} **${compact(player.donations)}** donated\n${emoji.get("down_red_arrow")} **${compact(player.donationsReceived)}** received`,inline:false},
   {name:"All time",value:[metric("war_star",player.warStars,"war stars"),metric("trophy",player.bestTrophies,"best trophies")].filter(Boolean).join("\n"),inline:false},
  ];

@@ -1,11 +1,12 @@
 import { actionRow, legacyMessage } from "../discord/components";
 import type { ApplicationEmojis } from "../discord/emojis";
 import { invokingUserId, stringOption } from "./command-utils";
-import { compact, escapeMarkdown, playerAppUrl, playerUrl, type Player, type LinkedAccount } from "./game-common";
+import { compact, escapeMarkdown, isDailyLegend, legendDay, playerAppUrl, playerUrl, type Player, type LinkedAccount } from "./game-common";
 import { playerOverviewReply } from "./player-profile";
 import { playerCatalog, playerUpgrades, upgradeCompletion } from "./player-catalog";
 import { serverEmbedColor } from "./embed-color";
-import { rankedOverview } from "./ranked";
+import { rankedBattleFields, rankedOverview } from "./ranked";
+import { legendDayFields, type LegendDayDetails } from "./legend-season";
 import { clashKingHistory, clashOfStatsHistory } from "./player-clan-history";
 import type { CommandContext } from "./types";
 
@@ -103,7 +104,7 @@ export async function playerProfileReply(ctx:CommandContext,player:Player,emoji:
  for(const field of selected==="troops"?[]:embed.fields??[]){
   let value="";
   // Split long fields only at a space/line boundary, never through an emoji ID.
-  for(const word of field.value.split(/(?<=\s)/u)){
+  for(const word of field.value.replace(/\n\u200b$/u,"").split(/(?<=\s)/u)){
    if(value.length+word.length>1000){chunks.push({...field,value:value.trimEnd()+"\n\u200b"});value="";}
    value+=word;
   }
@@ -143,17 +144,28 @@ async function addOverviewDetails(ctx:CommandContext,player:Player,emoji:Applica
  const fields=embed.fields??=[];
  const encoded=encodeURIComponent(player.tag);
  const now=new Date(),after=new Date(now.getTime()-30*86400000);
- const [season,war,bans,identity,ranked]=await Promise.allSettled([
+ const [season,war,bans,identity,competitive]=await Promise.allSettled([
   ctx.services.api.get<{recordedBattles:number;gold:number;elixir:number;darkElixir:number;statObservations:number;clanGames:number;capitalDonated:number}>(`/v2/bot/players/${encoded}/season-stats`),
   ctx.services.api.get<{items:Array<{attacksPerMember:number;attacks:Array<{stars:number;destructionPercentage:number}>}>}>(`/v2/player/${encoded}/war/stats`,{limit:500,"time[after]":after.toISOString(),"time[before]":now.toISOString()}),
   ctx.interaction.guild_id?ctx.services.api.get<{items:Array<{VillageTag:string;Notes:string;DateCreated:string}>}>(`/v2/server/${ctx.interaction.guild_id}/bans`):Promise.resolve({items:[]}),
   ctx.services.api.get<{link:{userId:string;verified:boolean}|null;lastObservedAt:string|null}>(`/v2/bot/players/${encoded}/identity`,ctx.interaction.guild_id?{serverId:ctx.interaction.guild_id}:{}),
-  rankedOverview(ctx,player),
+  isDailyLegend(player)
+   ? ctx.services.api.get<LegendDayDetails>(`/v2/player/${encoded}/legend/${legendDay()}/battlelog`).then(day=>({kind:"legend" as const,day}))
+   : rankedOverview(ctx,player).then(ranked=>({kind:"ranked" as const,ranked})),
  ]);
- if(ranked.status==="fulfilled"&&ranked.value){
-  const r=ranked.value,field=fields[0]!;
-  const count=(value:number)=>`${value}${r.limit?`/${r.limit}`:""}`;
-  field.value+=`\n• Rank **#${r.rank}**\n• ${count(r.attacks)} attacks\n• ${count(r.defenses)} defenses`;
+ if(competitive.status==="fulfilled"){
+  const result=competitive.value;
+  if(result.kind==="legend"){
+   const day=result.day;
+   fields.splice(1,0,...legendDayFields(day,emoji));
+   fields[0]!.value+=`\n${day.trophies>=0?"+":""}${day.trophies.toLocaleString("en")} net today`;
+  }else if(result.ranked){
+   const r=result.ranked;
+   fields[0]!.value=`${emoji.get(player.leagueTier?.name??"trophy")||emoji.get("trophy")} **${r.trophies.toLocaleString("en")}** trophies · **#${r.rank}**`;
+   fields.splice(1,0,...rankedBattleFields(r,r.attackLogs,r.defenseLogs,r.limit));
+  }
+ }else if(isDailyLegend(player)){
+  fields.splice(1,0,{name:"Today's battles",value:"Battle data unavailable.",inline:false});
  }
  if(identity.status==="fulfilled"){
   const {link,lastObservedAt}=identity.value;
