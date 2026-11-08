@@ -27,12 +27,22 @@ export interface War {
   state: string;
   teamSize: number;
   attacksPerMember?: number;
+  type?: string;
   preparationStartTime: string;
   startTime?: string;
   endTime: string;
   clan: WarSide;
   opponent: WarSide;
   tag?: string;
+}
+// CWL omits the allowance in the official payload. Other wars must report
+// it: a one-hit friendly is not CWL, and missing data is not a two-hit war.
+export const isCwlWar = (war: { tag?: string; type?: string }) =>
+  Boolean(war.tag && war.tag !== "#0") || ["cwl", "league"].includes(war.type?.toLowerCase() ?? "");
+export function warAttackAllowance(war: { attacksPerMember?: number; tag?: string; type?: string }, cwl = false): number {
+  if (cwl || isCwlWar(war)) return 1;
+  const count = war.attacksPerMember;
+  return count !== undefined && Number.isSafeInteger(count) && count > 0 ? count : 0;
 }
 interface Pointer {
   clan: { tag: string; publicWarLog: boolean | null };
@@ -190,7 +200,7 @@ export async function loadCurrentWar(
       throw error;
     privateLog = error.status === 403;
   }
-  if (isWar(current, tag)) return { war: current, privateLog, cwl: false };
+  if (isWar(current, tag)) return { war: current, privateLog, cwl: isCwlWar(current) };
   const pointer = await optional<Pointer>(
     ctx,
     `/v2/war/${encodeURIComponent(tag)}/basic`,

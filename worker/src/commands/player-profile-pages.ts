@@ -169,8 +169,12 @@ async function addOverviewDetails(ctx:CommandContext,player:Player,emoji:Applica
  }
  if(war.status==="fulfilled"){
   const attacks=war.value.items.flatMap(item=>item.attacks);
-  const missed=war.value.items.reduce((sum,item)=>sum+Math.max(0,item.attacksPerMember-item.attacks.length),0);
-  if(war.value.items.length)fields.push({name:"War (Last 30 days)",value:`${emoji.get("clash_sword")} **${attacks.length}** attacks (**${missed}** missed)\n${emoji.get("war_star")} **${attacks.reduce((sum,hit)=>sum+hit.stars,0)}** stars (**${attacks.length?(attacks.reduce((sum,hit)=>sum+hit.stars,0)/attacks.length).toFixed(2):"—"}** avg)\nTriples: **${attacks.length?(attacks.filter(hit=>hit.stars===3).length/attacks.length*100).toFixed(1)+"%":"—"}**`,inline:false});
+  // Historical imports can lack the original allowance. Count only known
+  // capacity and label the result as a lower bound instead of claiming zero.
+  const known=war.value.items.filter(item=>Number.isSafeInteger(item.attacksPerMember)&&item.attacksPerMember>0);
+  const missed=known.reduce((sum,item)=>sum+Math.max(0,item.attacksPerMember-item.attacks.length),0);
+  const missedLabel=known.length===war.value.items.length?`**${missed}** missed`:missed?`at least **${missed}** missed; some allowances unavailable`:"missed count unavailable";
+  if(war.value.items.length)fields.push({name:"War (Last 30 days)",value:`${emoji.get("clash_sword")} **${attacks.length}** attacks (${missedLabel})\n${emoji.get("war_star")} **${attacks.reduce((sum,hit)=>sum+hit.stars,0)}** stars (**${attacks.length?(attacks.reduce((sum,hit)=>sum+hit.stars,0)/attacks.length).toFixed(2):"—"}** avg)\nTriples: **${attacks.length?(attacks.filter(hit=>hit.stars===3).length/attacks.length*100).toFixed(1)+"%":"—"}**`,inline:false});
  }
  if(bans.status==="fulfilled")for(const ban of bans.value.items.filter(item=>item.VillageTag===player.tag))fields.push({name:"Banned player",value:`${escapeMarkdown(ban.Notes||"No reason given")}\n${escapeMarkdown(ban.DateCreated)}`,inline:false});
 }

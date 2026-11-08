@@ -1,12 +1,11 @@
-import { escapeLinkLabel } from "./game-common";
 import { sendInteractionError } from "./errors";
 import { actionRow, legacyMessage, linkButton, type LegacyEmbed } from '../discord/components';
 import { InteractionResponseType } from '../discord/types';
 import { CommandInputError, normalizeTag, stringOption } from './command-utils';
 import { isolatedNameColumn as displayNameColumn } from './display-width';
-import { emojis, escapeMarkdown } from './game-common';
+import { emojis, escapeMarkdown, escapeLinkLabel } from './game-common';
 import { serverEmbedColor } from './embed-color';
-import { clanRounds, cwlRanking, latestWar, loadCwl, warTime, type War, type WarSide } from './war-data';
+import { warAttackAllowance, clanRounds, cwlRanking, latestWar, loadCwl, warTime, type War, type WarSide } from './war-data';
 import type { CommandContext } from './types';
 
 const clanUrl=(tag:string)=>`https://link.clashofclans.com/en?action=OpenClanProfile&tag=${encodeURIComponent(tag)}`;
@@ -54,7 +53,7 @@ export async function cwlSearch(ctx:CommandContext,state?:State){
   };
   fields.push({name:'War Composition',value:`${own.name}\n${composition(own)}\n${other.name}\n${composition(other)}`,inline:false});
   const recent=[...own.members.flatMap(member=>(member.attacks??[]).map(hit=>({hit,name:member.name,icon:'clash_sword'}))),...other.members.flatMap(member=>(member.attacks??[]).map(hit=>({hit,name:own.members.find(p=>p.tag===hit.defenderTag)?.name??member.name,icon:'shield'})))].sort((a,b)=>b.hit.order-a.hit.order).slice(0,5);
-  if(recent.length)fields.push({name:'Last 5 attacks/defenses',value:recent.map(({hit,name,icon})=>`${emoji.get(icon)}\`${String(hit.destructionPercentage).padStart(3)}%\`${emoji.get('war_star').repeat(hit.stars)}${emoji.get('no_star').repeat(3-hit.stars)} ${escapeMarkdown(name)}`).join('\n'),inline:false});
+  if(recent.length)fields.push({name:'Last 5 attacks/defenses',value:recent.map(({hit,name,icon})=>`${emoji.get(icon)}\`${String(hit.destructionPercentage).padStart(3)}%\`${emoji.warStars(hit.stars)} ${escapeMarkdown(name)}`).join('\n'),inline:false});
   return {...embed(own.name),fields,footer:{text:`${season} | Round ${index+1}`}};
  };
  const lineup=(war:War,index:number)=>ownSides(war,tag).map(side=>({...embed(`${side.name} Lineup`,crop(side.members.slice().sort((a,b)=>a.mapPosition-b.mapPosition).map((member,position)=>`\`${String(position+1).padStart(2)}\` ${emoji.get(member.townhallLevel)} \`${displayNameColumn(member.name,20)}\``))),footer:{text:`${season} | Round ${index+1}`}}));
@@ -79,7 +78,7 @@ export async function cwlSearch(ctx:CommandContext,state?:State){
    const [own,other]=ownSides(war,tag),ended=war.state==='warEnded',prep=war.state==='preparation';
    const difference=own.stars-other.stars||own.destructionPercentage-other.destructionPercentage;
    const result=ended?(difference>0?'Won':difference<0?'Lost':'Tied'):'';
-   const maximum=war.teamSize*(war.attacksPerMember??1);
+   const maximum=war.teamSize*warAttackAllowance(war,true);
    return [{name:`${own.name} vs ${other.name}\nRound ${index+1} | ${prep?'In Prep':ended?'War Over':'In War'}${result?` (${result})`:''}`,
     value:`\`${`${count(own)}/${maximum}`.padEnd(7)}\`${emoji.get('animated_clash_swords')}\`${`${count(other)}/${maximum}`.padStart(7)}\`\n`+
       `\`${String(own.stars).padEnd(7)}\`${emoji.get('war_star')}\`${String(other.stars).padStart(7)}\`\n`+
@@ -111,7 +110,7 @@ export async function cwlSearch(ctx:CommandContext,state?:State){
   else {const [own,other]=ownSides(current,tag),opponents=new Map(other.members.map(member=>[member.tag,member]));
    embeds=[embed(`${clan.name} ${page==='attacks'?'War Attacks':'Defenses Taken'}`,crop(own.members.slice().sort((a,b)=>a.mapPosition-b.mapPosition).map(member=>{
     const hits=page==='attacks'?member.attacks??[]:other.members.flatMap(p=>p.attacks??[]).filter(hit=>hit.defenderTag===member.tag);
-    return `${emoji.get(member.townhallLevel)} **${escapeMarkdown(member.name)}**\n${hits.length?hits.map(hit=>`${hit.destructionPercentage}% ${emoji.get('war_star').repeat(hit.stars)}${emoji.get('no_star').repeat(3-hit.stars)} (#${opponents.get(page==='attacks'?hit.defenderTag:hit.attackerTag)?.mapPosition??'?'})`).join('\n'):page==='attacks'?'No attacks used':'No defenses taken'}`;
+    return `${emoji.get(member.townhallLevel)} **${escapeMarkdown(member.name)}**\n${hits.length?hits.map(hit=>`${hit.destructionPercentage}% ${emoji.warStars(hit.stars)} (#${opponents.get(page==='attacks'?hit.defenderTag:hit.attackerTag)?.mapPosition??'?'})`).join('\n'):page==='attacks'?'No attacks used':'No defenses taken'}`;
    })))];}
  }else{
   const war=page==='next'||page==='opponent'?next:current;

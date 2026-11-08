@@ -1,7 +1,7 @@
 import { actionRow, legacyMessage } from "../discord/components";
 import { serverEmbedColor } from "./embed-color";
 import { CommandInputError } from "./command-utils";
-import { loadCurrentWar, warTime } from "./war-data";
+import { warAttackAllowance, loadCurrentWar, warTime } from "./war-data";
 import { invokingUserId, OptionType, stringOption } from "./command-utils";
 import {
   emojis,
@@ -164,7 +164,7 @@ async function todo(ctx: CommandContext, tags: string[]) {
       }
       if(player.clan){
         const clan=player.clan.tag;
-        if(!wars.has(clan))wars.set(clan,loadCurrentWar(ctx,clan).then(result=>result.war));
+        if(!wars.has(clan))wars.set(clan,loadCurrentWar(ctx,clan).then(result=>result.war?{...result.war,attacksPerMember:warAttackAllowance(result.war,result.cwl)}:undefined));
         if(!raids.has(clan))raids.set(clan,ctx.services.api.get<Raids>(`/v2/bot/clash/clans/${encodeURIComponent(clan)}/capitalraidseasons`,{limit:1}));
         const [war,raid]=await Promise.allSettled([wars.get(clan)!,raids.get(clan)!]);
         if(war.status==='fulfilled'){
@@ -173,7 +173,7 @@ async function todo(ctx: CommandContext, tags: string[]) {
           // an ended war just because a cached response still contains members.
           if(active&&['preparation','inWar'].includes(active.state)&&warTime(active.endTime)>now){
             const member=[active.clan,active.opponent].flatMap(side=>side.members??[]).find(row=>row.tag===tag);
-            if(member){const limit=active.attacksPerMember??1,used=member.attacks?.length??0;if(used<limit)add('War Hits',`(${used}/${limit}) <t:${Math.floor(warTime(active.endTime)/1000)}:R> — ${label}`,warTime(active.endTime));}
+            if(member){const limit=warAttackAllowance(active),used=member.attacks?.length??0;if(!limit)unavailable.add('war attack allowance');else if(used<limit)add('War Hits',`(${used}/${limit}) <t:${Math.floor(warTime(active.endTime)/1000)}:R> — ${label}`,warTime(active.endTime));}
           }
         }else unavailable.add('wars');
         if(raid.status==='fulfilled'&&player.townHallLevel>=6){

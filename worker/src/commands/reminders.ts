@@ -1,4 +1,4 @@
-import { loadCurrentWar } from "./war-data";
+import { warAttackAllowance, loadCurrentWar } from "./war-data";
 import { applicationEmojis } from "../discord/emojis";
 import { InteractionResponseType, MessageFlags, type DiscordInteractionResponse } from "../discord/types";
 import { CommandInputError, normalizeTag, requireGuildId, stringOption } from "./command-utils";
@@ -15,7 +15,7 @@ async function currentWar(ctx: CommandContext, tag: string): Promise<War> {
   const result=await loadCurrentWar(ctx,tag);
   // CWL responses omit attacksPerMember. Preserve the loader's explicit
   // league classification so one used hit completes that member's round.
-  if(result.war)return { ...result.war, attacksPerMember: result.cwl || result.war.tag ? 1 : result.war.attacksPerMember ?? 2 };
+  if(result.war)return { ...result.war, attacksPerMember: warAttackAllowance(result.war,result.cwl) };
   if(result.privateLog)throw new CommandInputError("This clan’s war log is private. Ask a clan leader to make it public in Clash of Clans.");
   throw new CommandInputError("No active war found for this clan.");
 }
@@ -45,7 +45,8 @@ export const remindersCommand: Command = {
     let heading: string, missing: Missing[];
     if (type === "War") {
       const war = await currentWar(ctx, tag), own = war.clan.tag === tag ? war.clan : war.opponent, other = own === war.clan ? war.opponent : war.clan;
-      const total = war.attacksPerMember ?? 2;
+      const total = warAttackAllowance(war);
+      if (!total) throw new CommandInputError("This war’s attack allowance is unavailable, so I can’t reliably identify unused hits. Try again after its data refreshes.");
       const preparing = war.state === "preparation";
       // Preparation reminders address the upcoming roster, not missed attacks.
       const used = (member: Member) => preparing ? 0 : member.attacks?.length ?? 0;

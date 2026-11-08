@@ -1,3 +1,5 @@
+import { applicationEmojis } from "../discord/emojis";
+import { warAttackAllowance } from "./war-data";
 import { CommandInputError } from "./command-utils";
 import { interactionErrorReply, sendInteractionError } from "./errors";
 import { InteractionResponseType, MessageFlags, type DiscordInteractionResponse } from "../discord/types";
@@ -7,7 +9,7 @@ import { serverEmbedColor } from "./embed-color";
 interface WarAttack { attackerTag: string; defenderTag: string; destructionPercentage: number; order: number; stars: number }
 interface WarMember { attacks?: WarAttack[]; mapPosition: number; name: string; tag: string; townhallLevel: number }
 interface WarSide { badgeUrls?: { large?: string; medium?: string }; destructionPercentage: number; members: WarMember[]; name: string; stars: number; tag: string }
-interface War { attacksPerMember: number; clan: WarSide; endTime: string; opponent: WarSide; preparationStartTime: string; startTime: string; state: string; teamSize: number; type?: string }
+interface War { attacksPerMember?: number; tag?: string; clan: WarSide; endTime: string; opponent: WarSide; preparationStartTime: string; startTime: string; state: string; teamSize: number; type?: string }
 interface WarPanelData { identity: string; war: War }
 
 const relative = (raw: string): string => {
@@ -46,12 +48,12 @@ export async function warPanelComponentHandler(context: CommandContext, segments
       { type: 2, style: 5, label: "Chocolate Clash", url: `https://fwa.chocolateclash.com/cc_n/clan.php?tag=${tag}` },
     ] }] });
   }
-  const color=await serverEmbedColor(context);
+  const [color, emoji]=await Promise.all([serverEmbedColor(context),applicationEmojis(context.services.discordRest)]);
   if (action === "refresh") {
     const state = war.state === "preparation" ? "In Prep" : war.state === "warEnded" ? "War Over" : "In War";
     const when = war.state === "preparation" ? `Starting: ${relative(war.startTime)}` : war.state === "warEnded" ? `Ended: ${relative(war.endTime)}` : `Ending: ${relative(war.endTime)}`;
     const count = (side: WarSide) => side.members.reduce((total, member) => total + (member.attacks?.length ?? 0), 0);
-    const maximum = war.teamSize * war.attacksPerMember;
+    const maximum = war.teamSize * warAttackAllowance(war);
     const composition = (side: WarSide) => {
       const counts = new Map<number, number>();
       for (const member of side.members) counts.set(member.townhallLevel, (counts.get(member.townhallLevel) ?? 0) + 1);
@@ -60,7 +62,7 @@ export async function warPanelComponentHandler(context: CommandContext, segments
     const recent = [...own.members.flatMap((member) => (member.attacks ?? []).map((attack) => ({ member, attack, defense: false }))),
       ...other.members.flatMap((member) => (member.attacks ?? []).map((attack) => ({ member, attack, defense: true })))]
       .sort((a, b) => b.attack.order - a.attack.order).slice(0, 5)
-      .map(({ member, attack, defense }) => `${defense ? "🛡️" : "⚔️"}\`${attack.destructionPercentage}%\` ${"★".repeat(attack.stars)}${"☆".repeat(3 - attack.stars)} \`${member.name}\``).join("\n");
+      .map(({ member, attack, defense }) => `${defense ? "🛡️" : "⚔️"}\`${attack.destructionPercentage}%\` ${emoji.warStars(attack.stars)} \`${member.name}\``).join("\n");
     return { type: InteractionResponseType.UpdateMessage, data: { embeds: [{
       color,
       description: clanLink(own), thumbnail: { url: own.badgeUrls?.large ?? own.badgeUrls?.medium },
@@ -68,7 +70,7 @@ export async function warPanelComponentHandler(context: CommandContext, segments
       fields: [
         { name: "War Against", value: clanLink(other) },
         { name: "War State", value: `${state} (${war.teamSize} vs ${war.teamSize})\n${when}\n[*View War Timeline*](https://api.clashk.ing/timeline/${encodeURIComponent(own.tag)})` },
-        { name: "War Stats", value: `${count(own)}/${maximum} ⚔️ ${count(other)}/${maximum}\n${own.stars} ★ ${other.stars}\n${own.destructionPercentage.toFixed(2)}% 🗡️ ${other.destructionPercentage.toFixed(2)}%` },
+        { name: "War Stats", value: `${count(own)}/${maximum||"?"} ⚔️ ${count(other)}/${maximum||"?"}\n${own.stars} ★ ${other.stars}\n${own.destructionPercentage.toFixed(2)}% 🗡️ ${other.destructionPercentage.toFixed(2)}%` },
         { name: "War Composition", value: `${own.name}\n${composition(own)}\n${other.name}\n${composition(other)}` },
         ...(recent ? [{ name: "Last 5 attacks/defenses", value: recent.slice(0, 1024) }] : []),
       ],
@@ -83,7 +85,7 @@ export async function warPanelComponentHandler(context: CommandContext, segments
     lines.push(`\nTH${member.townhallLevel} **${member.name}**`);
     for (const attack of attacks) {
       const base = byTag.get(action === "attacks" ? attack.defenderTag : attack.attackerTag)?.mapPosition;
-      lines.push(`➼ ${attack.destructionPercentage}%${"★".repeat(attack.stars)}${"☆".repeat(3 - attack.stars)}${base ? ` (${base})` : ""}`);
+      lines.push(`➼ ${attack.destructionPercentage}%${emoji.warStars(attack.stars)}${base ? ` (${base})` : ""}`);
     }
   }
   const title = `${own.name} ${action === "attacks" ? "War Attacks" : "Defenses Taken"}`;
