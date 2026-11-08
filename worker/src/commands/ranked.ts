@@ -26,12 +26,19 @@ export async function rankedBattleLimit(tier:number){return (await rankedTierRul
 export async function rankedOverview(ctx:CommandContext,player:Player){
  if(!player.currentLeagueGroupTag||!player.currentLeagueSeasonId)return undefined;
  const [group,limit]=await Promise.all([
-  ctx.services.api.get<{members:LiveMember[]}>(`/v2/bot/clash/leaguegroup/${encodeURIComponent(player.currentLeagueGroupTag)}/${player.currentLeagueSeasonId}`,{playerTag:player.tag}),
+  ctx.services.api.get<{members:LiveMember[];attackLogs?:RankedHit[];defenseLogs?:RankedHit[]}>(`/v2/bot/clash/leaguegroup/${encodeURIComponent(player.currentLeagueGroupTag)}/${player.currentLeagueSeasonId}`,{playerTag:player.tag}),
   rankedBattleLimit(player.leagueTier?.id??0).catch(()=>undefined),
  ]);
  const member=group.members.find(item=>item.playerTag===player.tag);
  if(!member)return undefined;
- return {rank:1+group.members.filter(item=>item.leagueTrophies>member.leagueTrophies).length,attacks:member.attackWinCount+member.attackLoseCount,defenses:member.defenseWinCount+member.defenseLoseCount,limit};
+ return {rank:1+group.members.filter(item=>item.leagueTrophies>member.leagueTrophies).length,trophies:member.leagueTrophies,attacks:member.attackWinCount+member.attackLoseCount,defenses:member.defenseWinCount+member.defenseLoseCount,wins:member.attackWinCount,losses:member.attackLoseCount,limit,attackLogs:group.attackLogs??[],defenseLogs:group.defenseLogs??[]};
+}
+export function rankedBattleFields(member:Pick<RankedMember,"attacks"|"wins"|"losses"|"defenses">,attacks:RankedHit[],defenses:RankedHit[],maxBattles?:number):{name:string;value:string;inline:boolean}[]{
+ const hitLines=(hits:RankedHit[])=>hits.slice(-8).map(hit=>`${hit.trophies>=0?"+":""}${hit.trophies} <t:${Math.floor(Date.parse(hit.creationTime)/1000)}:R>`).join("\n")||"None recorded yet.";
+ return [
+  {name:`Attacks (${member.attacks}${maxBattles?`/${maxBattles}`:""})`,value:`-# ${member.wins} wins · ${member.losses} losses\n${hitLines(attacks)}\n\u200b`,inline:true},
+  {name:`Defenses${member.defenses===undefined?"":` (${member.defenses})`}`,value:hitLines(defenses)+"\n\u200b",inline:true},
+ ];
 }
 const seasonOption={name:"season",description:"Ranked season (defaults to current)",type:OptionType.String};
 export const rankedCommand:Command={
@@ -97,16 +104,12 @@ async function rankedPlayerReply(ctx:CommandContext,player:Player,league:string,
  if(view==="group"){
   response=await pagedGameReply(ctx,`${league} · Group`,members.map(item=>`\u2066**${emoji.number(item.placement)} ${playerLabel({name:`\u2068${item.name.replace(/[\u202a-\u202e\u2066-\u2069]/gu,"")}\u2069`,tag:item.tag})}**\u2069\n-# ${emoji.get("trophy")} **${item.trophies.toLocaleString("en")}** · ${item.attacks}${maxBattles?`/${maxBattles}`:""} attacks`),"rp",[player.tag,requested,"group"]);
  }else{
-  const hitLines=(hits:RankedHit[])=>hits.slice(-8).map(hit=>`${hit.trophies>=0?"+":""}${hit.trophies} <t:${Math.floor(Date.parse(hit.creationTime)/1000)}:R>`).join("\n")||"None recorded yet.";
   response=legacyMessage({allowed_mentions:{parse:[]},embeds:[{
    author:{name:`${player.name}${player.clan?` | ${player.clan.name}`:""}`.slice(0,256),url:playerUrl(player.tag),...(player.clan?.badgeUrls?.small?{icon_url:player.clan.badgeUrls.small}:{})},
    title:league,url:playerAppUrl(player.tag,ctx.env.APP_ENV),color:await serverEmbedColor(ctx),
    thumbnail:{url:`https://assets.clashk.ing/buildings/home-village/town_hall/level_${player.townHallLevel}.webp`},
    description:`${rankIcon} **${member.trophies.toLocaleString("en")}** · **#${member.placement}** / ${members.length}\n[Player profile](${playerUrl(player.tag)}) · [ClashKing](${playerAppUrl(player.tag,ctx.env.APP_ENV)})`,
-   fields:[
-    {name:`Attacks (${member.attacks}${maxBattles?`/${maxBattles}`:""})`,value:`-# ${member.wins} wins · ${member.losses} losses\n${hitLines(attacks)}\n\u200b`,inline:true},
-    {name:`Defenses${member.defenses===undefined?"":` (${member.defenses})`}`,value:hitLines(defenses)+"\n\u200b",inline:true},
-   ],footer:{text:seasonDate(season)},image:{url:"attachment://ranked-season.png"},
+   fields:rankedBattleFields(member,attacks,defenses,maxBattles),footer:{text:seasonDate(season)},image:{url:"attachment://ranked-season.png"},
   }],components:[]});
   const {rankedPoster}=await import("./ranked-poster");
   response.data!.__files=[{name:"ranked-season.png",bytes:await rankedPoster({player,league,season,members,member,attacks,defenses,cutoffs})}];

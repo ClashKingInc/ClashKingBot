@@ -1,3 +1,4 @@
+import type { ApplicationEmojis } from "../discord/emojis";
 import { actionRow, legacyMessage, type LegacyEmbed } from "../discord/components";
 import { invokingUserId } from "./command-utils";
 import { serverEmbedColor } from "./embed-color";
@@ -23,6 +24,21 @@ const signed=(value:number)=>`${value>=0?"+":""}${value.toLocaleString("en")}`;
 const percent=(count:number,total:number)=>total?`${(count/total*100).toFixed(1)}%`:"—";
 const shiftDay=(day:string,delta:number)=>new Date(Date.parse(day)+delta*86400000).toISOString().slice(0,10);
 
+/** Share the recorded Legend day, including automatic defenses, across player views. */
+export function legendDayFields(details:LegendDayDetails,emoji:ApplicationEmojis):{name:string;value:string;inline:boolean}[]{
+ const hits=(items:LegendDayBattle[],icon:string)=>items.length?items.slice(0,8).map(hit=>{
+  if(hit.automatic)return `${icon} **${signed(hit.trophies)}** Auto`;
+  const time=hit.time?Date.parse(hit.time):NaN;
+  return `${icon} **${signed(hit.trophies)}**${Number.isFinite(time)?` <t:${Math.floor(time/1000)}:R>`:""}`;
+ }).join("\n")+(items.length>8?`\n+${items.length-8} more recorded hits`:""):"None recorded yet.";
+ const average=(total:number,count:number)=>count?signed(Number((total/count).toFixed(1))):"—";
+ // Summary and hits stay in one field so they stack together on narrow clients.
+ return [
+  {name:`Attacks (${details.attacks.length}/8)`,value:`-# **${signed(details.attackTrophies)}** (${average(details.attackTrophies,details.attacks.length)} average)\n${hits(details.attacks,emoji.get("clash_sword"))}\n\u200b`,inline:true},
+  {name:`Defenses (${details.defenses.length}/8)`,value:`-# **${signed(details.defenseTrophies)}** (${average(details.defenseTrophies,details.defenses.length)} average)\n${hits(details.defenses,emoji.get("shield"))}\n\u200b`,inline:true},
+ ];
+}
+
 /** Day numbers use the API's season boundary, not the index of available rows.
  * Keep recorded battle statistics separate from inferred automatic defenses. */
 export async function legendSeasonReply(ctx:CommandContext,player:Pick<Player,"name"|"tag">&Partial<Player>&{globalRank?:number;location?:{name:string;countryCode?:string}},season:LegendSeasonSummary,days:LegendSeasonDay[],townHallIcon?:string,details?:LegendDayDetails){
@@ -31,7 +47,6 @@ export async function legendSeasonReply(ctx:CommandContext,player:Pick<Player,"n
   const number=(day:string)=>Math.round((Date.parse(day)-Date.parse(first))/86400000)+1;
   const seasonDays=Math.round((Date.parse(season.seasonEnd)-Date.parse(season.seasonStart))/86400000);
   const league=emoji.get(player.leagueTier?.name??"")||emoji.get("Legend League");
-  const sword=emoji.get("clash_sword"),shield=emoji.get("shield");
   const fields:NonNullable<LegacyEmbed["fields"]>=[];
   const stats=details?{
     attacks:details.attacks.length,defenses:details.defenses.filter(hit=>!hit.automatic).length,
@@ -67,19 +82,7 @@ export async function legendSeasonReply(ctx:CommandContext,player:Pick<Player,"n
     fields.push({name:"\u200b",value:days.length?`\`\`\`ansi\n${table}\`\`\``:"No recorded days yet.",inline:false});
   }
   if(details){
-    const hits=(items:LegendDayBattle[],icon:string)=>items.length?items.slice(0,8).map(hit=>{
-      if(hit.automatic)return `${icon} **${signed(hit.trophies)}** Auto`;
-      const time=hit.time?Date.parse(hit.time):NaN;
-      return `${icon} **${signed(hit.trophies)}**${Number.isFinite(time)?` <t:${Math.floor(time/1000)}:R>`:""}`;
-    }).join("\n")+(items.length>8?`\n+${items.length-8} more recorded hits`:""):"None recorded yet.";
-    // Keep each summary and its hit list in the same field. Only this pair is
-    // inline, so Discord cannot put a third summary into the battle-list row.
-    fields.push(
-      // A nonempty invisible line preserves the gap when Discord stacks the
-      // two inline columns on mobile; trailing newlines alone can be trimmed.
-      {name:`Attacks (${stats.attacks}/8)`,value:`-# **${signed(offense)}** (${average(stats.averageOffense)} average)\n${hits(details.attacks,sword)}\n\u200b`,inline:true},
-      {name:`Defenses (${defenseCount}/8)`,value:`-# **${signed(defense)}** (${average(stats.averageDefense)} average)\n${hits(details.defenses,shield)}\n\u200b`,inline:true},
-    );
+    fields.push(...legendDayFields(details,emoji));
   }
   const armyLabel=(name:string)=>name.split(" / ").map(part=>`${emoji.get(part)} ${part}`.trim()).join(" / ");
   if(details?.topArmy)fields.push({name:"Most used army",value:`**${armyLabel(details.topArmy.name)}**`,inline:false});
