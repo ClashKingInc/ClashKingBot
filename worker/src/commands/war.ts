@@ -17,6 +17,7 @@ import { emojis, subcommand } from "./game-common";
 import { serverEmbedColor } from "./embed-color";
 import {
   compactWarTime,
+  isCwlWar,
   isWar,
   loadCurrentWar,
   warTime,
@@ -92,7 +93,7 @@ export const warCommand: Command = {
         const days=Math.floor(Math.max(0,Date.now()-warTime(war.endTime))/86400000);
         const ago=days?`${days}d ago`:`${Math.floor(Math.max(0,Date.now()-warTime(war.endTime))/3600000)}h ago`;
         const prep=war.startTime?warTime(war.startTime)-warTime(war.preparationStartTime):0;
-        const type=war.tag||war.attacksPerMember===1?"CWL":[5,15,30,60,120,240,360,480,720,960,1200,1440].includes(prep/60000)?"Friendly":"Regular";
+        const type=isCwlWar(war)?"CWL":war.type==="friendly"||[5,15,30,60,120,240,360,480,720,960,1200,1440].includes(prep/60000)?"Friendly":"Regular";
         const name=`${enemy.name} | ${ago} | ${type} | ${new Date(warTime(war.endTime)).toISOString().slice(0,10)}`.slice(0,100);
         return name.toLocaleLowerCase().includes(query)?[{name,value}]:[];
       });
@@ -124,7 +125,7 @@ export const warCommand: Command = {
         throw new CommandInputError(
           "That recorded war does not contain this clan.",
         );
-      return warReply(ctx, tag, war, Boolean(war.tag||war.attacksPerMember===1), end, settings);
+      return warReply(ctx, tag, war, isCwlWar(war), end, settings);
     }
     const result = await loadCurrentWar(ctx, tag);
     if (!result.war)

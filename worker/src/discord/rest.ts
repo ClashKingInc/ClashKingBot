@@ -57,6 +57,10 @@ export class DiscordRestClient {
     return this.get(`/guilds/${guildId}/roles`);
   }
 
+  listGlobalApplicationCommands(): Promise<Array<{ id: string; name: string; type: number }>> {
+    return this.get(`/applications/${this.#applicationId}/commands`);
+  }
+
   async listApplicationEmojis(signal?: AbortSignal): Promise<DiscordApplicationEmoji[]> {
     const result = await this.request<{ items: DiscordApplicationEmoji[] }>(
       `/applications/${this.#applicationId}/emojis`,

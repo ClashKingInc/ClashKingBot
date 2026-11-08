@@ -3,7 +3,7 @@ import { actionRow, legacyMessage, type LegacyEmbed } from "../discord/component
 import { CommandInputError, OptionType, invokingUserId, requireGuildId, stringOption } from "./command-utils";
 import { compact, emojis, escapeMarkdown } from "./game-common";
 import { serverEmbedColor } from "./embed-color";
-import { loadCurrentWar, warTime, type War } from "./war-data";
+import { warAttackAllowance, loadCurrentWar, warTime, type War } from "./war-data";
 import type { ApplicationCommandOption, CommandContext } from "./types";
 
 export const familyOngoingOptions: ApplicationCommandOption[] = [
@@ -33,8 +33,8 @@ export async function familyOperations(ctx:CommandContext){
         if(!war)return {name:clan.name,detail:privateLog?"Private war log":"",inactive:!privateLog};
         if(war.state==="warEnded")return {name:clan.name,detail:"",inactive:true};
         const own=war.clan.tag===clan.tag?war.clan:war.opponent,other=war.clan.tag===clan.tag?war.opponent:war.clan;
-        const capacity=war.teamSize*(war.attacksPerMember??(cwl?1:2));
-        const hits=(side:typeof own)=>`${side.members.reduce((n,m)=>n+(m.attacks?.length??0),0)}/${capacity}`;
+        const capacity=war.teamSize*warAttackAllowance(war,cwl);
+        const hits=(side:typeof own)=>`${side.members.reduce((n,m)=>n+(m.attacks?.length??0),0)}/${capacity||"?"}`;
         const timestamp=warTime(war.state==="preparation"?war.startTime??war.endTime:war.endTime);
         return {name:`${clan.name} vs ${other.name}${cwl?" (CWL)":""}`,detail:`\`${hits(own).padEnd(7)}\`${emoji.get("wood_swords")}\`${hits(other).padStart(7)}\`\n\`${String(own.stars).padEnd(7)}\`${emoji.get("war_star")}\`${String(other.stars).padStart(7)}\`\n\`${`${own.destructionPercentage.toFixed(2)}%`.padEnd(7)}\`${emoji.get("broken_sword")}\`${`${other.destructionPercentage.toFixed(2)}%`.padStart(7)}\`${Number.isFinite(timestamp)?`\n${war.state==="preparation"?"Starting":"Ending"} <t:${Math.floor(timestamp/1000)}:R>`:""}`};
       }catch{return {name:clan.name,detail:"Unavailable (retry later)"};}

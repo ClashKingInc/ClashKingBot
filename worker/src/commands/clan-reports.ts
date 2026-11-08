@@ -5,7 +5,7 @@ import { compact, emojis, escapeMarkdown } from "./game-common";
 import { serverEmbedColor } from "./embed-color";
 import { currentRaidWeekend, loadRaidWeekend, validateRaidWeekend } from "./raid-data";
 import { displayNameColumn } from "./display-width";
-import { warTime } from "./war-data";
+import { warAttackAllowance, warTime } from "./war-data";
 import type { ApplicationCommandOption, CommandContext } from "./types";
 export const capitalOptions:ApplicationCommandOption[]=[
  {name:"weekend",description:"Friday date YYYY-MM-DD (defaults to latest raid weekend)",type:OptionType.String,autocomplete:true},
@@ -96,9 +96,9 @@ export async function clanReports(ctx:CommandContext){
    const own=row.clan.tag===tag?row.clan:row.opponent!,opponent=row.clan.tag===tag?row.opponent!:row.clan;
    const delta=own.stars-opponent.stars||own.destructionPercentage-opponent.destructionPercentage;
    const result=delta>0?"Win":delta<0?"Loss":"Draw",status=emoji.get(delta>0?"up_green_arrow":delta<0?"down_red_arrow":"grey_dash");
-   const attacksPerMember=row.attacksPerMember??2,capacity=row.teamSize*attacksPerMember,end=warTime(row.endTime);
-   const suffix=String(attacksPerMember).replace(/\d/gu,digit=>"⁰¹²³⁴⁵⁶⁷⁸⁹"[Number(digit)]!);
-   return `${status} **${result} vs ${clean(opponent.name)}**\n(${row.teamSize} vs ${row.teamSize})${suffix}${Number.isFinite(end)?` | <t:${Math.floor(end/1000)}:R>`:""}\n${own.stars} ★ ${opponent.stars}${own.attacks===undefined?"":` | ${own.attacks}/${capacity}`} | ${own.destructionPercentage.toFixed(1)}%${own.expEarned===undefined?"":` | +${own.expEarned} XP`}`;
+   const attacksPerMember=warAttackAllowance(row),capacity=row.teamSize*attacksPerMember,end=warTime(row.endTime);
+   const suffix=attacksPerMember?String(attacksPerMember).replace(/\d/gu,digit=>"⁰¹²³⁴⁵⁶⁷⁸⁹"[Number(digit)]!):"";
+   return `${status} **${result} vs ${clean(opponent.name)}**\n(${row.teamSize} vs ${row.teamSize})${suffix}${Number.isFinite(end)?` | <t:${Math.floor(end/1000)}:R>`:""}\n${own.stars} ★ ${opponent.stars}${own.attacks===undefined?"":` | ${own.attacks}/${capacity||"?"}`} | ${own.destructionPercentage.toFixed(1)}%${own.expEarned===undefined?"":` | +${own.expEarned} XP`}`;
 
   });note=source;
  }

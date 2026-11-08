@@ -4,6 +4,7 @@ import { InteractionResponseType, InteractionType, } from "../discord/types";
 import { CommandInputError, OptionType, stringOption } from "./command-utils";
 import { serverEmbedColor } from "./embed-color";
 import { emojis } from "./game-common";
+import { commandMentions } from "../discord/command-mentions";
 import type { ApplicationCommandDefinition, ApplicationCommandOption, Command, CommandContext } from "./types";
 
 const categories = {
@@ -49,6 +50,7 @@ export const helpCommand: Command = {
     // in a second hand-maintained command catalogue. Categories group roots only.
     const { commandDefinitions } = await import("./registry");
     const selected = (stringOption(ctx, "command") ?? "").replace(/^\//u, "").trim().replace(/\s+/gu, " ");
+    const mention = await commandMentions(ctx.services.discordRest);
     const category = stringOption(ctx, "category") ?? "all";
     if (!Object.hasOwn(categories, category)) throw new CommandInputError("Choose a command category.");
     const currentCategory = category as Category;
@@ -59,7 +61,7 @@ export const helpCommand: Command = {
     let description = "";
     if (leaf) {
       title = `/${leaf.path}`;
-      description = leaf.description;
+      description = `${mention(leaf.path)}\n${leaf.description}`;
       for (const option of leaf.options) {
         const range = [option.min_value !== undefined ? `min ${option.min_value}` : "", option.max_value !== undefined ? `max ${option.max_value}` : ""].filter(Boolean).join(", ");
         const line = `**${option.name}** · ${option.required ? "Required" : "Optional"}\n${option.description}${range ? ` (${range})` : ""}${option.choices?.length ? `\n${option.choices.map(choice => choice.name).join(" · ")}` : ""}`;
@@ -68,11 +70,11 @@ export const helpCommand: Command = {
       }
     } else if (root) {
       title = `/${root.name}`;
-      description = leaves([root]).map(row => `**/${row.path}**\n${row.description}`).join("\n\n");
+      description = leaves([root]).map(row => `${mention(row.path)}\n${row.description}`).join("\n\n");
     } else {
       const roots = categories[currentCategory].roots;
       description = commandDefinitions.filter(row => !roots.length || roots.includes(row.name))
-        .map(row => `**/${row.name}** · ${row.description}`).join("\n");
+        .map(row => `${mention(row.name)} · ${row.description}`).join("\n");
     }
     const refresh = (await emojis(ctx)).component("refresh") ?? { name: "↻" };
     return legacyMessage({

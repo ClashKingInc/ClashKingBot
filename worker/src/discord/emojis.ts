@@ -15,14 +15,22 @@ export class ApplicationEmojis {
     const item = this.component(name);
     return item ? `<${item.animated ? "a" : ""}:${item.name}:${item.id}>` : "";
   }
+  warStars(stars: number): string {
+    const earned = Number.isFinite(stars) ? Math.max(0, Math.min(3, Math.trunc(stars))) : 0;
+    return this.get("war_star").repeat(earned) + this.get("no_star").repeat(3 - earned);
+  }
   component(name: string | number): DiscordApplicationEmoji | undefined {
     const key=emojiName(name);
     // Match the green verified-account artwork in the App and Dashboard.
     // A missing sync must not silently restore the old red verification icon.
     if(key==="account_verified")return this.#items.get("account_verified_green");
+    // These two assets share the same visible bounds; the empty star has an
+    // outline instead of a miniature filled star. Keep originals for rollback.
+    if(key==="war_star")return this.#items.get("war_star_filled")??this.#items.get(key);
+    if(key==="no_star")return this.#items.get("war_star_empty")??this.#items.get("full_no_star")??this.#items.get(key);
     // Corrected resource art removes transparent padding without replacing the
     // original application emoji. Other applications can retain their originals.
-    const resources=new Set(["gold","elixir","dark_elixir","capital_gold","clan_games","buildergold","builderelixir","shinyore","glowyore","starryore","no_star"]);
+    const resources=new Set(["gold","elixir","dark_elixir","capital_gold","clan_games","buildergold","builderelixir","shinyore","glowyore","starryore"]);
     return (resources.has(key)?this.#items.get(`full_${key}`):undefined)??this.#items.get(key)
       // The API uses e.g. "Legend III"; the asset inventory uses "legendleagueiii".
       ??this.#items.get(key.replace(/(i{1,3})$/u,"league$1"));
