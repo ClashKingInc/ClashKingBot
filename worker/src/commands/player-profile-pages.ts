@@ -5,8 +5,8 @@ import { compact, escapeMarkdown, isDailyLegend, legendDay, playerAppUrl, player
 import { playerOverviewReply } from "./player-profile";
 import { playerCatalog, playerUpgrades, upgradeCompletion } from "./player-catalog";
 import { serverEmbedColor } from "./embed-color";
-import { rankedBattleFields, rankedOverview } from "./ranked";
-import { legendDayFields, type LegendDayDetails } from "./legend-season";
+import { rankedOverview } from "./ranked";
+import { type LegendDayDetails } from "./legend-season";
 import { clashKingHistory, clashOfStatsHistory } from "./player-clan-history";
 import type { CommandContext } from "./types";
 
@@ -150,23 +150,31 @@ async function addOverviewDetails(ctx:CommandContext,player:Player,emoji:Applica
   ctx.interaction.guild_id?ctx.services.api.get<{items:Array<{VillageTag:string;Notes:string;DateCreated:string}>}>(`/v2/server/${ctx.interaction.guild_id}/bans`):Promise.resolve({items:[]}),
   ctx.services.api.get<{link:{userId:string;verified:boolean}|null;lastObservedAt:string|null}>(`/v2/bot/players/${encoded}/identity`,ctx.interaction.guild_id?{serverId:ctx.interaction.guild_id}:{}),
   isDailyLegend(player)
-   ? ctx.services.api.get<LegendDayDetails>(`/v2/player/${encoded}/legend/${legendDay()}/battlelog`).then(day=>({kind:"legend" as const,day}))
+   ? Promise.all([
+     ctx.services.api.get<LegendDayDetails>(`/v2/player/${encoded}/legend/${legendDay()}/battlelog`),
+     ctx.services.api.post<{items:Array<{tag:string;globalRank:number}>}>("/v2/legends/ranks",{tags:[player.tag]}).catch(()=>undefined),
+    ]).then(([day,ranks])=>({kind:"legend" as const,day,rank:ranks?.items.find(item=>item.tag===player.tag)?.globalRank}))
    : rankedOverview(ctx,player).then(ranked=>({kind:"ranked" as const,ranked})),
  ]);
  if(competitive.status==="fulfilled"){
   const result=competitive.value;
   if(result.kind==="legend"){
-   const day=result.day;
-   fields.splice(1,0,...legendDayFields(day,emoji));
-   fields[0]!.value+=`\n${day.trophies>=0?"+":""}${day.trophies.toLocaleString("en")} net today`;
+   const rank=result.rank;
+   fields[0]!.value+=(rank&&rank>0?`\n${emoji.get("earth")} **#${rank.toLocaleString("en")}** global`:"")
+    +`\n${emoji.get("clash_sword")} **${result.day.attacks.length}/8** attacks · ${emoji.get("shield")} **${result.day.defenses.length}/8** defenses`;
   }else if(result.ranked){
    const r=result.ranked;
-   fields[0]!.value=`${emoji.get(player.leagueTier?.name??"trophy")||emoji.get("trophy")} **${r.trophies.toLocaleString("en")}** trophies · **#${r.rank}**`;
-   fields.splice(1,0,...rankedBattleFields(r,r.attackLogs,r.defenseLogs,r.limit));
+   const direction=r.standing==="promotion"?emoji.get("up_green_arrow"):r.standing==="demotion"?emoji.get("down_red_arrow"):r.standing==="staying"?emoji.get("grey_dash"):"";
+   const label=r.standing==="promotion"?"Promotion":r.standing==="demotion"?"Demotion":r.standing==="staying"?"Staying":"";
+   const count=(value:number)=>`${value}${r.limit?`/${r.limit}`:""}`;
+   fields[0]!.value=`${emoji.get(player.leagueTier?.name??"trophy")||emoji.get("trophy")} **${r.trophies.toLocaleString("en")}** trophies`
+    +`\n${direction} **#${r.rank}**${label?` · ${label}`:""}`
+    +`\n${emoji.get("clash_sword")} **${count(r.attacks)}** attacks · ${emoji.get("shield")} **${count(r.defenses)}** defenses`;
   }
  }else if(isDailyLegend(player)){
-  fields.splice(1,0,{name:"Today's battles",value:"Battle data unavailable.",inline:false});
+  fields[0]!.value+="\nToday's battle summary unavailable.";
  }
+
  if(identity.status==="fulfilled"){
   const {link,lastObservedAt}=identity.value;
   const details=[];

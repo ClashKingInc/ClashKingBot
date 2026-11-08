@@ -8,7 +8,7 @@ export interface RankedHit { stars:number; destructionPercentage:number; trophie
 export interface RankedMember { name:string; tag:string; trophies:number; attacks:number; wins:number; losses:number; defenses?:number; placement:number }
 interface HistoryItem { mode:string; seasonId:string; leagueGroupId:string; league:{name:string}; leagueTrophies:number; placement:number; attackWins:number; attackLosses:number; maxBattles:number; defenseWins?:number; defenseLosses?:number }
 interface LiveMember { playerName:string; playerTag:string; leagueTrophies:number; attackWinCount:number; attackLoseCount:number; defenseWinCount:number; defenseLoseCount:number }
-interface RankedTierRules { _id:number; battle_count:number; promote_percentage:number; demote_percentage:number }
+interface RankedTierRules { _id:number; battle_count:number; promote_percentage:number; demote_percentage:number; group_size?:number }
 export interface RankedCutoffs { promotion?:number; demotion?:number }
 let limits:Promise<Map<number,RankedTierRules>>|undefined,limitsExpiry=0;
 async function rankedTierRules(tier:number){
@@ -25,13 +25,24 @@ async function rankedTierRules(tier:number){
 export async function rankedBattleLimit(tier:number){return (await rankedTierRules(tier))?.battle_count;}
 export async function rankedOverview(ctx:CommandContext,player:Player){
  if(!player.currentLeagueGroupTag||!player.currentLeagueSeasonId)return undefined;
- const [group,limit]=await Promise.all([
-  ctx.services.api.get<{members:LiveMember[];attackLogs?:RankedHit[];defenseLogs?:RankedHit[]}>(`/v2/bot/clash/leaguegroup/${encodeURIComponent(player.currentLeagueGroupTag)}/${player.currentLeagueSeasonId}`,{playerTag:player.tag}),
-  rankedBattleLimit(player.leagueTier?.id??0).catch(()=>undefined),
+ const [group,rules]=await Promise.all([
+  ctx.services.api.get<{members:LiveMember[]}>(`/v2/bot/clash/leaguegroup/${encodeURIComponent(player.currentLeagueGroupTag)}/${player.currentLeagueSeasonId}`,{playerTag:player.tag}),
+  rankedTierRules(player.leagueTier?.id??0).catch(()=>undefined),
  ]);
  const member=group.members.find(item=>item.playerTag===player.tag);
  if(!member)return undefined;
- return {rank:1+group.members.filter(item=>item.leagueTrophies>member.leagueTrophies).length,trophies:member.leagueTrophies,attacks:member.attackWinCount+member.attackLoseCount,defenses:member.defenseWinCount+member.defenseLoseCount,wins:member.attackWinCount,losses:member.attackLoseCount,limit,attackLogs:group.attackLogs??[],defenseLogs:group.defenseLogs??[]};
+ const total=group.members.length;
+ const rank=1+group.members.filter(item=>item.leagueTrophies>member.leagueTrophies).length;
+ let standing:"promotion"|"demotion"|"staying"|undefined;
+ // Use actual membership and shared ranks for ties, matching the app. Missing
+ // tier rules must not be presented as a confirmed safe/staying position.
+ if(rules&&Number.isFinite(rules.promote_percentage)&&Number.isFinite(rules.demote_percentage)
+  &&rules.promote_percentage>=0&&rules.demote_percentage>=0&&rules.promote_percentage+rules.demote_percentage<=100
+  &&(!rules.group_size||total<=rules.group_size)){
+  const promoted=Math.round(total*rules.promote_percentage/100),demoted=Math.round(total*rules.demote_percentage/100);
+  standing=rank<=promoted?"promotion":rank>total-demoted?"demotion":"staying";
+ }
+ return {rank,total,standing,trophies:member.leagueTrophies,attacks:member.attackWinCount+member.attackLoseCount,defenses:member.defenseWinCount+member.defenseLoseCount,limit:rules?.battle_count};
 }
 export function rankedBattleFields(member:Pick<RankedMember,"attacks"|"wins"|"losses"|"defenses">,attacks:RankedHit[],defenses:RankedHit[],maxBattles?:number):{name:string;value:string;inline:boolean}[]{
  const hitLines=(hits:RankedHit[])=>hits.slice(-8).map(hit=>`${hit.trophies>=0?"+":""}${hit.trophies} <t:${Math.floor(Date.parse(hit.creationTime)/1000)}:R>`).join("\n")||"None recorded yet.";
