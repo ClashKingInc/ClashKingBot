@@ -1,6 +1,7 @@
+import { clanAutocomplete } from "./search-suggestions";
 import { actionRow, linkButton, type LegacyEmbed } from "../discord/components";
 import { CommandInputError, OptionType, invokingUserId, normalizeTag, stringOption } from "./command-utils";
-import { emojis, isDailyLegend, escapeMarkdown, fetchPlayer, pagedGameReply, legendDay, personalPlayerAutocomplete, playerOption, resolvePlayerTag, subcommand } from "./game-common";
+import { emojis, isDailyLegend, escapeMarkdown, fetchPlayer, pagedGameReply, legendDay, legendPlayerAutocomplete, personalPlayerAutocomplete, playerOption, resolvePlayerTag, subcommand } from "./game-common";
 import type { Command } from "./types";
 import { legendHistoryReply, type LegendFinish } from "./legend-history";
 import { legendSeasonReply, type LegendSeasonSummary, type LegendSeasonDay, type LegendDayDetails } from "./legend-season";
@@ -22,11 +23,9 @@ export const legendsCommand: Command = {
     ]},
   ]},async autocomplete(context){
     const ctx=subcommand(context);
-    if(ctx.path[0]!=="clan")return personalPlayerAutocomplete(context,{legendsOnly:ctx.path[0]==="player"});
-    if(!ctx.interaction.guild_id)return [];
-    const query=String(ctx.options.get("clan")?.value??"").toLowerCase();
-    const clans=await ctx.services.api.get<Array<{name:string;tag:string}>>(`/v2/server/${ctx.interaction.guild_id}/clans-basic`);
-    return clans.filter(clan=>`${clan.name} ${clan.tag}`.toLowerCase().includes(query)).slice(0,25).map(clan=>({name:`${clan.name} (${clan.tag})`.slice(0,100),value:clan.tag}));
+    if(ctx.path[0]==="player")return legendPlayerAutocomplete(context);
+    if(ctx.path[0]==="history")return personalPlayerAutocomplete(context);
+    return clanAutocomplete(ctx);
   },
   async execute(context){
     const ctx=subcommand(context),emoji=await emojis(ctx),day=legendDay();
