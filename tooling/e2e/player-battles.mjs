@@ -71,11 +71,12 @@ try{
  const total=group.members.length,rank=1+group.members.filter(row=>row.leagueTrophies>member.leagueTrophies).length;
  const zone=rank<=Math.round(total*rules.promote_percentage/100)?'Promotion':rank>total-Math.round(total*rules.demote_percentage/100)?'Demotion':'Staying';
  const iconName=zone==='Promotion'?'up_green_arrow':zone==='Demotion'?'down_red_arrow':'grey_dash';
- assert.ok(summary.includes(`**#${rank}** · ${zone}`));
+ assert.ok(summary.split("\n")[0].includes(`**#${rank}**)`));
+ assert.ok(!summary.includes(zone));
  assert.ok(summary.includes(`:${iconName}:`));
- assert.ok(summary.includes(`**${member.attackWinCount+member.attackLoseCount}/${rules.battle_count}** attacks`));
- assert.ok(summary.includes(`**${member.defenseWinCount+member.defenseLoseCount}/${rules.battle_count}** defenses`));
- assert.equal(summary.replace(/\n\u200b$/u,'').split('\n').length,3,'Ranked summary must remain compact');
+ assert.ok(summary.includes(`**${member.attackWinCount+member.attackLoseCount}/${rules.battle_count}**`));
+ assert.ok(summary.includes(`**${member.defenseWinCount+member.defenseLoseCount}/${rules.battle_count}**`));
+ assert.equal(summary.replace(/\n\u200b$/u,'').split('\n').length,2,'Ranked summary must remain compact');
  assert.ok(!summary.includes('<t:'));
  assert.ok(!summary.includes(`#${rank} /`),'Do not show group size beside rank');
  assert.ok(!fields(lookup).some(field=>/^Attacks|^Defenses/.test(field.name)),'Lookup must not render battle-list fields');
@@ -88,8 +89,8 @@ try{
  const today=new Date(Date.now()-5*3600000).toISOString().slice(0,10);
  const day=await get(`/v2/player/${encodeURIComponent(legendTag)}/legend/${today}/battlelog`);
  const legendSummary=fields(legend)[0].value;
- assert.ok(legendSummary.includes(`**${day.attacks.length}/8** attacks`));
- assert.ok(legendSummary.includes(`**${day.defenses.length}/8** defenses`));
+ assert.ok(legendSummary.includes(`**${day.attacks.length}/8**`));
+ assert.ok(legendSummary.includes(`**${day.defenses.length}/8**`));
  assert.ok(!legendSummary.includes('<t:'));
  assert.ok(!fields(legend).some(field=>/^Attacks|^Defenses/.test(field.name)));
 

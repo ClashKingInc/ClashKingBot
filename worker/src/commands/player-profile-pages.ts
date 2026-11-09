@@ -160,16 +160,15 @@ async function addOverviewDetails(ctx:CommandContext,player:Player,emoji:Applica
   const result=competitive.value;
   if(result.kind==="legend"){
    const rank=result.rank;
-   fields[0]!.value+=(rank&&rank>0?`\n${emoji.get("earth")} **#${rank.toLocaleString("en")}** global`:"")
-    +`\n${emoji.get("clash_sword")} **${result.day.attacks.length}/8** attacks · ${emoji.get("shield")} **${result.day.defenses.length}/8** defenses`;
+   fields[0]!.value=`- ${emoji.get(player.leagueTier?.name??player.league?.name??"trophy")||emoji.get("trophy")} **${player.trophies.toLocaleString("en")}**${rank&&rank>0?` (${emoji.get("earth")} **#${rank.toLocaleString("en")}**)`:""}`
+    +`\n- ${emoji.get("clash_sword")} **${result.day.attacks.length}/8** | ${emoji.get("shield")} **${result.day.defenses.length}/8**`;
   }else if(result.ranked){
    const r=result.ranked;
    const direction=r.standing==="promotion"?emoji.get("up_green_arrow"):r.standing==="demotion"?emoji.get("down_red_arrow"):r.standing==="staying"?emoji.get("grey_dash"):"";
-   const label=r.standing==="promotion"?"Promotion":r.standing==="demotion"?"Demotion":r.standing==="staying"?"Staying":"";
    const count=(value:number)=>`${value}${r.limit?`/${r.limit}`:""}`;
-   fields[0]!.value=`${emoji.get(player.leagueTier?.name??"trophy")||emoji.get("trophy")} **${r.trophies.toLocaleString("en")}** trophies`
-    +`\n${direction} **#${r.rank}**${label?` · ${label}`:""}`
-    +`\n${emoji.get("clash_sword")} **${count(r.attacks)}** attacks · ${emoji.get("shield")} **${count(r.defenses)}** defenses`;
+   // Keep rank with trophies; icon-only battle counts form the second line.
+   fields[0]!.value=`- ${emoji.get(player.leagueTier?.name??"trophy")||emoji.get("trophy")} **${r.trophies.toLocaleString("en")}** (${direction?`${direction} `:""}**#${r.rank}**)`
+    +`\n- ${emoji.get("clash_sword")} **${count(r.attacks)}** | ${emoji.get("shield")} **${count(r.defenses)}**`;
   }
  }else if(isDailyLegend(player)){
   fields[0]!.value+="\nToday's battle summary unavailable.";
