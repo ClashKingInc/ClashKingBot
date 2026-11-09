@@ -23,7 +23,7 @@ export class ApplicationEmojis {
     const key=emojiName(name);
     // Match the green verified-account artwork in the App and Dashboard.
     // A missing sync must not silently restore the old red verification icon.
-    if(key==="account_verified")return this.#items.get("account_verified_green");
+    if(key==="account_verified")return this.#items.get("account_verified")??this.#items.get("account_verified_green");
     // These two assets share the same visible bounds; the empty star has an
     // outline instead of a miniature filled star. Keep originals for rollback.
     if(key==="war_star")return this.#items.get("war_star_filled")??this.#items.get(key);
