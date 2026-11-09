@@ -4,7 +4,7 @@ import { CommandInputError, OptionType, invokingUserId, normalizeTag, stringOpti
 import { compact, emojis, escapeMarkdown } from "./game-common";
 import { serverEmbedColor } from "./embed-color";
 import { currentRaidWeekend, loadRaidWeekend, validateRaidWeekend } from "./raid-data";
-import { displayNameColumn } from "./display-width";
+import { compactTableRow, COMPACT_TABLE } from "./display-width";
 import { warAttackAllowance, warTime } from "./war-data";
 import type { ApplicationCommandOption, CommandContext } from "./types";
 export const capitalOptions:ApplicationCommandOption[]=[
@@ -33,7 +33,7 @@ export async function clanReports(ctx:CommandContext){
   if(view==="donations"){
    const result=await ctx.services.api.get<{start:string;end:string;truncated:boolean;items:Array<{tag:string;name:string;donated:number}>}>(`/v2/bot/clans/${encodeURIComponent(tag)}/capital-contributions`,{weekend});
    const selected=result.items.filter(row=>!currentOnly||current.has(row.tag)).sort((a,b)=>(order==="desc"?-1:1)*(a.donated-b.donated)||a.tag.localeCompare(b.tag));
-   lines=selected.slice(0,limit).map(row=>`${emoji.get("capital_gold")}\`${String(row.donated).padStart(6)} ${displayNameColumn(row.name,15)}\``);
+   lines=selected.slice(0,limit).map(row=>`${emoji.get("capital_gold")}\`${compactTableRow([String(row.donated).padStart(6),{value:row.name,width:15}],COMPACT_TABLE.iconColumns)}\``);
    note=`${currentOnly?"Current members":"All contributors"}${result.truncated?" — Partial data":""}`;
   }else{
    const raid=await loadRaidWeekend(ctx,tag,weekend);
@@ -43,7 +43,7 @@ export async function clanReports(ctx:CommandContext){
    if(raid&&view==="raiders"){
     empty=raid.members?"No raiders matched these filters.":"Raid member data unavailable.";
     const selected=(raid.members??[]).filter(row=>!currentOnly||current.has(row.tag)).sort((a,b)=>(order==="desc"?-1:1)*(a.capitalResourcesLooted-b.capitalResourcesLooted)||a.tag.localeCompare(b.tag));
-    lines=selected.slice(0,limit).map(row=>`${emoji.get("capital_gold")}\`${row.attacks}/${row.attackLimit+row.bonusAttackLimit} ${String(row.capitalResourcesLooted).padStart(6)} ${displayNameColumn(row.name,15)}\``);
+    lines=selected.slice(0,limit).map(row=>`${emoji.get("capital_gold")}\`${compactTableRow([`${row.attacks}/${row.attackLimit+row.bonusAttackLimit}`,String(row.capitalResourcesLooted).padStart(6),{value:row.name,width:15}],COMPACT_TABLE.iconColumns)}\``);
    }else if(raid){
     const totalAttacks=(raid.members??[]).reduce((sum,member)=>sum+member.attacks,0);
     const timestamp=(value:string)=>`<t:${Math.floor(warTime(value)/1000)}:R>`;
@@ -72,7 +72,7 @@ export async function clanReports(ctx:CommandContext){
     }
     // Raid opponents are nested by side in the Clash API, never entry.name.
     for(const [label,entries,side] of [["Attack Summary",raid.attackLog,"defender"],["Defense Summary",raid.defenseLog,"attacker"]] as const){
-     const table=(entries??[]).map(entry=>`${displayNameColumn(entry[side]?.name??"Unavailable",12)} ${String(entry.attackCount??0).padStart(2)}a ${entry.districtsDestroyed??0}d ${compact(entry.districts.reduce((sum,d)=>sum+(d.totalLooted??0),0))}l`).join("\n");
+     const table=(entries??[]).map(entry=>`${compactTableRow([{value:entry[side]?.name??"Unavailable",width:12},`${String(entry.attackCount??0).padStart(2)}a`,`${entry.districtsDestroyed??0}d`,`${compact(entry.districts.reduce((sum,d)=>sum+(d.totalLooted??0),0))}l`])}`).join("\n");
      if(table)fields.push({name:label,value:`\`\`\`a=atks, d=districts, l=loot\n${table.slice(0,950)}\n\`\`\``,inline:false});
     }
     const top=[...(raid.members??[])].sort((a,b)=>b.capitalResourcesLooted-a.capitalResourcesLooted).slice(0,3);

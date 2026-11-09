@@ -80,3 +80,5 @@ Coverage:
   absent-user rollback without orphan compositions, and Discord URL limits.
 
 `node tooling/e2e/command-activity.mjs` exercises signed guild commands through the real Bot Worker, API Worker, and owned local SQL. It verifies the activity window, guild isolation, replay behavior, and exclusions for DMs and autocomplete.
+
+`node tooling/e2e/mobile-table-width.mjs` sends signed requests through the actual local Bot Worker with fixture responses at external service boundaries. It checks compact link rows, Unicode, intact player tags, trailing padding and refresh. It needs no database and sends no Discord messages.

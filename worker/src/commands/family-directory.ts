@@ -1,5 +1,5 @@
 import { graphTotal } from "./graph-data";
-import { displayNameColumn } from "./display-width";
+import { compactTableRow } from "./display-width";
 import { actionRow, legacyMessage } from "../discord/components";
 import { CommandInputError, invokingUserId, requireGuildId, stringOption } from "./command-utils";
 import { compact, emojis, escapeMarkdown } from "./game-common";
@@ -73,7 +73,7 @@ export async function familyClanSummary(ctx:CommandContext){
  const definitions=[['donations','Donations','up_green_arrow'],['received','Received troops','down_red_arrow'],['loot','Loot','gold'],['activity','Activity','clock'],['trophies','Home Village trophies','trophy'],['builder','Builder Base trophies','versus_trophy'],['capital','Clan Capital trophies','capital_trophy']] as const;
  const sections=definitions.flatMap(([key,label,icon])=>{
   const ranked=rows.filter(row=>typeof row[key]==="number"&&row[key]!>0).sort((a,b)=>b[key]!-a[key]!||a.name.localeCompare(b.name)).slice(0,limit);
-  return ranked.length?[`**${emoji.get(icon)} ${label}**\n${ranked.map((row,index)=>`\`${String(index+1).padStart(2)} ${compact(row[key]!).padStart(6)} ${displayNameColumn(row.name,20)}\``).join('\n')}`]:[];
+  return ranked.length?[`**${emoji.get(icon)} ${label}**\n${ranked.map((row,index)=>`\`${compactTableRow([String(index+1).padStart(2),compact(row[key]!).padStart(6),{value:row.name,width:20}])}\``).join('\n')}`]:[];
  });
  const descriptions:string[]=[];let text="";
  for(const section of sections){if(text&&text.length+section.length+2>3600){descriptions.push(text);text="";}text+=(text?'\n\n':'')+section;}

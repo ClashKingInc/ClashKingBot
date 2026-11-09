@@ -1,4 +1,4 @@
-import { displayNameColumn } from "./display-width";
+import { compactTableRow, COMPACT_TABLE } from "./display-width";
 import { currentReportMembers } from "./report-members";
 import { actionRow, legacyMessage } from "../discord/components";
 import { CommandInputError, OptionType, invokingUserId, stringOption } from "./command-utils";
@@ -29,9 +29,9 @@ export async function upgradeProgress(ctx:CommandContext,scope:"clan"|"family"){
  }
  const rows=members.flatMap(member=>{const units=byTag.get(member.tag);return units?.length?[{member,units,changes:units.reduce((sum,u)=>sum+u.changes,0),levels:units.reduce((sum,u)=>sum+u.levels,0)}]:[];}).sort((a,b)=>(order==="desc"?-1:1)*(a[sort as "changes"|"levels"]-b[sort as "changes"|"levels"])||a.member.tag.localeCompare(b.member.tag));
  const emoji=await emojis(ctx),color=await serverEmbedColor(ctx);
- const playerLines=rows.slice(0,limit).map((row,index)=>`\`${String(index+1).padStart(2)} ${String(row.levels).padStart(3)} ${displayNameColumn(row.member.name,19)}\``);
+ const playerLines=rows.slice(0,limit).map((row,index)=>`\`${compactTableRow([String(index+1).padStart(2),String(row.levels).padStart(3),{value:row.member.name,width:19}])}\``);
  const totals=new Map<string,Unit>();for(const row of rows)for(const unit of row.units){const key=`${unit.type}:${unit.itemId}`,old=totals.get(key);totals.set(key,old?{...unit,changes:old.changes+unit.changes,levels:old.levels+unit.levels}:{...unit});}
- const players=packed(playerLines,3300),units=packed([...totals.values()].sort((a,b)=>b.levels-a.levels||a.name.localeCompare(b.name)).slice(0,15).map(unit=>`${emoji.get(unit.name)} \`${String(unit.levels).padStart(3)} ${displayNameColumn(unit.name,22)}\``),1800);
+ const players=packed(playerLines,3300),units=packed([...totals.values()].sort((a,b)=>b.levels-a.levels||a.name.localeCompare(b.name)).slice(0,15).map(unit=>`${emoji.get(unit.name)} \`${compactTableRow([String(unit.levels).padStart(3),{value:unit.name,width:22}],COMPACT_TABLE.iconColumns)}\``),1800);
  const date=season==="last30days"?"Last 30 days":`Season ${window?.season??season}`;
  const id=["ck","page",scope==="clan"?"uc":"up",invokingUserId(ctx),...(scope==="clan"?[target]:[]),type,season,String(limit),order,sort,String(hall),"0"].join(":");
  const clanName=scope==="clan"?clans[0]?.name??target:"Family";

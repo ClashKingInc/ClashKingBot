@@ -1,6 +1,6 @@
 import { actionRow, legacyMessage, linkButton, type LegacyEmbed } from '../discord/components';
 import { emojis, escapeMarkdown, escapeLinkLabel } from './game-common';
-import { isolatedNameColumn as displayNameColumn } from './display-width';
+import { compactTableRow, COMPACT_TABLE } from './display-width';
 import { serverEmbedColor } from './embed-color';
 import { warAttackAllowance, warTime, type War, type WarSide } from './war-data';
 import type { CommandContext } from './types';
@@ -28,7 +28,7 @@ export async function warSearchView(ctx:CommandContext,tag:string,war:War,cwl:bo
  }else{
   const side=['opponent','odefenses'].includes(view)?other:own,opposition=side===own?other:own;
   const lines=side.members.slice().sort((a,b)=>a.mapPosition-b.mapPosition).map((m,index)=>{
-   const header=`\u200e\`${String(index+1).padStart(2)}\` ${emoji.get(m.townhallLevel)} \`${displayNameColumn(m.name,18)}\``;
+   const header=`\u200e\`${String(index+1).padStart(2)}\` ${emoji.get(m.townhallLevel)} \`${compactTableRow([{value:m.name,width:18,isolate:true}],5+COMPACT_TABLE.iconColumns)}\``;
    if(['roster','opponent'].includes(view))return header;
    const hits=view==='attacks'?(m.attacks??[]):opposition.members.flatMap(p=>p.attacks??[]).filter(a=>a.defenderTag===m.tag);
    return header+'\n'+(hits.length?hits.map(hit=>`${emoji.warStars(hit.stars)} \`${String(hit.destructionPercentage).padStart(3)}%\` #${opposition.members.find(p=>p.tag===(view==='attacks'?hit.defenderTag:hit.attackerTag))?.mapPosition??'?'}`).join('\n'):view==='attacks'?'No attacks used':'No defense recorded');

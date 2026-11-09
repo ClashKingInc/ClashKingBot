@@ -2,7 +2,7 @@ import { sendInteractionError } from "./errors";
 import { actionRow, legacyMessage, linkButton, type LegacyEmbed } from '../discord/components';
 import { InteractionResponseType } from '../discord/types';
 import { CommandInputError, normalizeTag, stringOption } from './command-utils';
-import { isolatedNameColumn as displayNameColumn } from './display-width';
+import { compactTableRow, COMPACT_TABLE, isolatedNameColumn as displayNameColumn } from './display-width';
 import { emojis, escapeMarkdown, escapeLinkLabel } from './game-common';
 import { serverEmbedColor } from './embed-color';
 import { warAttackAllowance, clanRounds, cwlRanking, latestWar, loadCwl, warTime, type War, type WarSide } from './war-data';
@@ -56,7 +56,7 @@ export async function cwlSearch(ctx:CommandContext,state?:State){
   if(recent.length)fields.push({name:'Last 5 attacks/defenses',value:recent.map(({hit,name,icon})=>`${emoji.get(icon)}\`${String(hit.destructionPercentage).padStart(3)}%\`${emoji.warStars(hit.stars)} ${escapeMarkdown(name)}`).join('\n'),inline:false});
   return {...embed(own.name),fields,footer:{text:`${season} | Round ${index+1}`}};
  };
- const lineup=(war:War,index:number)=>ownSides(war,tag).map(side=>({...embed(`${side.name} Lineup`,crop(side.members.slice().sort((a,b)=>a.mapPosition-b.mapPosition).map((member,position)=>`\`${String(position+1).padStart(2)}\` ${emoji.get(member.townhallLevel)} \`${displayNameColumn(member.name,20)}\``))),footer:{text:`${season} | Round ${index+1}`}}));
+ const lineup=(war:War,index:number)=>ownSides(war,tag).map(side=>({...embed(`${side.name} Lineup`,crop(side.members.slice().sort((a,b)=>a.mapPosition-b.mapPosition).map((member,position)=>`\`${String(position+1).padStart(2)}\` ${emoji.get(member.townhallLevel)} \`${compactTableRow([{value:member.name,width:20,isolate:true}],5+COMPACT_TABLE.iconColumns)}\``))),footer:{text:`${season} | Round ${index+1}`}}));
  let embeds:LegacyEmbed[];
  if(page==='townhalls'){
   // Use war-side members, never the season roster: registered substitutes
@@ -70,7 +70,7 @@ export async function cwlSearch(ctx:CommandContext,state?:State){
   });
   embeds=[{...embed('Town Hall Breakdown',fields.length?undefined:'No current lineups available.'),fields}];
  }else if(page==='rankings'){
-  const lines=cwlRanking(group,wars).map(([,score])=>`\u200e\`${String(score.rank).padStart(2)} ${String(score.stars).padStart(3)} ${score.destruction.toFixed(2).padStart(7)}% ${displayNameColumn(score.name,15)}\``);
+  const lines=cwlRanking(group,wars).map(([,score])=>`\u200e\`${compactTableRow([String(score.rank).padStart(2),String(score.stars).padStart(3),`${score.destruction.toFixed(2).padStart(7)}%`,{value:score.name,width:15,isolate:true}])}\``);
   embeds=[embed('Clan Ranking Leaderboard',`\` #  ST    DSTR Name\`\n${lines.join('\n')}`)];
  }else if(page==='rounds'){
   embeds=[{...embed(`${clan.name} CWL (All Rounds)`),fields:rounds.flatMap((war,index)=>{
@@ -99,10 +99,10 @@ export async function cwlSearch(ctx:CommandContext,state?:State){
    }
    return [...records.values()].sort((a,b)=>page==='missed'?(b.rounds-b.hits)-(a.rounds-a.hits):b.stars-a.stars||b.destruction-a.destruction);
   };
-  if(page==='missed')embeds=[embed(`${clan.name} CWL Missed Hits`,crop(leaderboard(false).filter(row=>row.rounds>row.hits).map(row=>`${emoji.get(row.hall)} \`${String(row.rounds-row.hits).padStart(2)} ${displayNameColumn(row.name,18)}\``))||'No missed hits.')];
-  else embeds=[false,true].map(defense=>embed(`${clan.name} ${defense?'Defense':'Offense'} Leaderboard`,crop(['` # HIT ST   DSTR Name`',...leaderboard(defense).map((row,index)=>`\`${String(index+1).padStart(2)} ${`${row.hits}/${row.rounds}`.padStart(3)} ${String(row.stars).padStart(2)} ${row.destruction.toFixed(0).padStart(5)}% ${displayNameColumn(row.name,15)}\``)],2500)));
+  if(page==='missed')embeds=[embed(`${clan.name} CWL Missed Hits`,crop(leaderboard(false).filter(row=>row.rounds>row.hits).map(row=>`${emoji.get(row.hall)} \`${compactTableRow([String(row.rounds-row.hits).padStart(2),{value:row.name,width:18,isolate:true}],COMPACT_TABLE.iconColumns)}\``))||'No missed hits.')];
+  else embeds=[false,true].map(defense=>embed(`${clan.name} ${defense?'Defense':'Offense'} Leaderboard`,crop(['` # HIT ST   DSTR Name`',...leaderboard(defense).map((row,index)=>`\`${compactTableRow([String(index+1).padStart(2),`${row.hits}/${row.rounds}`.padStart(3),String(row.stars).padStart(2),`${row.destruction.toFixed(0).padStart(5)}%`,{value:row.name,width:15,isolate:true}])}\``)],2500)));
  }else if(page==='members'){
-  embeds=[embed(`${clan.name} CWL Members`,crop((clan.members??[]).map((member,index)=>`\`${String(index+1).padStart(2)}\` ${emoji.get(member.townHallLevel??member.townhallLevel??0)} \`${displayNameColumn(member.name,20)}\``))||'Registered members unavailable.')];
+  embeds=[embed(`${clan.name} CWL Members`,crop((clan.members??[]).map((member,index)=>`\`${String(index+1).padStart(2)}\` ${emoji.get(member.townHallLevel??member.townhallLevel??0)} \`${compactTableRow([{value:member.name,width:20,isolate:true}],5+COMPACT_TABLE.iconColumns)}\``))||'Registered members unavailable.')];
  }else if(page==='lineup'||page==='nextlineup'){
   const war=page==='lineup'?current:next;embeds=war?lineup(war,round+(page==='nextlineup'?1:0)):[embed('Lineup','That round has not been assigned yet.')];
  }else if(page==='attacks'||page==='defenses'){
