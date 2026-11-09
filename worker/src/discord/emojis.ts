@@ -28,9 +28,9 @@ export class ApplicationEmojis {
     // outline instead of a miniature filled star. Keep originals for rollback.
     if(key==="war_star")return this.#items.get("war_star_filled")??this.#items.get(key);
     if(key==="no_star")return this.#items.get("war_star_empty")??this.#items.get("full_no_star")??this.#items.get(key);
-    // Corrected resource art removes transparent padding without replacing the
-    // original application emoji. Other applications can retain their originals.
-    const resources=new Set(["gold","elixir","dark_elixir","capital_gold","clan_games","buildergold","builderelixir","shinyore","glowyore","starryore"]);
+    // Gold, elixir and dark elixir use their canonical, fitted application emoji.
+    // Retain existing aliases for the other resource types.
+    const resources=new Set(["capital_gold","clan_games","buildergold","builderelixir","shinyore","glowyore","starryore"]);
     return (resources.has(key)?this.#items.get(`full_${key}`):undefined)??this.#items.get(key)
       // The API uses e.g. "Legend III"; the asset inventory uses "legendleagueiii".
       ??this.#items.get(key.replace(/(i{1,3})$/u,"league$1"));
