@@ -33,6 +33,8 @@ export async function clanLinkList(ctx: CommandContext, selectedTag = stringOpti
     // Only current server members display Discord identity. Outside-server
     // and hidden links display the player tag without extra user lookups.
     const identity = member.link?.inServer ? member.link.username ?? "Unavailable" : member.tag;
+    // Verification describes the account link, not server membership. An outside-server
+    // account can still be verified; grouping and hidden identity stay independent.
     const status = member.link ? emoji.get(member.link.verified ? "account_verified" : "account_unverified") || (member.link.verified ? "✓" : "△") : "";
     const row = `${status ? `${status} ` : ""}\`${String(member.townHall ?? "–").padStart(2)} ${displayNameColumn(member.name, 15, 24)} ${displayNameColumn(identity, 18, 24)}\``;
     if (member.link?.inServer) linked.push(row);
