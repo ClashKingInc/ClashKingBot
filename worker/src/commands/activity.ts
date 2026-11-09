@@ -1,7 +1,7 @@
 import { actionRow, legacyMessage, type LegacyEmbed } from "../discord/components";
 import { CommandInputError, OptionType, invokingUserId, normalizeTag, requireGuildId, stringOption } from "./command-utils";
 import { compact, emojis, playerUrl } from "./game-common";
-import { displayNameColumn } from "./display-width";
+import { compactTableRow } from "./display-width";
 import { serverEmbedColor } from "./embed-color";
 import type { ApplicationCommandOption, CommandContext } from "./types";
 
@@ -46,12 +46,12 @@ export async function activityReport(ctx:CommandContext,scope:"clan"|"family"){
  };
  const superDigits="⁰¹²³⁴⁵⁶⁷⁸⁹";
  const descriptions:string[]=[];
- let description=`\` # ${"ACT".padStart(activityWidth)}${data.current?"   LO   ":" "} NAME         \`\n`,shown=0;
+ let description=`\` # ${"ACT".padStart(activityWidth)}${data.current?"   LO   ":" "} NAME\`\n`,shown=0;
  for(const row of selected){
   // A fixed-width row keeps activity/last-online scannable on mobile. The
   // superscript Town Hall remains the player link, as in the original bot.
   const hall=String(row.townHallLevel).split("").map(digit=>superDigits[Number(digit)]??digit).join("");
-  const line=`\`${String(shown+1).padStart(2)} ${String(row.activity).padStart(activityWidth)}${data.current?` ${since(row.lastObservedAt).padStart(6)} `:" "} ${displayNameColumn(row.name,13)}\`[${hall}](${playerUrl(row.tag)})\n`;
+  const line=`\`${compactTableRow([String(shown+1).padStart(2),String(row.activity).padStart(activityWidth),...(data.current?[since(row.lastObservedAt).padStart(6)]:[]),{value:row.name,width:13}],2)}\`[${hall}](${playerUrl(row.tag)})\n`;
   if(description.length+line.length>3900){descriptions.push(description);description="";}description+=line;shown++;
  }
  if(!shown)description="No recorded activity for this season and filter.";
@@ -64,7 +64,7 @@ export async function activityReport(ctx:CommandContext,scope:"clan"|"family"){
   ...(index===descriptions.length-1?{footer:{text:`Total activity: ${total.toLocaleString("en")} (${data.season})${shown<rows.length?` — ${shown}/${rows.length} players`:""}`}}:{})}));
  if(scope==="family"){
   let totals="";
-  for(const row of [...data.clanTotals].sort((a,b)=>b.activity-a.activity||a.tag.localeCompare(b.tag))){const line=`\`${compact(row.activity).padStart(7)} ${displayNameColumn(unique.find(clan=>clan.tag===row.tag)?.name??row.tag,20)}\``;if(totals.length+line.length+1>1500)break;totals+=(totals?"\n":"")+line;}
+  for(const row of [...data.clanTotals].sort((a,b)=>b.activity-a.activity||a.tag.localeCompare(b.tag))){const line=`\`${compactTableRow([compact(row.activity).padStart(7),{value:unique.find(clan=>clan.tag===row.tag)?.name??row.tag,width:20}])}\``;if(totals.length+line.length+1>1500)break;totals+=(totals?"\n":"")+line;}
   for(const embed of embeds)delete embed.footer;
   embeds.push({author:{name:`${guild!.name} Clans`,...(icon?{icon_url:icon}:{})},description:totals,color,footer:{text:`Total activity: ${total.toLocaleString("en")} (${data.season}) | ${shown}/${rows.length} players`}});
  }

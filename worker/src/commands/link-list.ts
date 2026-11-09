@@ -4,7 +4,7 @@ import { InteractionResponseType, } from "../discord/types";
 import { CommandInputError, requireGuildId, stringOption } from "./command-utils";
 import { clanSelector } from "./clan-selector";
 import { emojis } from "./game-common";
-import { displayNameColumn } from "./display-width";
+import { compactTableRow, COMPACT_TABLE } from "./display-width";
 import { serverEmbedColor } from "./embed-color";
 import type { CommandContext } from "./types";
 
@@ -36,7 +36,7 @@ export async function clanLinkList(ctx: CommandContext, selectedTag = stringOpti
     // Verification describes the account link, not server membership. An outside-server
     // account can still be verified; grouping and hidden identity stay independent.
     const status = member.link ? emoji.get(member.link.verified ? "account_verified" : "account_unverified") || (member.link.verified ? "✓" : "△") : "";
-    const row = `${status ? `${status} ` : ""}\`${String(member.townHall ?? "–").padStart(2)} ${displayNameColumn(member.name, 15, 24)} ${displayNameColumn(identity, 18, 24)}\``;
+    const row = `${status ? `${status} ` : ""}\`${compactTableRow([String(member.townHall ?? "–").padStart(2), { value: member.name, width: 15 }, identity.startsWith("#") ? identity : { value: identity, width: 18 }], status ? COMPACT_TABLE.iconColumns : 0)}\``;
     if (member.link?.inServer) linked.push(row);
     else if (member.link || member.hidden) other.push(row);
     else unlinked.push(row);

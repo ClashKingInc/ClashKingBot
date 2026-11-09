@@ -1,6 +1,6 @@
 import { donationRatio, formatDonationRatio } from "./donation-ratio";
 import { currentRaidWeekend } from "./raid-data";
-import { displayNameColumn } from "./display-width";
+import { compactTableRow } from "./display-width";
 import { donationSortControl } from "./sort-order-control";
 import { withClanSelector } from "./clan-controls";
 import { clanActivityOptions, activityReport } from "./activity";
@@ -136,7 +136,7 @@ async function renderClan(context: Parameters<Command["execute"]>[0]){
    const rows: string[] = [];
    const heading=sort==="ratio"?"` # RATIO   DONO   RECV NAME        `":"` #  DONATED RECEIVED NAME           `";
    for (const row of filtered.slice(0,limit)) {
-    const line = sort==="ratio"?`\`${String(rows.length+1).padStart(2)} ${formatDonationRatio(donationRatio(row.donated,row.received)).padStart(5)} ${compact(row.donated).padStart(6)} ${compact(row.received).padStart(6)} ${displayNameColumn(row.name,12)}\``:`\`${String(rows.length+1).padStart(2)} ${compact(row.donated).padStart(8)} ${compact(row.received).padStart(8)} ${displayNameColumn(row.name,15)}\``;
+    const line = sort==="ratio"?`\`${compactTableRow([String(rows.length+1).padStart(2),formatDonationRatio(donationRatio(row.donated,row.received)).padStart(5),compact(row.donated).padStart(6),compact(row.received).padStart(6),{value:row.name,width:12}])}\``:`\`${compactTableRow([String(rows.length+1).padStart(2),compact(row.donated).padStart(8),compact(row.received).padStart(8),{value:row.name,width:15}])}\``;
     if (rows.join("\n").length + line.length + 1 > 3500) break;
     rows.push(line);
    }

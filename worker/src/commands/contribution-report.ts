@@ -1,5 +1,5 @@
 import { donationRatio } from "./donation-ratio";
-import { displayNameColumn } from "./display-width";
+import { compactTableRow } from "./display-width";
 import { donationSortControl } from "./sort-order-control";
 import { actionRow, legacyMessage, type LegacyEmbed } from "../discord/components";
 import { CommandInputError, invokingUserId, OptionType, requireGuildId, stringOption } from "./command-utils";
@@ -49,7 +49,7 @@ export async function contributionReport(ctx:CommandContext,clans:ContributionCl
   const selected=[...combined.values()].sort((a,b)=>(order==="asc"?1:-1)*(metric(a)-metric(b))||a.tag.localeCompare(b.tag)).slice(0,limit);
   const emoji=await emojis(ctx),color=await serverEmbedColor(ctx);
   const heading=kind==="games"?"` # POINTS NAME           `":"` #  DONATED RECEIVED NAME           `";
-  const lines=selected.map((row,index)=>`\`${String(index+1).padStart(2)} ${kind==="games"?String(row.clanGames).padStart(6):`${compact(row.donated).padStart(8)} ${compact(row.received).padStart(8)}`} ${displayNameColumn(row.name,15)}\``);
+  const lines=selected.map((row,index)=>`\`${compactTableRow([String(index+1).padStart(2),kind==="games"?String(row.clanGames).padStart(6):`${compact(row.donated).padStart(8)} ${compact(row.received).padStart(8)}`,{value:row.name,width:15}])}\``);
   const packed=pack(lines,3300),title=`${family?"Family":clans[0]?.name??"Clan"} | ${kind==="games"?"Clan Games":"Donations"}`;
   const footer=[...seasons].join(", ")+` | ${packed.count}/${combined.size} players${currentOnly?" | Current members":""}${partial?" | Partial recorded data":""}`;
   const embeds:LegacyEmbed[]=[{title,color,description:packed.text?`${heading}\n${packed.text}`:"No recorded contributions for these filters.",footer:{text:footer}}];
@@ -57,7 +57,7 @@ export async function contributionReport(ctx:CommandContext,clans:ContributionCl
     const guild=await ctx.services.discordRest.getGuild(requireGuildId(ctx));
     embeds[0]!.author={name:`${guild.name} ${kind==="games"?"Clan Games":"Donations"} (Top ${packed.count})`,...(typeof guild.icon==="string"?{icon_url:`https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`}:{})};
     delete embeds[0]!.title;delete embeds[0]!.footer;
-    const summary=pack(totals.sort((a,b)=>b.value-a.value).map(row=>`\`${compact(row.value).padStart(7)} ${displayNameColumn(row.name,20)}\``),1800);
+    const summary=pack(totals.sort((a,b)=>b.value-a.value).map(row=>`\`${compactTableRow([compact(row.value).padStart(7),{value:row.name,width:20}])}\``),1800);
     embeds.push({author:{name:`${guild.name} Clans`,...(typeof guild.icon==="string"?{icon_url:`https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`}:{})},color,description:summary.text||"No linked clans.",footer:{text:footer}});
   }
   const values=[kind,season??"current",String(limit),order,String(hall),sort,currentOnly?"m":"a"];

@@ -24,6 +24,8 @@ jobs:
           cache-dependency-path: worker/package-lock.json
       - run: npm ci --ignore-scripts
       - run: npm run check
+      - name: Verify mobile table messages through the local Worker
+        run: node ../tooling/e2e/mobile-table-width.mjs
 
   refresh-e2e:
     runs-on: ubuntu-latest

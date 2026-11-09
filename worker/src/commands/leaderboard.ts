@@ -2,11 +2,11 @@ import { CommandInputError, invokingUserId, OptionType, stringOption } from "./c
 import { emojis, escapeMarkdown, gameReply, subcommand } from "./game-common";
 import { actionRow, type LegacyEmbed } from "../discord/components";
 import { builderLeagues } from "./builder-leagues";
-import { isolatedNameColumn } from "./display-width";
+import { compactTableRow, COMPACT_TABLE } from "./display-width";
 import type { Command, CommandContext } from "./types";
 
 const row=(rank:number,name:string,score:number,icon:string)=>
-  `\u200e\`#${String(rank).padStart(2)}\` ${icon} \`${String(score).padStart(5)}\` ${escapeMarkdown(isolatedNameColumn(name,24).trimEnd())}`;
+  `\u200e\`#${String(rank).padStart(2)}\` ${icon} \`${String(score).padStart(5)}\` ${escapeMarkdown(compactTableRow([{value:name,width:24,isolate:true}],12+COMPACT_TABLE.iconColumns))}`;
 async function leaderboardReply(ctx:CommandContext,title:string,rows:string[],kind:string,args:string[],empty:string,season?:string){
   if(!rows.length)return gameReply(ctx,title,empty);
   // Page by entry count; split long pages across embeds rather than losing

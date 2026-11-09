@@ -1,7 +1,7 @@
 import { actionRow, legacyMessage, type LegacyEmbed } from "../discord/components";
 import { invokingUserId, normalizeTag, stringOption, CommandInputError } from "./command-utils";
 import { emojis, fetchPlayer, type Player } from "./game-common";
-import { displayNameColumn } from "./display-width";
+import { compactTableRow, COMPACT_TABLE } from "./display-width";
 import { serverEmbedColor } from "./embed-color";
 import type { CommandContext } from "./types";
 const views={last_change:"Last Opt Change",last_war:"Last War",timer:"War Timer"};
@@ -19,7 +19,7 @@ export async function warPreference(ctx:CommandContext){
  const embeds:LegacyEmbed[]=[];
  for(const state of ["in","out","unknown"]){
   const selected=rows.filter(({profile})=>(profile?.warPreference??"unknown")===state);if(!selected.length)continue;
-  const lines=selected.map(({member,profile})=>{const item=history.get(member.tag),value=view==="last_change"?age(item?.lastPreferenceChange):view==="last_war"?age(item?.lastWarEnd):age(item?.timers.filter(t=>Date.parse(t.endsAt)>Date.now()).sort((a,b)=>Date.parse(b.endsAt)-Date.parse(a.endsAt))[0]?.endsAt,true);return `${emoji.get(profile?.townHallLevel??member.townHallLevel??0)}\`${value.padEnd(8)} ${displayNameColumn(member.name,18)}\``;});
+  const lines=selected.map(({member,profile})=>{const item=history.get(member.tag),value=view==="last_change"?age(item?.lastPreferenceChange):view==="last_war"?age(item?.lastWarEnd):age(item?.timers.filter(t=>Date.parse(t.endsAt)>Date.now()).sort((a,b)=>Date.parse(b.endsAt)-Date.parse(a.endsAt))[0]?.endsAt,true);return `${emoji.get(profile?.townHallLevel??member.townHallLevel??0)}\`${compactTableRow([value.padEnd(8),{value:member.name,width:18}],COMPACT_TABLE.iconColumns)}\``;});
   const heading=`**${state==="in"?`${emoji.get("opt_in")} Opted In`:state==="out"?`${emoji.get("opt_out")} Opted Out`:"Preference unavailable"} (${selected.length})**\n\`${views[view as keyof typeof views]} | Name\`\n`;
   let text=heading;for(const line of lines){if(text.length+line.length+1>3800){embeds.push({color,description:text});text=heading;}text+=line+"\n";}embeds.push({color,description:text});
  }

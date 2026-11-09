@@ -1,6 +1,6 @@
 import { sendInteractionError } from "./errors";
 import { builderLeagues } from "./builder-leagues";
-import { displayNameColumn } from "./display-width";
+import { compactTableRow, COMPACT_TABLE } from "./display-width";
 import { withClanSelector } from "./clan-controls";
 import { actionRow, legacyMessage } from "../discord/components";
 import { InteractionResponseType } from "../discord/types";
@@ -194,7 +194,7 @@ export async function memberReport(ctx: CommandContext, scope: Scope) {
         const icon = metric === "townhall" && key !== "Unknown" ? emoji.get(Number(key)) : metric === "league" ? emoji.get(key) : "";
         const share = `${members.length ? ((count / members.length) * 100).toFixed(1) : "0.0"}%`;
         // Keep variable-width game icons outside the fixed-width data columns.
-        return `${icon ? `${icon} ` : ""}\`${displayNameColumn(name, metric === "location" ? 20 : 13)} ${String(count).padStart(3)} ${share.padStart(6)}\``;
+        return `${icon ? `${icon} ` : ""}\`${compactTableRow([{value:name,width:metric === "location" ? 20 : 13},String(count).padStart(3),share.padStart(6)],icon ? COMPACT_TABLE.iconColumns : 0)}\``;
       });
     label = groups[metric as keyof typeof groups];
   } else {
@@ -234,7 +234,7 @@ export async function memberReport(ctx: CommandContext, scope: Scope) {
       const builderLeague=builderTiers.find(tier=>(member.builderBaseTrophies??member.versusTrophies??0)>=tier.trophy_start)?.name;
       const icon=metric==="league_trophies"?emoji.get(member.leagueTier?.name??member.league?.name??"Unranked"):
         metric==="builder_trophies"?emoji.get(`builder${builderLeague??""}`):emoji.get(metricIcons[metric]??member.townHallLevel??0);
-      const content=metric==="name"?displayNameColumn(member.name,20):`${format(value).padStart(width)} ${displayNameColumn(member.name,15)}`;
+      const content=compactTableRow([...(metric==="name"?[]:[format(value).padStart(width)]),{value:member.name,width:metric==="name"?20:15}],5+COMPACT_TABLE.iconColumns);
       return `\`${String(index+1).padStart(2)}\` ${icon} \`${content}\``;
     });
   }

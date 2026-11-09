@@ -1,4 +1,4 @@
-import { displayNameColumn } from "./display-width";
+import { compactTableRow } from "./display-width";
 import { actionRow, legacyMessage, type LegacyEmbed } from "../discord/components";
 import { CommandInputError, OptionType, invokingUserId, stringOption } from "./command-utils";
 import { compact, emojis } from "./game-common";
@@ -64,7 +64,7 @@ export async function seasonSummary(ctx:CommandContext,scope:"clan"|"family"){
   if(!available.length)continue;
   const top=available.slice(0,limit);
   const valueWidth=Math.max(...top.map(row=>compact(row.value).length));
-  const text=`**${emoji.get(metric.icon)} ${metric.label}**\n`+top.map((row,index)=>`\`${String(index+1).padStart(2)} ${compact(row.value).padStart(valueWidth)} ${displayNameColumn(row.member.name,15,22)}\``).join("\n");
+  const text=`**${emoji.get(metric.icon)} ${metric.label}**\n`+top.map((row,index)=>`\`${compactTableRow([String(index+1).padStart(2),compact(row.value).padStart(valueWidth),{value:row.member.name,width:15,maximumCodeUnits:22}])}\``).join("\n");
   sections.push({text,group:metric.group});
  }
  const clanName=scope==="family"?"Family":clans[0]?.name??target;
