@@ -1,3 +1,4 @@
+import { playerSuggestion, personalSuggestions, uniqueSuggestions } from "./search-suggestions";
 import { actionRow, legacyMessage } from "../discord/components";
 import { applicationEmojis } from "../discord/emojis";
 import { CommandInputError, invokingUserId, normalizeTag, OptionType, stringOption } from "./command-utils";
@@ -59,32 +60,41 @@ export async function fetchPlayer(ctx: CommandContext, tag: string): Promise<Pla
   return ctx.services.api.get<Player>(`/v2/bot/clash/players/${encodeURIComponent(tag)}`);
 }
 export async function playerAutocomplete(context: CommandContext) {
-  const ctx = subcommand(context);
-  const query = String(ctx.options.get("player")?.value ?? "").trim();
-  if (!query) return (await linkedAccounts(ctx)).slice(0, 25).map(item => ({
-    name: `${item.player_name ?? "Player"} | ${item.player_tag}`.slice(0, 100), value: item.player_tag,
-  }));
-  const result = await ctx.services.api.get<{ items: Array<{ name: string; tag: string }> }>("/v2/player/search", { query, limit: 25 });
-  return result.items.map(item => ({ name: `${item.name} | ${item.tag}`.slice(0, 100), value: item.tag }));
+  const ctx = subcommand(context), query = String(ctx.options.get("player")?.value ?? "").trim(), deadline=AbortSignal.timeout(1800);
+  const personal = !ctx.interaction.guild_id ? await personalSuggestions(ctx,"player",query,false,deadline) : [];
+  if (!query) {
+    if(personal.length)return personal.map(playerSuggestion);
+    return (await linkedAccounts(ctx)).slice(0,25).map(item=>playerSuggestion({name:item.player_name??"Player",tag:item.player_tag,townHallLevel:item.town_hall}));
+  }
+  if(query.length<2)return personal.map(playerSuggestion);
+  const result = await ctx.services.api.get<{items:Array<{name:string;tag:string;townHallLevel:number}>}>("/v2/player/search",{query,limit:25},deadline).catch(()=>({items:[]}));
+  return uniqueSuggestions([...personal.map(playerSuggestion),...result.items.map(playerSuggestion)]);
 }
-/** Lookup suggests public players from this server's linked-clan rosters. */
+/** Lookup and Ranked use members of this server's linked clans. */
 export async function lookupPlayerAutocomplete(context: CommandContext) {
   if (!context.interaction.guild_id) return playerAutocomplete(context);
-  const ctx = subcommand(context);
-  const query = String(ctx.options.get("player")?.value ?? "").trim();
-  const result = await ctx.services.api.get<{items:Array<{name:string;tag:string;townHallLevel:number;clanName:string}>}>(
-    `/v2/bot/servers/${ctx.interaction.guild_id}/player-autocomplete`, {query}, AbortSignal.timeout(1800),
-  );
-  return result.items.map(item => {
-    const prefix = `(TH${item.townHallLevel || "?"}) `, suffix = ` | ${item.tag}`;
-    return {name: prefix + `${item.name} · ${item.clanName}`.slice(0,100-prefix.length-suffix.length) + suffix, value:item.tag};
-  });
+  const ctx = subcommand(context), query=String(ctx.options.get("player")?.value??"").trim();
+  const result=await ctx.services.api.get<{items:Array<{name:string;tag:string;townHallLevel:number}>}>(
+    `/v2/bot/servers/${ctx.interaction.guild_id}/player-autocomplete`,{query},AbortSignal.timeout(1800));
+  return result.items.map(playerSuggestion);
+}
+/** Search the tracked Legend population; server/personal matches come first. */
+export async function legendPlayerAutocomplete(context:CommandContext){
+ const ctx=subcommand(context),query=String(ctx.options.get("player")?.value??"").trim(),deadline=AbortSignal.timeout(1800);
+ const preferred=ctx.interaction.guild_id
+  ? (await ctx.services.api.get<{items:Array<{name:string;tag:string;townHallLevel:number}>}>(`/v2/bot/servers/${ctx.interaction.guild_id}/player-autocomplete`,{query,legendsOnly:true},deadline).catch(()=>({items:[]}))).items
+  : await personalSuggestions(ctx,'player',query,true,deadline);
+ const global=query.length>=2
+  ? (await ctx.services.api.get<{items:Array<{name:string;tag:string;townHallLevel:number}>}>('/v2/player/search',{query,leagueIds:105000036,limit:25},deadline).catch(()=>({items:[]}))).items
+  : query ? [] : (await ctx.services.api.get<{items:Array<{name:string;tag:string;townHallLevel:number}>}>('/v2/bot/legends/player-autocomplete',{},deadline).catch(()=>({items:[]}))).items;
+ return uniqueSuggestions([...preferred.map(playerSuggestion),...global.map(playerSuggestion)]);
 }
 /** Personal suggestions only: a bookmark is sufficient; an unbookmarked link
  * must be verified. Never fall back to public search for this private list. */
 export async function personalPlayerAutocomplete(context: CommandContext, options:{legendsOnly?:boolean}={}) {
   const ctx=subcommand(context),userId=invokingUserId(ctx);
   const query=String(ctx.options.get("player")?.value??"").trim().toLocaleLowerCase();
+  if(!context.interaction.guild_id)return (await personalSuggestions(ctx,"player",query,options.legendsOnly)).map(playerSuggestion);
   const [links,bookmarks]=await Promise.all([
     linkedAccounts(ctx),
     ctx.services.api.get<{items:Array<{tag:string}>}>(`/v2/links/${userId}/bookmarks`,{type:"player"}),
@@ -110,10 +120,7 @@ export async function personalPlayerAutocomplete(context: CommandContext, option
   }));
   return resolved.sort((a,b)=>b.townHall-a.townHall||a.name.localeCompare(b.name)||a.tag.localeCompare(b.tag))
     .filter(account=>`${account.name} ${account.tag}`.toLocaleLowerCase().includes(query))
-    .slice(0,25).map(account=>{
-      const prefix=`(TH${account.townHall||"?"}) `,suffix=` | ${account.tag}`;
-      return {name:prefix+account.name.slice(0,100-prefix.length-suffix.length)+suffix,value:account.tag};
-    });
+    .slice(0,25).map(account=>playerSuggestion({name:account.name,tag:account.tag,townHallLevel:account.townHall}));
 }
 export async function gameReply(ctx: CommandContext, title: string, description: string, tag?: string, footer?: string) {
   const playerLink=tag?`\n\n[Open player](${playerUrl(tag)})`:"";

@@ -1,6 +1,6 @@
 import { actionRow, legacyMessage } from "../discord/components";
 import { CommandInputError, invokingUserId, OptionType, stringOption } from "./command-utils";
-import { emojis, escapeMarkdown, fetchPlayer, pagedGameReply, personalPlayerAutocomplete, playerAppUrl, playerLabel, playerOption, playerUrl, resolvePlayerTag, subcommand, type Player } from "./game-common";
+import { emojis, escapeMarkdown, fetchPlayer, pagedGameReply, lookupPlayerAutocomplete, playerAppUrl, playerLabel, playerOption, playerUrl, resolvePlayerTag, subcommand, type Player } from "./game-common";
 import { serverEmbedColor } from "./embed-color";
 import type { Command, CommandContext } from "./types";
 
@@ -57,7 +57,7 @@ export const rankedCommand:Command={
  definition:{name:"ranked",description:"Ranked players, season stats and groups",type:1,integration_types:[0,1],contexts:[0,1,2],options:[
   {name:"player",description:"View a Ranked player, season graphic and group",type:OptionType.Subcommand,options:[playerOption,seasonOption]},
   {name:"history",description:"View a player's Ranked season history",type:OptionType.Subcommand,options:[playerOption]},
- ]},autocomplete:personalPlayerAutocomplete,
+ ]},autocomplete:lookupPlayerAutocomplete,
  async execute(context){
   const ctx=subcommand(context),tag=await resolvePlayerTag(ctx),requested=stringOption(ctx,"season");
   if(ctx.path[0]==="history"){

@@ -20,6 +20,8 @@ export class ClashKingApiClient {
   readonly #baseUrl: string;
   readonly #fetch: typeof fetch;
   readonly #token: string;
+  #readObserver?: (path:string,body:unknown)=>void;
+  observeSuccessfulReads(observer:(path:string,body:unknown)=>void){this.#readObserver=observer;}
 
   constructor(options: ClashKingApiClientOptions) {
     this.#baseUrl = stripTrailingSlash(options.baseUrl);
@@ -94,7 +96,9 @@ export class ClashKingApiClient {
     if (response.status === 204) {
       return undefined as T;
     }
-    return response.json<T>();
+    const body=await response.json<T>();
+    if(init.method === "GET")this.#readObserver?.(url.pathname,body);
+    return body;
   }
 }
 

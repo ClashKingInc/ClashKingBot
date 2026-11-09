@@ -1,3 +1,4 @@
+import { clanAutocomplete } from "./search-suggestions";
 import { warAttackAllowance, loadCurrentWar } from "./war-data";
 import { applicationEmojis } from "../discord/emojis";
 import { InteractionResponseType, MessageFlags, type DiscordInteractionResponse } from "../discord/types";
@@ -28,11 +29,12 @@ export const remindersCommand: Command = {
     options: [
       { name: "type", description: "Reminder to send", type: 3, required: true,
         choices: [{ name: "War & CWL", value: "War" }, { name: "Clan Games", value: "Clan Games" }, { name: "Raid Weekend", value: "Clan Capital" }] },
-      { name: "clan", description: "Clan tag", type: 3, required: true },
+      { name: "clan", description: "Clan tag or name", type: 3, required: true, autocomplete: true },
       { name: "channel", description: "Destination (defaults to this channel)", type: 7 },
       { name: "custom_text", description: "Text to add below the reminder", type: 3, max_length: 500 },
     ],
   },
+  autocomplete: clanAutocomplete,
   async execute(ctx): Promise<DiscordInteractionResponse> {
     const serverId = requireGuildId(ctx);
     if ((BigInt(ctx.interaction.member?.permissions ?? "0") & 32n) === 0n) throw new CommandInputError("Manage Server permission is required.");

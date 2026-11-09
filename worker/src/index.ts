@@ -103,6 +103,21 @@ export default {
     try {
       const response = await runWithServices(env, Effect.gen(function* () {
         const services = yield* Services;
+        // Reuse mobile recent searches for successful DM profile reads only.
+        // Autocomplete and server commands must not pollute the user's history.
+        if(!interaction.guild_id && interaction.type===InteractionType.ApplicationCommand){
+          const userId=interaction.user?.id;
+          if(userId)services.api.observeSuccessfulReads((path,body)=>{
+            const match=/^\/v2\/bot\/clash\/(players|clans)\/[^/]+$/u.exec(path);
+            if(!match||!body||typeof body!=="object")return;
+            const item=body as {tag?:string;name?:string;townHallLevel?:number};
+            if(!item.tag||!item.name)return;
+            executionContext.waitUntil(services.api.post(`/v2/bot/users/${userId}/search-suggestions`,{
+              type:match[1]==="players"?"player":"clan",tag:item.tag,name:item.name,
+              ...(item.townHallLevel?{townHallLevel:item.townHallLevel}:{}),
+            }).catch(()=>{console.warn("DM recent search could not be saved");}));
+          });
+        }
         if (interaction.type !== InteractionType.ApplicationCommandAutocomplete &&
           (interaction.data?.name === "army" || interaction.data?.custom_id?.startsWith("ck:army:"))) {
           return yield* Effect.tryPromise({try:() => armyInteraction(interaction, { rawBody: body,
