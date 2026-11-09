@@ -49,13 +49,21 @@ export const clanCommand:Command={
    return Array.from({length:25},(_,index)=>new Date(latest-index*7*86400000).toISOString().slice(0,10)).filter(date=>date.includes(query)).map(date=>({name:date,value:date}));
   }
   const query=String(ctx.options.get("clan")?.value??"").trim();
-  if(!query&&ctx.interaction.guild_id){
-   const clans=await ctx.services.api.get<Array<{name:string;tag:string}>>(`/v2/server/${ctx.interaction.guild_id}/clans-basic`);
-   return clans.slice(0,25).map(clan=>({name:`${clan.name} | ${clan.tag}`.slice(0,100),value:clan.tag}));
+  const label=(clan:{name:string;tag:string;clanLevel?:number})=>({name:`${clan.name}${clan.clanLevel?` | Lv${clan.clanLevel}`:""} | ${clan.tag}`.slice(0,100),value:clan.tag});
+  // Prefer family matches, then ask the official API so untracked clans are searchable.
+  if(ctx.interaction.guild_id){
+   const clans=await ctx.services.api.get<Array<{name:string;tag:string}>>(`/v2/server/${ctx.interaction.guild_id}/clans-basic`).catch(()=>[]);
+   const matches=clans.filter(clan=>`${clan.name} ${clan.tag}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+   if(matches.length)return matches.slice(0,25).map(label);
   }
-  if(!query)return [];
-  const result=await ctx.services.api.get<{items:Array<{name:string;tag:string;clanLevel:number}>}>("/v2/clan/search",{query,limit:25});
-  return result.items.map(clan=>({name:`${clan.name} | Lv${clan.clanLevel} | ${clan.tag}`.slice(0,100),value:clan.tag}));
+  if(query.length<3)return [];
+  if(/^#?[0289PYLQGRJCUV]{3,15}$/iu.test(query)){
+   const tag=normalizeTag(query,ctx.locale);
+   const clan=await ctx.services.api.get<Clan>(`/v2/bot/clash/clans/${encodeURIComponent(tag)}`).catch(()=>undefined);
+   if(clan)return [label(clan)];
+  }
+  const result=await ctx.services.api.get<{items:Clan[]}>("/v2/bot/clash/clans",{name:query,limit:10,memberList:false});
+  return result.items.slice(0,25).map(label);
  },
  async execute(context){ return withClanSelector(context, await renderClan(context)); },
 };

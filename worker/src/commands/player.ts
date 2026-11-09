@@ -10,7 +10,7 @@ import {
   gameReply,
   legendDay,
   linkedAccounts,
-  playerAutocomplete,
+  playerAutocomplete, lookupPlayerAutocomplete,
   playerLabel,
   playerOption,
   resolvePlayerTag,
@@ -71,7 +71,7 @@ export const playerCommand: Command = {
       },
     ],
   },
-  autocomplete: playerAutocomplete,
+  autocomplete: (context) => subcommand(context).path[0] === "lookup" ? lookupPlayerAutocomplete(context) : playerAutocomplete(context),
   async execute(context) {
     const ctx = subcommand(context),
       emoji = await emojis(ctx);

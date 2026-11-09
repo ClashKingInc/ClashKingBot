@@ -145,7 +145,7 @@ async function addOverviewDetails(ctx:CommandContext,player:Player,emoji:Applica
  const encoded=encodeURIComponent(player.tag);
  const now=new Date(),after=new Date(now.getTime()-30*86400000);
  const [season,war,bans,identity,competitive]=await Promise.allSettled([
-  ctx.services.api.get<{recordedBattles:number;gold:number;elixir:number;darkElixir:number;statObservations:number;clanGames:number;capitalDonated:number}>(`/v2/bot/players/${encoded}/season-stats`),
+  ctx.services.api.get<{recordedBattles:number;donated:number;received:number;gold:number;elixir:number;darkElixir:number;statObservations:number;clanGames:number;capitalDonated:number}>(`/v2/bot/players/${encoded}/season-stats`),
   ctx.services.api.get<{items:Array<{attacksPerMember:number;attacks:Array<{stars:number;destructionPercentage:number}>}>}>(`/v2/player/${encoded}/war/stats`,{limit:500,"time[after]":after.toISOString(),"time[before]":now.toISOString()}),
   ctx.interaction.guild_id?ctx.services.api.get<{items:Array<{VillageTag:string;Notes:string;DateCreated:string}>}>(`/v2/server/${ctx.interaction.guild_id}/bans`):Promise.resolve({items:[]}),
   ctx.services.api.get<{link:{userId:string;verified:boolean}|null;lastObservedAt:string|null}>(`/v2/bot/players/${encoded}/identity`,ctx.interaction.guild_id?{serverId:ctx.interaction.guild_id}:{}),
@@ -160,16 +160,15 @@ async function addOverviewDetails(ctx:CommandContext,player:Player,emoji:Applica
   const result=competitive.value;
   if(result.kind==="legend"){
    const rank=result.rank;
-   fields[0]!.value+=(rank&&rank>0?`\n${emoji.get("earth")} **#${rank.toLocaleString("en")}** global`:"")
-    +`\n${emoji.get("clash_sword")} **${result.day.attacks.length}/8** attacks · ${emoji.get("shield")} **${result.day.defenses.length}/8** defenses`;
+   fields[0]!.value=`- ${emoji.get(player.leagueTier?.name??player.league?.name??"trophy")||emoji.get("trophy")} **${player.trophies.toLocaleString("en")}**${rank&&rank>0?` (${emoji.get("earth")} **#${rank.toLocaleString("en")}**)`:""}`
+    +`\n- ${emoji.get("clash_sword")} **${result.day.attacks.length}/8** | ${emoji.get("shield")} **${result.day.defenses.length}/8**`;
   }else if(result.ranked){
    const r=result.ranked;
    const direction=r.standing==="promotion"?emoji.get("up_green_arrow"):r.standing==="demotion"?emoji.get("down_red_arrow"):r.standing==="staying"?emoji.get("grey_dash"):"";
-   const label=r.standing==="promotion"?"Promotion":r.standing==="demotion"?"Demotion":r.standing==="staying"?"Staying":"";
    const count=(value:number)=>`${value}${r.limit?`/${r.limit}`:""}`;
-   fields[0]!.value=`${emoji.get(player.leagueTier?.name??"trophy")||emoji.get("trophy")} **${r.trophies.toLocaleString("en")}** trophies`
-    +`\n${direction} **#${r.rank}**${label?` · ${label}`:""}`
-    +`\n${emoji.get("clash_sword")} **${count(r.attacks)}** attacks · ${emoji.get("shield")} **${count(r.defenses)}** defenses`;
+   // Keep rank with trophies; icon-only battle counts form the second line.
+   fields[0]!.value=`- ${emoji.get(player.leagueTier?.name??"trophy")||emoji.get("trophy")} **${r.trophies.toLocaleString("en")}** (${direction?`${direction} `:""}**#${r.rank}**)`
+    +`\n- ${emoji.get("clash_sword")} **${count(r.attacks)}** | ${emoji.get("shield")} **${count(r.defenses)}**`;
   }
  }else if(isDailyLegend(player)){
   fields[0]!.value+="\nToday's battle summary unavailable.";
@@ -185,6 +184,11 @@ async function addOverviewDetails(ctx:CommandContext,player:Player,emoji:Applica
  if(season.status==="fulfilled"){
   const s=season.value;
   const stats=fields.find(field=>field.name==="Season stats");
+  if(stats){
+   // Live counters can reset after clan changes; retained season deltas may be
+   // higher. Use whichever source has observed more, never add them together.
+   stats.value=`${emoji.get("up_green_arrow")} **${compact(Math.max(player.donations??0,s.donated??0))}** donated\n${emoji.get("down_red_arrow")} **${compact(Math.max(player.donationsReceived??0,s.received??0))}** received`;
+  }
   if(s.recordedBattles&&stats)stats.value+=`\n${emoji.get("gold")} ${compact(s.gold)} · ${emoji.get("elixir")} ${compact(s.elixir)} · ${emoji.get("dark_elixir")} ${compact(s.darkElixir)}`;
  }
  if(war.status==="fulfilled"){

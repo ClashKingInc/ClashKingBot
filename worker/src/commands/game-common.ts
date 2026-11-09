@@ -67,6 +67,19 @@ export async function playerAutocomplete(context: CommandContext) {
   const result = await ctx.services.api.get<{ items: Array<{ name: string; tag: string }> }>("/v2/player/search", { query, limit: 25 });
   return result.items.map(item => ({ name: `${item.name} | ${item.tag}`.slice(0, 100), value: item.tag }));
 }
+/** Lookup suggests public players from this server's linked-clan rosters. */
+export async function lookupPlayerAutocomplete(context: CommandContext) {
+  if (!context.interaction.guild_id) return playerAutocomplete(context);
+  const ctx = subcommand(context);
+  const query = String(ctx.options.get("player")?.value ?? "").trim();
+  const result = await ctx.services.api.get<{items:Array<{name:string;tag:string;townHallLevel:number;clanName:string}>}>(
+    `/v2/bot/servers/${ctx.interaction.guild_id}/player-autocomplete`, {query}, AbortSignal.timeout(1800),
+  );
+  return result.items.map(item => {
+    const prefix = `(TH${item.townHallLevel || "?"}) `, suffix = ` | ${item.tag}`;
+    return {name: prefix + `${item.name} · ${item.clanName}`.slice(0,100-prefix.length-suffix.length) + suffix, value:item.tag};
+  });
+}
 /** Personal suggestions only: a bookmark is sufficient; an unbookmarked link
  * must be verified. Never fall back to public search for this private list. */
 export async function personalPlayerAutocomplete(context: CommandContext, options:{legendsOnly?:boolean}={}) {
