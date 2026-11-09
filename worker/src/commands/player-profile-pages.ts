@@ -145,7 +145,7 @@ async function addOverviewDetails(ctx:CommandContext,player:Player,emoji:Applica
  const encoded=encodeURIComponent(player.tag);
  const now=new Date(),after=new Date(now.getTime()-30*86400000);
  const [season,war,bans,identity,competitive]=await Promise.allSettled([
-  ctx.services.api.get<{recordedBattles:number;gold:number;elixir:number;darkElixir:number;statObservations:number;clanGames:number;capitalDonated:number}>(`/v2/bot/players/${encoded}/season-stats`),
+  ctx.services.api.get<{recordedBattles:number;donated:number;received:number;gold:number;elixir:number;darkElixir:number;statObservations:number;clanGames:number;capitalDonated:number}>(`/v2/bot/players/${encoded}/season-stats`),
   ctx.services.api.get<{items:Array<{attacksPerMember:number;attacks:Array<{stars:number;destructionPercentage:number}>}>}>(`/v2/player/${encoded}/war/stats`,{limit:500,"time[after]":after.toISOString(),"time[before]":now.toISOString()}),
   ctx.interaction.guild_id?ctx.services.api.get<{items:Array<{VillageTag:string;Notes:string;DateCreated:string}>}>(`/v2/server/${ctx.interaction.guild_id}/bans`):Promise.resolve({items:[]}),
   ctx.services.api.get<{link:{userId:string;verified:boolean}|null;lastObservedAt:string|null}>(`/v2/bot/players/${encoded}/identity`,ctx.interaction.guild_id?{serverId:ctx.interaction.guild_id}:{}),
@@ -184,6 +184,11 @@ async function addOverviewDetails(ctx:CommandContext,player:Player,emoji:Applica
  if(season.status==="fulfilled"){
   const s=season.value;
   const stats=fields.find(field=>field.name==="Season stats");
+  if(stats){
+   // Live counters can reset after clan changes; retained season deltas may be
+   // higher. Use whichever source has observed more, never add them together.
+   stats.value=`${emoji.get("up_green_arrow")} **${compact(Math.max(player.donations??0,s.donated??0))}** donated\n${emoji.get("down_red_arrow")} **${compact(Math.max(player.donationsReceived??0,s.received??0))}** received`;
+  }
   if(s.recordedBattles&&stats)stats.value+=`\n${emoji.get("gold")} ${compact(s.gold)} · ${emoji.get("elixir")} ${compact(s.elixir)} · ${emoji.get("dark_elixir")} ${compact(s.darkElixir)}`;
  }
  if(war.status==="fulfilled"){
