@@ -1,6 +1,6 @@
 import { ClashKingApiError } from '../api/client';
 import { actionRow, legacyMessage, linkButton } from '../discord/components';
-import { invokingUserId, requireGuildId } from './command-utils';
+import { CommandInputError, invokingUserId, requireGuildId } from './command-utils';
 import type { Command, CommandContext } from './types';
 
 export async function dashboardAccessLink(ctx: CommandContext, rosterId?: string) {
@@ -19,6 +19,15 @@ export const dashboardCommand:Command={
   let url: string;
   try { url=await dashboardAccessLink(ctx); }
   catch (error) {
+   if(error instanceof ClashKingApiError && error.status===403) {
+    throw new CommandInputError('You need Manage Server, Administrator, or a role with Dashboard access to use /setup.');
+   }
+   if(error instanceof ClashKingApiError && error.status===503) {
+    let message='';try{message=JSON.parse(error.body)?.message??'';}catch{}
+    if(message.startsWith('Discord authorization')) {
+     return legacyMessage({content:'ClashKing could not verify your server permissions right now. You can try again or sign in to the Dashboard. Access still requires Manage Server, Administrator, or a Dashboard-access role.',components:[actionRow(linkButton('Open dashboard',new URL('/login',ctx.env.DASHBOARD_BASE_URL).toString()))]},{ephemeral:true});
+    }
+   }
    // A first-time Discord user has no app account yet. Give them the normal
    // OAuth entry, never a fabricated account or a bypassed server grant.
    let firstUse=false;
