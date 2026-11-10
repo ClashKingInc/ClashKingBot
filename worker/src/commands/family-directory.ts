@@ -41,7 +41,9 @@ export async function familyDirectory(ctx:CommandContext){
  const unavailable=rows.filter(row=>!row.clan).length;
  return legacyMessage({allowed_mentions:{parse:[]},embeds:[{author:{name:`${server.name} Clans`,...(typeof server.icon==="string"?{icon_url:`https://cdn.discordapp.com/icons/${guild}/${server.icon}.png`}:{})},color:await serverEmbedColor(ctx),description:pages[page],footer:{text:`${rows.reduce((sum,row)=>sum+(row.clan?.members??row.clan?.memberList?.length??0),0)} players | ${clans.length} clans${pages.length>1?` | Page ${page+1}/${pages.length}`:""}${unavailable?` | ${unavailable} unavailable`:""}`}}],components:[
   actionRow({type:3,custom_id:id(0).replace(/:0$/u,":directory-type:0"),placeholder:"Directory type",options:Object.entries(groups).map(([value,label])=>({value,label,default:value===type}))}),
-  actionRow(...(pages.length>1?[{type:2 as const,style:2 as const,label:"Previous",disabled:page===0,custom_id:id(Math.max(0,page-1))}]:[]),{type:2,style:2,emoji:emoji.component("refresh")??{name:"↻"},custom_id:id(page)},...(pages.length>1?[{type:2 as const,style:2 as const,label:"Next",disabled:page===pages.length-1,custom_id:id(page+1)}]:[])),
+  // Keep disabled Previous distinct from Refresh on page zero. Discord rejects
+  // duplicate custom IDs even when one button is disabled; -1 is never navigable.
+  actionRow(...(pages.length>1?[{type:2 as const,style:2 as const,label:"Previous",disabled:page===0,custom_id:id(page-1)}]:[]),{type:2,style:2,emoji:emoji.component("refresh")??{name:"↻"},custom_id:id(page)},...(pages.length>1?[{type:2 as const,style:2 as const,label:"Next",disabled:page===pages.length-1,custom_id:id(page+1)}]:[])),
  ]});
 }
 

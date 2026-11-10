@@ -11,6 +11,7 @@ const {publicKey,privateKey}=generateKeyPairSync('ed25519');
 const app='999999999999991001',guild='999999999999991002',actor='999999999999991003';
 const tag='#PYLQGRJC',replies=new Map();let sequence=0;
 const recentWrites=[];
+const directoryClans=Array.from({length:25},(_,i)=>({name:`Family Clan ${String(i+1).padStart(2,'0')}`,tag:i===0?'#PYLQGRJ':'#PYLQ'+i.toString(8).replaceAll('1','P').replaceAll('3','Y').replaceAll('4','L').replaceAll('5','Q').replaceAll('6','G').replaceAll('7','R'),category:'Family',categoryOrder:0}));
 const members=[
  {name:'SIR TROLLSON',tag:'#PYLQGRJCUV',townHall:18,hidden:false,link:{userId:actor,inServer:true,username:'emma.polishpower',verified:false}},
  {name:'👩🏽‍🚀 漢字 Café Long Player',tag:'#PYLQGRJCU',townHall:18,hidden:false,link:{userId:actor,inServer:true,username:'abcdefghijklmnopqr',verified:true}},
@@ -24,7 +25,9 @@ const bot=new Miniflare(convertV4MiniflareOptions({host:'127.0.0.1',port:0,worke
   const u=new URL(request.url);
   if(u.hostname==='local-api.test'){
    if(u.pathname===`/v2/bot/servers/${guild}/player-autocomplete`)return Response.json({items:[{name:'Server Player',tag:'#PYLQGRJC',townHallLevel:18,clanName:'Must not show'}]});
-   if(u.pathname===`/v2/server/${guild}/clans-basic`)return Response.json([{name:'Family Clan',tag:'#PYLQGRJ'}]);
+   if(u.pathname===`/v2/server/${guild}/clans-basic`)return Response.json(directoryClans);
+   if(u.pathname.startsWith('/v2/bot/clash/clans/'))return Response.json({members:50,warLeague:{name:'Champion League I'}});
+   if(u.pathname.endsWith('/settings'))return Response.json({embed_color:'#000000'});
    if(u.pathname.includes('/search-suggestions')){
     if(request.method==='POST'){recentWrites.push(await request.json());return Response.json({ok:true});}
     return Response.json({items:u.searchParams.get('type')==='clan'?[{name:'Bookmarked Clan',tag:'#PYLQGRL'}]:[{name:'Recent Player',tag:'#PYLQGRQ',townHallLevel:17}]});
@@ -34,13 +37,14 @@ const bot=new Miniflare(convertV4MiniflareOptions({host:'127.0.0.1',port:0,worke
     assert.equal(u.searchParams.get('leagueIds'),'105000036');
     return Response.json({items:[{name:'Global Legend',tag:'#PYLQGRU',townHallLevel:18}]});
    }
-   if(u.pathname.includes('/league/history'))return Response.json({items:[]});
+   if(u.pathname.includes('/league/history'))return Response.json({items:[{id:'999999999999991010',name:'people'},{id:'999999999999991011',name:'championleaguei'},{id:'999999999999991012',name:'refresh'}]});
    if(u.pathname.startsWith('/v2/bot/clash/players/'))return Response.json({name:'Recent Player',tag:'#PYLQGRQ',townHallLevel:17});
    if(u.pathname.includes('activity'))return Response.json({ok:true});
    throw Error('Unexpected API request '+request.method+' '+u.pathname);
   }
   if(u.hostname==='discord.com'){
-   if(request.method==='GET'&&u.pathname.endsWith('/emojis'))return Response.json({items:[]});
+   if(request.method==='GET'&&u.pathname.endsWith('/emojis'))return Response.json({items:[{id:'999999999999991010',name:'people'},{id:'999999999999991011',name:'championleaguei'},{id:'999999999999991012',name:'refresh'}]});
+   if(request.method==='GET'&&u.pathname===`/api/v10/guilds/${guild}`)return Response.json({id:guild,name:'Family directory'});
    if(request.method==='PATCH'&&u.pathname.includes('/messages/@original')){
     replies.set(u.pathname.split('/')[5],await request.json());return Response.json({id:'999999999999991004'});
    }
@@ -72,5 +76,25 @@ try{
  assert.equal(recentWrites.length,0,'Autocomplete must not record searches');
  await interact({type:2,data:{name:'ranked',options:[{name:'history',type:1,options:[{name:'player',type:3,value:'#PYLQGRQ'}]}]}},true);
  assert.equal(recentWrites.length,1);assert.equal(recentWrites[0].tag,'#PYLQGRQ');
- console.log('PASS signed Bot autocomplete: server players, global Legends, reminder clans, superscript labels, DM personal sources and successful-search recording.');
+ const directory=await interact({type:2,data:{name:'family',options:[{name:'clans',type:1}]}});
+ const verifyDirectory=(message)=>{
+  assert.ok(message.embeds?.[0]?.description,'Expected clan directory, not an error reply');
+  assert.ok(message.embeds[0].description.length<=4096);
+  const controls=message.components.flatMap(row=>row.components);
+  const ids=controls.map(control=>control.custom_id).filter(Boolean);
+  assert.equal(new Set(ids).size,ids.length,'Disabled navigation and refresh IDs must remain unique');
+  assert.ok(ids.every(id=>id.length<=100));
+  return controls;
+ };
+ const controls=verifyDirectory(directory);
+ assert.ok(controls.find(c=>c.label==='Previous')?.disabled);
+ const next=controls.find(c=>c.label==='Next'&&!c.disabled);
+ assert.ok(next,'25 linked clans should create a second page');
+ const second=await interact({type:3,data:{custom_id:next.custom_id,component_type:2}});
+ const previous=verifyDirectory(second).find(c=>c.label==='Previous'&&!c.disabled);
+ assert.ok(previous);
+ const back=await interact({type:3,data:{custom_id:previous.custom_id,component_type:2}});
+ verifyDirectory(back);
+ assert.equal(back.embeds[0].description,directory.embeds[0].description);
+ console.log('PASS signed Bot autocomplete: server players, global Legends, reminder clans, superscript labels, DM personal sources, successful-search recording and unique family pagination controls.');
 }finally{await bot.dispose();}
