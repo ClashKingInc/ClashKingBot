@@ -78,16 +78,22 @@ export async function resolveGraphClans(
     }
   }));
   const alphabetical = (a: GraphClan, b: GraphClan) => a.name.localeCompare(b.name) || a.tag.localeCompare(b.tag);
-  const choices = base.filter(clan => counts.has(clan.tag))
-    .sort((a, b) => counts.get(b.tag)! - counts.get(a.tag)! || alphabetical(a, b))
-    .slice(0, 24).sort(alphabetical);
+  const ranked = base.filter(clan => counts.has(clan.tag))
+    .sort((a, b) => counts.get(b.tag)! - counts.get(a.tag)! || alphabetical(a, b));
   const selectedTags = (stringOption(ctx, "__graph_clans") ?? "all").split(",");
   if (!selectedTags.length || selectedTags.length > 24 || new Set(selectedTags).size !== selectedTags.length ||
-      selectedTags.some(tag => tag !== "all" && !choices.some(clan => clan.tag === tag)))
+      selectedTags.some(tag => tag !== "all" && !ranked.some(clan => clan.tag === tag)))
     throw new CommandInputError("A selected clan is no longer available. Run /graph again or choose other clans.");
   // All wins when combined with individual options, so the menu always has an
   // unambiguous scope and can return to the complete family/category.
   const tags = selectedTags.includes("all") ? [] : selectedTags;
+  // Fresh menus show the largest 24. Keep existing non-empty selections visible
+  // when member counts change, filling remaining slots from the current ranking.
+  // Dropping a selected clan at rank 25 would lose its state on the next click.
+  const choices = [
+    ...ranked.filter(clan => tags.includes(clan.tag)),
+    ...ranked.filter(clan => !tags.includes(clan.tag)).slice(0, 24 - tags.length),
+  ].sort(alphabetical);
   return {base, choices, selected: tags.length ? base.filter(clan => tags.includes(clan.tag)) : base,
     selectedTags: tags, categoryKey: key};
 }
