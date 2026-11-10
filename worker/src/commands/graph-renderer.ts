@@ -99,17 +99,16 @@ function marks(series:ChartSeries,x:(index:number)=>number,y:(value:number)=>num
 const area=(id:string,color:string)=>`<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".18"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient>`;
 export function lineChartSvg(input:LineChartInput){
  const automatic=scale(Math.max(0,...input.series.flatMap(s=>s.values.filter((v):v is number=>v!==null&&Number.isFinite(v)))));
- // Many overlapping series stop being readable. Give each clan its own plot
- // with the same vertical scale, so visual comparison stays honest.
+ // Keep every selected clan on one shared plot, even for large selections.
+ // Do not switch to separate clan panels as the number of series grows.
  const min=input.axis?.min??0,max=input.axis?.max??automatic.max;
  const ticks:Array<{value:number;label:string;icon?:string;color?:string}>=input.axis?.ticks??automatic.ticks.map(value=>({value,label:axisNumber(value)+(input.valueSuffix??"")}));
- if(input.series.length>3&&!input.axis)return multiples(input,max);
  const dense=input.series.length>3,top=dense?190+Math.ceil(input.series.length/2)*54:260,bottom=top+372,height=bottom+108+(input.note?32:0),left=64,right=input.axis?1010:1110;
  const x=(i:number)=>input.labels.length<=1?(left+right)/2:left+(right-left)*i/(input.labels.length-1);
  const y=(v:number)=>bottom-(v-min)/(max-min)*(bottom-top);
  let svg=frame(input,height)+`<defs>${area('area',colors[0]!)}</defs>`;
  // The clan selector supports 24 series; keep every league line colored even
- // after the palette repeats. Numeric trends already use separate clan plots.
+ // after the palette repeats. Every series uses the same axes.
  input.series.forEach((series,index)=>{
   const col=dense?64+(index%2)*576:64+index*(1152/Math.max(1,input.series.length));
   const base=dense?185+Math.floor(index/2)*54:183;
@@ -130,22 +129,5 @@ export function lineChartSvg(input:LineChartInput){
  }
  input.series.forEach((series,index)=>svg+=marks(series,x,y,colors[index%colors.length]!,bottom,input.series.length===1&&!input.stepped?'area':undefined,input.stepped));
  if(!input.series.length||!input.series.some(series=>series.values.some(v=>v!==null)))svg+=text(64,435,'No data for this period',28);
- return svg+finish(input,height);
-}
-function multiples(input:LineChartInput,max:number){
- const pitch=236,columns=2,height=190+Math.ceil(input.series.length/columns)*pitch+(input.note?32:0);
- let svg=frame(input,height)+'<defs>'+input.series.map((_,i)=>area(`area${i}`,colors[i%colors.length]!)).join('')+'</defs>';
- input.series.forEach((series,i)=>{
-  const left=64+(i%columns)*610,right=left+520,top=225+Math.floor(i/columns)*pitch,bottom=top+123;
-  const x=(index:number)=>input.labels.length<=1?(left+right)/2:left+(right-left)*index/(input.labels.length-1),y=(v:number)=>bottom-v/max*(bottom-top);
-  const color=colors[i%colors.length]!;
-  if(series.icon)svg+=`<image href="${series.icon}" x="${left}" y="${top-52}" width="32" height="32"/>`;
-  svg+=text(series.icon?left+42:left,top-25,short(series.name,20),27,color,'start',500);
-  const last=series.headline!==undefined?series.headline:series.values.at(-1);
-  svg+=text(right,top-25,last===null||last===undefined?'—':chartNumber(last)+(input.valueSuffix??""),30,ink,'end',500);
-  for(let t=0;t<=2;t++)svg+=`<path d="M${left} ${y(max*t/2)}H${right}" stroke="${grid}" stroke-width="1"/>`;
-  svg+=marks(series,x,y,color,bottom,`area${i}`);
-  if(input.labels.length){svg+=text(left,bottom+32,input.labels[0]!,22)+text(right,bottom+32,input.labels.at(-1)!,22,muted,'end');}
- });
  return svg+finish(input,height);
 }

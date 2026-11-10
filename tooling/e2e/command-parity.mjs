@@ -212,7 +212,7 @@ try{
     const dimension=pepeMode?250:graphMode?1280:1600,height=pepeMode?250:graphMode?bytes.readUInt32BE(20):1100;
     if(bytes.subarray(0,8).toString('hex')!=='89504e470d0a1a0a'||bytes.readUInt32BE(16)!==dimension||bytes.readUInt32BE(20)!==height)throw Error('Invalid rendered PNG');
     if(graphMode&&height<330)throw Error("Graph PNG is too short");
-    if(graphMode){data.imageHash=createHash("sha256").update(bytes).digest("hex");await (await import("node:fs/promises")).writeFile(`/private/tmp/clashking-graph-${token}.png`,bytes);}
+    if(graphMode){data.imageHeight=bytes.readUInt32BE(20);data.imageHash=createHash("sha256").update(bytes).digest("hex");await (await import("node:fs/promises")).writeFile(`/private/tmp/clashking-graph-${token}.png`,bytes);}
     if(pepeMode){data.imageHash=createHash('sha256').update(bytes).digest('hex');data.imageName=file.name;}
     data.posterBytes=bytes.length;
    }else data=await request.json();replies.set(token,data);return Response.json({id:'999999999999996999'});
@@ -469,6 +469,7 @@ try{
    if(control(multiMetric,'clan').options.filter(o=>o.default).length!==24)throw Error('Metric change lost selection');
    const dailySelected=await click(multi,'view','daily');assertChart(dailySelected);
    if(control(dailySelected,'clan').options.filter(o=>o.default).length!==24)throw Error('Daily view lost selection');
+   if(dailySelected.imageHeight>=2000)throw Error('24-clan trend expanded into separate clan panels');
    const all=await click(multi,'clan',['all',choices[0].value]);assertChart(all);
    if(control(all,'clan').options.filter(o=>o.default).map(o=>o.value).join()!=='all')throw Error('All must override individual selections');
    const removed=await click(big,'clan',graphExtraTags[0]);if(removed.posterBytes||!text(removed).includes('no longer available'))throw Error('Empty clan selection accepted');
@@ -476,7 +477,7 @@ try{
    if(foreign.posterBytes||!text(foreign).includes('Open a fresh command'))throw Error('Cross-guild chart accepted');
    await db.query('DELETE FROM server_clans WHERE server_id=$1 AND tag=$2',[server,group]);
    const unlinked=await click(oneClan,'refresh');if(unlinked.posterBytes||!text(unlinked).includes('no longer available'))throw Error('Unlinked selection retained');
-   console.log(JSON.stringify({graphInteraction:'passed',checks:['category autocomplete and filtering','metric switch','1–24 clan selections','alphabetical largest non-empty clans','icon-only refresh','deterministic refresh','All overrides individual selection','guild binding','unlinked clan rejection','no repeated raw content']}));
+   console.log(JSON.stringify({graphInteraction:'passed',checks:['category autocomplete and filtering','metric switch','1–24 clan selections','24-clan shared trend plot','alphabetical largest non-empty clans','icon-only refresh','deterministic refresh','All overrides individual selection','guild binding','unlinked clan rejection','no repeated raw content']}));
    console.log(JSON.stringify({dailyGraph:'passed',checks:['positive level gains counted once','decreases/boosts ignored','name events','recorded donation clan','schema rejects negative resets','aggregate activity','bounded range','duplicate clans','real PNG','refresh options','upstream failure'],externalDiscordWrites:0}));
    console.log(JSON.stringify({graphMonth:'passed',checks:['actual recorded clan totals','PNG rendering','custom clan selection','public refresh','unavailable clan excluded','multi-season totals','missing season preserved as gap','series refresh options'],externalDiscordWrites:0}));
   }finally{if(graphCapitalDates.length)await db.query('DELETE FROM leaderboard_history_clan_capital WHERE clan_tag=$1 AND date=ANY($2::date[])',[group,graphCapitalDates]);if(graphRaidStarts.length)await db.query('DELETE FROM capital_raid_history WHERE clan_tag=$1 AND start_time=ANY($2::timestamptz[])',[group,graphRaidStarts]);if(graphWarIds.length)await db.query('DELETE FROM wars WHERE war_id=ANY($1::int[])',[graphWarIds]);if(dailyOwned){await db.query('DELETE FROM battles_farming WHERE player_tag=$1',[dailyPlayer]);await db.query('DELETE FROM player_change_history WHERE player_tag=$1',[dailyPlayer]);await db.query('DELETE FROM player_stat_changes WHERE player_tag=$1',[dailyPlayer]);await db.query('DELETE FROM player_online_events WHERE tag=$1',[dailyPlayer]);await db.query('DELETE FROM basic_player WHERE tag=$1',[dailyPlayer]);}if(event)await db.query('DELETE FROM player_stat_changes WHERE event_time=ANY($1::timestamptz[]) AND player_tag=ANY($2::text[])',[[event,...(priorEvent?[priorEvent]:[])],[tag,tags[1]]]);await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ',...graphExtraTags]]);}
