@@ -84,3 +84,5 @@ Coverage:
 `node tooling/e2e/mobile-table-width.mjs` sends signed requests through the actual local Bot Worker with fixture responses at external service boundaries. It checks compact link rows, Unicode, intact player tags, trailing padding and refresh. It needs no database and sends no Discord messages.
 
 `node tooling/e2e/contextual-autocomplete.mjs` exercises signed autocomplete and DM lookup requests through the local Bot Worker, including superscript labels, server rosters, global Legend search, personal history and recording completed DM searches. No Discord messages are sent.
+
+`node tooling/e2e/command-parity.mjs --graph-month-only` verifies graph categories, the 24 largest non-empty clan choices, multi-selection, filter retention, guild binding, and removed-clan rejection through the actual local Bot Worker, API and PostgreSQL. No visual inspection or production Discord writes.

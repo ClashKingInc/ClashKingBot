@@ -99,14 +99,16 @@ export async function graphSeries(ctx: CommandContext) {
       }
     }),
   );
+  // A user-selected clan keeps its recorded history even when the newest
+  // season is missing. Latest-season eligibility only ranks the All scope.
   const selected = rows
-    .filter((row) => row.values[count - 1] !== null)
+    .filter((row) => clans.selectedTags.length > 0 || row.values[count - 1] !== null)
     .sort(
       (a, b) =>
         b.values[count - 1]! - a.values[count - 1]! ||
         a.tag.localeCompare(b.tag),
     )
-    .slice(0, limit);
+    .slice(0, clans.selectedTags.length || limit);
   const { posterArtwork } = await import("./legend-poster");
   const { renderGraphSvg, graphDecoration } = await import("./graph-image");
   const decoration=await graphDecoration(ctx,metric,selected);

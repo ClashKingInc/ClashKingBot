@@ -17,20 +17,26 @@ import {
   stringOption,
 } from "./command-utils";
 import { dailyMetrics, graphMetrics, graphMetricIcons } from "./graph-data";
-import { clanSelector } from "./clan-selector";
 import { emojis } from "./game-common";
 import type { CommandContext } from "./types";
 
 export interface GraphClan {
   tag: string;
   name: string;
+  category?: string | null;
 }
 export interface GraphClans {
   base: GraphClan[];
+  choices: GraphClan[];
   selected: GraphClan[];
-  custom: boolean;
-  selectedTag: string;
-  page: number;
+  // Empty means all; explicit selections are rendered in full, independent of
+  // the slash limit used to rank the complete family/category.
+  selectedTags: string[];
+  categoryKey: string;
+}
+async function categoryKey(name: string): Promise<string> {
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(name));
+  return Array.from(new Uint8Array(bytes).slice(0, 8), byte => byte.toString(16).padStart(2, "0")).join("");
 }
 export interface GraphControlState {
   view: "month" | "over-time" | "daily";
@@ -43,65 +49,67 @@ export interface GraphControlState {
 export async function resolveGraphClans(
   ctx: CommandContext,
 ): Promise<GraphClans> {
-  const raw = stringOption(ctx, "clans") ?? "";
-  const base = raw
-    ? [
-        ...new Set(
-          raw
-            .split(/[\s,]+/u)
-            .filter(Boolean)
-            .map((tag) => normalizeTag(tag, ctx.locale)),
-        ),
-      ].map((tag) => ({ tag, name: tag }))
-    : await ctx.services.api.get<GraphClan[]>(
-        `/v2/server/${requireGuildId(ctx)}/clans-basic`,
-      );
+  const family = await ctx.services.api.get<GraphClan[]>(
+    `/v2/server/${requireGuildId(ctx)}/clans-basic`,
+  );
+  const category = stringOption(ctx, "clan_category");
+  const key = stringOption(ctx, "__graph_category") ?? (category ? await categoryKey(category) : "all");
+  const categories = [...new Set(family.map(clan => clan.category).filter((name): name is string => !!name))];
+  const matching = key === "all" ? undefined : (await Promise.all(categories.map(async name => ({name, key: await categoryKey(name)})))).find(item => item.key === key)?.name;
+  if (key !== "all" && !matching)
+    throw new CommandInputError("That clan category is no longer available. Run /graph again.");
+  const base = [...new Map(family.filter(clan => key === "all" || clan.category === matching).map(clan => [clan.tag, clan])).values()];
   if (!base.length || base.length > 50)
-    throw new CommandInputError(
-      "Choose 1–50 clans or link a family on the dashboard.",
-    );
-  const selectedTag = stringOption(ctx, "__graph_clan") ?? "all";
-  if (selectedTag !== "all" && !base.some((clan) => clan.tag === selectedTag))
-    throw new CommandInputError(
-      "That clan is no longer available in this chart.",
-    );
-  const page = Number(ctx.options.get("__graph_clan_page")?.value ?? 0);
-  if (!Number.isInteger(page) || page < 0 || page > 100)
-    throw new CommandInputError("Invalid clan page.");
-  return {
-    base,
-    selected:
-      selectedTag === "all"
-        ? base
-        : base.filter((clan) => clan.tag === selectedTag),
-    custom: !!raw,
-    selectedTag,
-    page,
-  };
+    throw new CommandInputError("Choose a family or category with 1–50 linked clans.");
+
+  // Rank the entire scope before truncating, then alphabetize the 24 choices.
+  // Cached member counts avoid one live Clash API request per linked clan.
+  const counts = new Map<string, number>();
+  let next = 0;
+  const deadline = AbortSignal.timeout(15_000);
+  await Promise.all(Array.from({length: Math.min(5, base.length)}, async () => {
+    while (next < base.length) {
+      const clan = base[next++]!;
+      const cached = await ctx.services.api.get<{memberCount: number} | null>(
+        `/v2/clan/${encodeURIComponent(clan.tag)}/cached`, {}, deadline,
+      );
+      if (cached && Number.isSafeInteger(cached.memberCount) && cached.memberCount > 0)
+        counts.set(clan.tag, cached.memberCount);
+    }
+  }));
+  const alphabetical = (a: GraphClan, b: GraphClan) => a.name.localeCompare(b.name) || a.tag.localeCompare(b.tag);
+  const ranked = base.filter(clan => counts.has(clan.tag))
+    .sort((a, b) => counts.get(b.tag)! - counts.get(a.tag)! || alphabetical(a, b));
+  const selectedTags = (stringOption(ctx, "__graph_clans") ?? "all").split(",");
+  if (!selectedTags.length || selectedTags.length > 24 || new Set(selectedTags).size !== selectedTags.length ||
+      selectedTags.some(tag => tag !== "all" && !ranked.some(clan => clan.tag === tag)))
+    throw new CommandInputError("A selected clan is no longer available. Run /graph again or choose other clans.");
+  // All wins when combined with individual options, so the menu always has an
+  // unambiguous scope and can return to the complete family/category.
+  const tags = selectedTags.includes("all") ? [] : selectedTags;
+  // Fresh menus show the largest 24. Keep existing non-empty selections visible
+  // when member counts change, filling remaining slots from the current ranking.
+  // Dropping a selected clan at rank 25 would lose its state on the next click.
+  const choices = [
+    ...ranked.filter(clan => tags.includes(clan.tag)),
+    ...ranked.filter(clan => !tags.includes(clan.tag)).slice(0, 24 - tags.length),
+  ].sort(alphabetical);
+  return {base, choices, selected: tags.length ? base.filter(clan => tags.includes(clan.tag)) : base,
+    selectedTags: tags, categoryKey: key};
 }
 export function graphScope(clans: GraphClans, shown?: number, order = "desc") {
   if (clans.selected.length === 1) return clans.selected[0]!.name;
-  const scope = clans.custom ? "selected clans" : "family clans";
+  const scope = clans.selectedTags.length ? "selected clans" : clans.categoryKey === "all" ? "family clans" : "category clans";
   return shown && shown < clans.selected.length
     ? `${order === "asc" ? "Bottom" : "Top"} ${shown} of ${clans.selected.length} ${scope}`
     : `${clans.selected.length} ${scope}`;
 }
 const viewCode = { month: "m", "over-time": "t", daily: "d" } as const;
-function id(state: GraphControlState, clans: GraphClans, action: string) {
-  return [
-    "ck",
-    "chart",
-    viewCode[state.view],
-    state.metric,
-    state.period,
-    state.count,
-    state.limit,
-    state.order,
-    clans.selectedTag === "all" ? "all" : clans.selectedTag.slice(1),
-    clans.page,
-    clans.custom ? "c" : "f",
-    action,
-  ].join(":");
+function id(ctx: CommandContext, state: GraphControlState, clans: GraphClans, action: string) {
+  // Selections live in the message's option defaults, not custom_id: 24 tags
+  // exceed Discord's 100-character ID limit. Bind every control to its guild.
+  return ["ck", "chart", viewCode[state.view], state.metric, state.period,
+    state.count, state.limit, state.order, requireGuildId(ctx), clans.categoryKey, action].join(":");
 }
 export async function graphControls(
   ctx: CommandContext,
@@ -112,7 +120,7 @@ export async function graphControls(
   const result = [
     actionRow({
       type: 3,
-      custom_id: id(state, clans, "metric"),
+      custom_id: id(ctx, state, clans, "metric"),
       placeholder: "Statistic",
       min_values: 1,
       max_values: 1,
@@ -124,100 +132,48 @@ export async function graphControls(
       })),
     }),
   ];
-  result.push(actionRow({type:3,custom_id:id(state,clans,"view"),placeholder:"Chart view",options:[
+  result.push(actionRow({type:3,custom_id:id(ctx,state,clans,"view"),placeholder:"Chart view",options:[
     ...(Object.hasOwn(dailyMetrics,state.metric)?[{label:"Daily trend",value:"daily",default:state.view==="daily"}]:[]),
     ...(Object.hasOwn(graphMetrics,state.metric)?[...(state.metric!=="cwlLeague"?[{label:"Season totals",value:"month",default:state.view==="month"}]:[]),{label:"Season trend",value:"over-time",default:state.view==="over-time"}]:[]),
   ]}));
-  const all = {
-    label: clans.custom ? "All selected clans" : "All family clans",
-    value: "all" as const,
-    default: clans.selectedTag === "all",
-  };
-  if (clans.custom) {
-    // Keep explicit clan choices in the message itself. This preserves the
-    // exact custom scope across metric switches without opaque server state.
-    // Components V2 lets up to 50 custom clans occupy three selector rows.
-    for (let index = 0; index < clans.base.length; index += 24) {
-      const options: StringSelectOption[] = clans.base
-        .slice(index, index + 24)
-        .map((clan) => ({
-          label: clan.name.slice(0, 100),
-          value: clan.tag,
-          default: clans.selectedTag === clan.tag,
-        }));
-      if (index === 0) options.unshift(all);
-      result.push(
-        actionRow({
-          type: 3,
-          custom_id: id(state, clans, `clan${index / 24}`),
-          placeholder:
-            clans.base.length > 24
-              ? `Clans ${index + 1}–${Math.min(index + 24, clans.base.length)}`
-              : "Clan",
-          min_values: 1,
-          max_values: 1,
-          options,
-        }),
-      );
-    }
-  } else {
-    result.push(
-      clanSelector({
-        clans: clans.base,
-        selectedTag: clans.selectedTag,
-        page: clans.page,
-        customId: id(state, clans, "clan"),
-        includeAll: all,
-      }).row,
-    );
-  }
+  result.push(actionRow({
+    type: 3,
+    custom_id: id(ctx, state, clans, "clan"),
+    placeholder: "Choose 1–24 clans",
+    min_values: 1,
+    max_values: Math.min(24, clans.choices.length + 1),
+    options: [{label: clans.categoryKey === "all" ? "All family clans" : "All category clans", value: "all", default: !clans.selectedTags.length},
+      ...clans.choices.map(clan => ({label: clan.name.slice(0, 100), description: clan.tag, value: clan.tag, default: clans.selectedTags.includes(clan.tag)}))],
+  }));
 
   if(state.view==="month"){
     const seasons=Array.from({length:12},(_,index)=>{const date=new Date();date.setUTCDate(1);date.setUTCMonth(date.getUTCMonth()-index);return {label:date.toLocaleDateString("en",{month:"long",year:"numeric",timeZone:"UTC"}),value:date.toISOString().slice(0,7),default:state.period===date.toISOString().slice(0,7)};});
-    result.push(actionRow({type:3,custom_id:id(state,clans,"period"),placeholder:"Season",options:[{label:"Current season",value:"current",default:state.period==="current"},...seasons]}));
+    result.push(actionRow({type:3,custom_id:id(ctx,state,clans,"period"),placeholder:"Season",options:[{label:"Current season",value:"current",default:state.period==="current"},...seasons]}));
   }
   const icon=(await emojis(ctx)).component("refresh");
   const ranges=state.view==="daily"?[7,30,90,180]:state.view==="over-time"?[2,4,6,12]:[];
-  result.push(actionRow(...ranges.map(count=>({type:2 as const,style:state.count===count?1 as const:2 as const,label:state.view==="daily"?`${count}d`:`${count} seasons`,custom_id:id(state,clans,`range${count}`)})),{type:2,style:2,emoji:icon??{name:"↻"},custom_id:id(state,clans,"refresh")}));
+  result.push(actionRow(...ranges.map(count=>({type:2 as const,style:state.count===count?1 as const:2 as const,label:state.view==="daily"?`${count}d`:`${count} seasons`,custom_id:id(ctx,state,clans,`range${count}`)})),{type:2,style:2,emoji:icon??{name:"↻"},custom_id:id(ctx,state,clans,"refresh")}));
   return result;
 }
-function customClans(ctx: CommandContext): string {
+function selectedClans(ctx: CommandContext, controlId: string): string[] {
   const components = ctx.interaction.message?.components;
-  if (!Array.isArray(components))
-    throw new CommandInputError(
-      "Run the chart command again to restore its selected clans.",
-    );
-  const tags = new Set<string>();
-  for (const row of components) {
-    if (!row || typeof row !== "object" || !Array.isArray(row.components))
-      continue;
+  if (Array.isArray(components)) for (const row of components) {
+    if (!Array.isArray(row.components)) continue;
     for (const component of row.components) {
-      if (
-        !component ||
-        typeof component !== "object" ||
-        typeof component.custom_id !== "string" ||
-        !component.custom_id.startsWith("ck:chart:") ||
-        !/:clan[0-2]?$/u.test(component.custom_id) ||
-        !Array.isArray(component.options)
-      )
-        continue;
-      for (const option of component.options)
-        if (typeof option?.value === "string" && option.value.startsWith("#"))
-          tags.add(normalizeTag(option.value, ctx.locale));
+      if (component.custom_id === controlId && Array.isArray(component.options)) {
+        const selected = (component.options as StringSelectOption[]).filter(option => option.default).map(option => option.value);
+        if (selected.length) return selected;
+      }
     }
   }
-  if (!tags.size || tags.size > 50)
-    throw new CommandInputError(
-      "Run the chart command again to restore its selected clans.",
-    );
-  return [...tags].join(" ");
+  throw new CommandInputError("Run /graph again to restore its clan selection.");
 }
 export async function dispatchGraphControl(
   ctx: CommandContext,
   waitUntil?: (promise: Promise<unknown>) => void,
 ): Promise<DiscordInteractionResponse> {
   const parts = (ctx.interaction.data?.custom_id ?? "").split(":");
-  if (parts.length !== 12 || parts[0] !== "ck" || parts[1] !== "chart")
+  if (parts.length !== 11 || parts[0] !== "ck" || parts[1] !== "chart")
     throw new CommandInputError("Invalid chart control.");
   const [
     ,
@@ -228,9 +184,8 @@ export async function dispatchGraphControl(
     countRaw,
     limitRaw,
     order,
-    clan,
-    pageRaw,
-    source,
+    guild,
+    category,
     action,
   ] = parts;
   let view =
@@ -243,14 +198,13 @@ export async function dispatchGraphControl(
           : undefined;
   if (
     !view ||
-    !["c", "f"].includes(source!) ||
-    !["metric", "clan", "clan0", "clan1", "clan2", "refresh", "view", "period", "range2", "range4", "range6", "range7", "range12", "range30", "range90", "range180"].includes(
+    guild !== requireGuildId(ctx) || !/^(all|[a-f0-9]{16})$/u.test(category!) ||
+    !["metric", "clan", "refresh", "view", "period", "range2", "range4", "range6", "range7", "range12", "range30", "range90", "range180"].includes(
       action!,
     ) ||
     !["asc", "desc"].includes(order!) ||
     !/^\d{1,3}$/u.test(countRaw!) ||
     !/^\d{1,2}$/u.test(limitRaw!) ||
-    !/^\d{1,3}$/u.test(pageRaw!) ||
     (period !== "current" && !/^\d{4}-(0[1-9]|1[0-2])$/u.test(period!))
   )
     throw new CommandInputError("Invalid chart control.");
@@ -274,13 +228,10 @@ export async function dispatchGraphControl(
     if(!(view==="daily"?[7,30,90,180]:view==="over-time"?[2,4,6,12]:[]).includes(count))throw new CommandInputError("Choose a valid period.");
   }
   if(metric==="cwlLeague"&&view!=="over-time"){view="over-time";count=4;}
-  let selected = clan === "all" ? "all" : normalizeTag(clan!, ctx.locale),
-    page = Number(pageRaw);
-  if (action?.startsWith("clan")) {
-    if (!value) throw new CommandInputError("Choose a clan.");
-    if (/^page:\d{1,3}$/u.test(value)) page = Number(value.slice(5));
-    else selected = value === "all" ? "all" : normalizeTag(value, ctx.locale);
-  }
+  const selected = action === "clan" ? ctx.interaction.data?.values : selectedClans(ctx, [...parts.slice(0, -1), "clan"].join(":"));
+  if (!selected?.length || selected.length > 24)
+    throw new CommandInputError("Choose 1–24 clans.");
+  const selection = selected.includes("all") ? "all" : selected.map(tag => normalizeTag(tag, ctx.locale)).join(",");
   const options: InteractionOption[] = [
     { name: "attribute", type: OptionType.String, value: metric },
     { name: "season", type: OptionType.String, value: selectedPeriod },
@@ -291,15 +242,9 @@ export async function dispatchGraphControl(
       type: OptionType.Integer,
       value: count,
     },
-    { name: "__graph_clan", type: OptionType.String, value: selected },
-    { name: "__graph_clan_page", type: OptionType.Integer, value: page },
+    { name: "__graph_clans", type: OptionType.String, value: selection },
+    { name: "__graph_category", type: OptionType.String, value: category! },
   ];
-  if (source === "c")
-    options.push({
-      name: "clans",
-      type: OptionType.String,
-      value: customClans(ctx),
-    });
   const context: CommandContext = {
     ...ctx,
     options: new Map([...options,{name:"__view",type:OptionType.String,value:view}].map(option=>[option.name,option])),

@@ -74,6 +74,8 @@ npm run deploy:dev
 npm run deploy:prod
 npm run register:dev
 npm run register:prod
+# Update only an existing command, preserving other live definitions:
+npm run register:prod -- graph
 ```
 
 Deployment and registration change external state. Registration replaces the

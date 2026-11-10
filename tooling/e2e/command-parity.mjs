@@ -41,7 +41,7 @@ let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
 const giveawayDeliveryMode=process.argv.includes("--giveaway-delivery");
 const giveawayMessages=[];
 const giveawayMode=process.argv.includes("--giveaway-only")||giveawayDeliveryMode;
-const graphMode=process.argv.includes("--graph-month-only");let graphFailure=false,graphGap=false,dailyGraphFailure=false;
+const graphMode=process.argv.includes("--graph-month-only");let graphFailure=false,graphGap=false,graphLatestGap=false,dailyGraphFailure=false;
 const warPanelMode=process.argv.includes("--war-panel-only");
 const roleUsersMode=process.argv.includes("--role-users-only");
 const boostsMode=process.argv.includes("--boosts-only");let boostFailure=false;
@@ -211,8 +211,8 @@ try{
     const bytes=Buffer.from(await file.arrayBuffer());
     const dimension=pepeMode?250:graphMode?1280:1600,height=pepeMode?250:graphMode?bytes.readUInt32BE(20):1100;
     if(bytes.subarray(0,8).toString('hex')!=='89504e470d0a1a0a'||bytes.readUInt32BE(16)!==dimension||bytes.readUInt32BE(20)!==height)throw Error('Invalid rendered PNG');
-    if(graphMode&&height<350)throw Error("Graph PNG is too short");
-    if(graphMode){data.imageHash=createHash("sha256").update(bytes).digest("hex");await (await import("node:fs/promises")).writeFile(`/private/tmp/clashking-graph-${token}.png`,bytes);}
+    if(graphMode&&height<330)throw Error("Graph PNG is too short");
+    if(graphMode){data.imageHeight=bytes.readUInt32BE(20);data.imageHash=createHash("sha256").update(bytes).digest("hex");await (await import("node:fs/promises")).writeFile(`/private/tmp/clashking-graph-${token}.png`,bytes);}
     if(pepeMode){data.imageHash=createHash('sha256').update(bytes).digest('hex');data.imageName=file.name;}
     data.posterBytes=bytes.length;
    }else data=await request.json();replies.set(token,data);return Response.json({id:'999999999999996999'});
@@ -227,6 +227,7 @@ try{
   if(warStatsMode&&privacyUnavailable&&url.pathname.endsWith('/preferences'))return Response.json({message:'Unavailable'},{status:503});
   if(botInfoMode&&botInfoFailure&&url.pathname==="/v2/bot/status")return Response.json({message:"Unavailable"},{status:503});
   if(graphMode&&dailyGraphFailure&&url.pathname==='/v2/bot/clans/daily-stats')return Response.json({message:'Unavailable'},{status:503});
+  if(graphMode&&graphLatestGap&&decodeURIComponent(url.pathname).includes(group+'/season-stats')&&url.searchParams.get('season')==='2025-01')return Response.json({message:'Unavailable'},{status:503});
   if(graphMode&&graphGap&&decodeURIComponent(url.pathname).includes(group+'/season-stats')&&url.searchParams.get('season')==='2024-12')return Response.json({message:'Unavailable'},{status:503});
   if(graphMode&&graphFailure&&decodeURIComponent(url.pathname).includes('#PYLQGRJJ/season-stats'))return Response.json({message:'Unavailable'},{status:503});
   if(todoMode&&legendFails&&url.pathname==='/v2/legends/days')return Response.json({message:'Temporarily unavailable'},{status:503});
@@ -378,12 +379,13 @@ try{
    console.log(JSON.stringify({giveawayReroll:'passed',trackingDelivery:giveawayDeliveryMode?'passed':'not run',checks:['removed command rejected','canonical API authentication','duplicate and foreign rejection','recorded positive weights','zero weight excluded','reason and history persisted','announcement queued','stale retry rejected','missing imported booster odds rejected','legacy unweighted import','ongoing rejected'],externalDiscordWrites:0}));
   }finally{await db.query('DELETE FROM giveaway_publication_effects WHERE server_id=ANY($1::text[]) AND giveaway_id=ANY($2::text[])',[[server,foreign],[id,outsider,'local-reroll-imported']]);await db.query('DELETE FROM giveaways WHERE server_id=ANY($1::text[])',[[server,foreign]]);await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,foreign]]);}
  }else if(graphMode){
+  const graph=(view,options)=>({type:2,data:{name:'graph',options:[...options,{name:'__view',type:3,value:view}]}});
   const server='999999999999996510',season='2025-01';
   if((await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount||(await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ']])).rowCount)throw Error('Synthetic graph scope exists');
   await db.query("INSERT INTO servers(id,name) VALUES($1,'Graph fixture')",[server]);
   let event,priorEvent,dailyOwned=false;const graphWarIds=[],graphRaidStarts=[],graphCapitalDates=[],graphExtraTags=[];const dailyPlayer=tags[10],dailyTime=new Date();dailyTime.setUTCDate(dailyTime.getUTCDate()-1);dailyTime.setUTCHours(12,0,0,0);
   try{
-   await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,'Alpha Clan',true,0,0,'',0,0),('#PYLQGRJJ','Beta Clan',true,0,0,'',0,0)",[group]);
+   await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,'Alpha Clan',true,0,40,'',0,0),('#PYLQGRJJ','Beta Clan',true,0,30,'',0,0)",[group]);
    await db.query("INSERT INTO server_clans(tag,server_id) VALUES($1,$2),('#PYLQGRJJ',$2)",[group,server]);
    const window=await(await fetch(`http://127.0.0.1:${port}/v2/bot/clans/${encodeURIComponent(group)}/season-stats?season=${season}`,{headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`}})).json();event=new Date(Date.parse(window.start)+86400000);
    await db.query("INSERT INTO player_stat_changes(player_tag,clan_tag,event_time,stat_type,previous_value,current_value,delta) VALUES($1,$2,$3,'donated',0,260,260),($4,'#PYLQGRJJ',$3,'donated',0,100,100)",[tag,group,event,tags[1]]);
@@ -391,22 +393,31 @@ try{
    await db.query("INSERT INTO player_stat_changes(player_tag,clan_tag,event_time,stat_type,previous_value,current_value,delta) VALUES($1,$2,$3,'donated',0,130,130)",[tag,group,priorEvent]);
    const buttons=response=>response.components.flatMap(row=>row.components??[]);
    const control=(response,suffix)=>buttons(response).find(item=>item.custom_id?.endsWith(':'+suffix));
-   const click=(response,suffix,value)=>interact({type:3,message:{id:'999999999999996577',components:response.components},data:{custom_id:control(response,suffix).custom_id,component_type:suffix==='refresh'?2:3,...(value===undefined?{}:{values:[value]})}},other);
+   const click=(response,suffix,value)=>interact({type:3,message:{id:'999999999999996577',components:response.components},data:{custom_id:control(response,suffix).custom_id,component_type:suffix==='refresh'?2:3,...(value===undefined?{}:{values:Array.isArray(value)?value:[value]})}},other);
    const assertChart=response=>{if(!response.posterBytes||response.posterBytes<1000||!response.imageHash)throw Error('Missing real chart PNG '+text(response));if(response.content)throw Error('Chart duplicated data as text');for(const item of buttons(response)){if(item.custom_id?.length>100)throw Error('Oversized chart control');if(item.options?.length>25)throw Error('Oversized chart menu');}const refresh=control(response,'refresh');if(!refresh?.emoji||refresh.label)throw Error('Refresh must be icon-only');};
-   const first=await interact(command('graph','month',[{name:'attribute',type:3,value:'donated'},{name:'season',type:3,value:season}]));
+   const first=await interact(graph('month',[{name:'attribute',type:3,value:'donated'},{name:'season',type:3,value:season}]));
    assertChart(first);if(control(first,'metric').options.find(o=>o.default)?.value!=='donated')throw Error('Current chart metric not selected');
-   const custom=await interact(command('graph','month',[{name:'attribute',type:3,value:'donated'},{name:'season',type:3,value:season},{name:'clans',type:3,value:group},{name:'limit',type:4,value:1}]));
-   assertChart(custom);if(control(custom,'clan0').options.filter(o=>o.value.startsWith('#')).map(o=>o.value).join(',')!==group)throw Error('Custom clan selection ignored');
+   await db.query("INSERT INTO server_clan_categories(id,server_id,name,position) VALUES('00000000-0000-4000-8000-000000000001',$1,'Main',0),('00000000-0000-4000-8000-000000000002',$1,'Other',1)",[server]);
+   await db.query("UPDATE server_clans SET category_id=CASE WHEN tag=$1 THEN '00000000-0000-4000-8000-000000000001'::uuid ELSE '00000000-0000-4000-8000-000000000002'::uuid END WHERE server_id=$2",[group,server]);
+   const autocomplete=await interact({type:4,data:{name:'graph',options:[{name:'clan_category',type:3,value:'ma',focused:true}]}});if(JSON.stringify(autocomplete.choices)!==JSON.stringify([{name:'Main',value:'Main'}]))throw Error('Category autocomplete failed');
+   const custom=await interact(graph('month',[{name:'attribute',type:3,value:'donated'},{name:'season',type:3,value:season},{name:'clan_category',type:3,value:'Main'},{name:'limit',type:4,value:1}]));
+   assertChart(custom);if(control(custom,'clan').options.filter(o=>o.value.startsWith('#')).map(o=>o.value).join(',')!==group)throw Error('Custom clan selection ignored');
    const refreshed=await click(first,'refresh');assertChart(refreshed);if(first.imageHash!==refreshed.imageHash)throw Error('Public chart refresh changed its scope');
    const changed=await click(first,'metric','received');assertChart(changed);if(changed.imageHash===first.imageHash||control(changed,'metric').options.find(o=>o.default)?.value!=='received')throw Error('Metric switch failed');
-   const oneClan=await click(first,'clan',group);assertChart(oneClan);if(oneClan.imageHash===first.imageHash||!control(oneClan,'refresh').custom_id.includes(group.slice(1)))throw Error('Clan selection failed');
-   const customChanged=await click(custom,'metric','received');assertChart(customChanged);if(control(customChanged,'clan0').options.filter(o=>o.value.startsWith('#')).length!==1)throw Error('Custom scope lost on metric switch');
-   const series=await interact(command('graph','over-time',[{name:'attribute',type:3,value:'donated'},{name:'season',type:3,value:season},{name:'months',type:4,value:2}]));
+   const oneClan=await click(first,'clan',group);assertChart(oneClan);if(oneClan.imageHash===first.imageHash||control(oneClan,'clan').options.find(o=>o.default)?.value!==group)throw Error('Clan selection failed');
+   const customChanged=await click(custom,'metric','received');assertChart(customChanged);if(control(customChanged,'clan').options.filter(o=>o.value.startsWith('#')).length!==1)throw Error('Custom scope lost on metric switch');
+   const series=await interact(graph('over-time',[{name:'attribute',type:3,value:'donated'},{name:'season',type:3,value:season},{name:'months',type:4,value:2}]));
    assertChart(series);if(!control(series,'refresh').custom_id.includes(':2025-01:2:'))throw Error('Multi-season options lost');
    graphGap=true;
    const gap=await click(series,'refresh');assertChart(gap);if(gap.imageHash===series.imageHash)throw Error('Missing observation did not change chart');
    graphGap=false;
-   graphFailure=true;const partial=await interact(command('graph','month',[{name:'attribute',type:3,value:'donated'},{name:'season',type:3,value:season}]));
+   graphLatestGap=true;
+   const selectedHistory=await click(series,'clan',group);assertChart(selectedHistory);
+   graphGap=true;
+   const noHistory=await click(selectedHistory,'refresh');assertChart(noHistory);
+   if(selectedHistory.imageHash===noHistory.imageHash)throw Error('Selected clan lost earlier history when latest season is missing');
+   graphGap=false;graphLatestGap=false;
+   graphFailure=true;const partial=await interact(graph('month',[{name:'attribute',type:3,value:'donated'},{name:'season',type:3,value:season}]));
    assertChart(partial);if(partial.imageHash===first.imageHash)throw Error('Failed clan did not change chart');graphFailure=false;
    if((await db.query('SELECT 1 FROM basic_player WHERE tag=$1',[dailyPlayer])).rowCount)throw Error('Daily player fixture already exists');
    await db.query("INSERT INTO basic_player(tag,name,clan_tag,townhall_level) VALUES($1,'Daily fixture','#PYLQGRJJ',16)",[dailyPlayer]);dailyOwned=true;
@@ -423,13 +434,13 @@ try{
    for(const [metric,want] of [['activity',1],['warStars',17],['warsWon',1],['warsSpun',2]]){const value=await total(metric);if(value.status!==200||value.data.value!==want||value.data.basis!=='recorded_clan')throw Error('Extended event metric '+metric+' '+JSON.stringify(value));}
    if((await total('warStars','#PYLQGRJJ')).data.value!==17||(await total('warsWon','#PYLQGRJJ')).data.value!==1)throw Error('Opponent war perspective incorrect');
    if((await total('unsupported')).status!==400)throw Error('Unsupported graph metric accepted');
-   const more=await interact(command('graph','month',[{name:'attribute',type:3,value:'gold'},{name:'season',type:3,value:season}]));assertChart(more);
-   const moreSeries=await interact(command('graph','over-time',[{name:'attribute',type:3,value:'attackWins'},{name:'season',type:3,value:season},{name:'months',type:4,value:2}]));assertChart(moreSeries);
+   const more=await interact(graph('month',[{name:'attribute',type:3,value:'gold'},{name:'season',type:3,value:season}]));assertChart(more);
+   const moreSeries=await interact(graph('over-time',[{name:'attribute',type:3,value:'gold'},{name:'season',type:3,value:season},{name:'months',type:4,value:2}]));assertChart(moreSeries);
    console.log(JSON.stringify({extendedGraph:'passed',checks:['six latest-member metrics','four event/war metrics','opponent perspective','friendly wars excluded','unsupported metric rejected','monthly PNG and basis','series PNG']}));
    for(const [index,loot,participants,state] of [[0,1000,2,'ended'],[1,2000,3,'ended'],[2,9000,4,'ongoing']]){const start=new Date(+event+index*86400000);await db.query('INSERT INTO capital_raid_history(clan_tag,start_time,end_time,state,data) VALUES($1,$2,$3,$4,$5)',[group,start,new Date(+start+3*86400000),state,JSON.stringify({capitalTotalLoot:loot,members:Array.from({length:participants},(_,i)=>({tag:tags[i],attacks:1}))})]);graphRaidStarts.push(start);}
    if((await total('capitalRaided')).data.value!==3000||(await total('raidParticipants')).data.value!==2.5)throw Error('Raid graph totals or average incorrect');
    if((await total('capitalRaided','#PYLQGRJJ')).data.value!==null)throw Error('Missing raid history became zero');
-   const raidsChart=await interact(command('graph','month',[{name:'attribute',type:3,value:'raidParticipants'},{name:'season',type:3,value:season}]));assertChart(raidsChart);
+   const raidsChart=await interact(graph('month',[{name:'attribute',type:3,value:'capitalRaided'},{name:'season',type:3,value:season}]));assertChart(raidsChart);
    console.log(JSON.stringify({raidGraphs:'passed',checks:['completed raid loot','fractional participation average','ongoing raids excluded','missing history stays null','real PNG']}));
    for(const [offset,points] of [[0,4000],[1,4200]]){const date=new Date(+event+offset*86400000).toISOString().slice(0,10);await db.query("INSERT INTO leaderboard_history_clan_capital(location_id,date,clan_tag,clan_name,clan_badge_token,clan_level,capital_points,members,rank) VALUES('global',$1,$2,'Alpha Clan','fixture',10,$3,40,999999)",[date,group,points]);graphCapitalDates.push(date);}
    if((await total('capitalTrophies')).data.value!==4200)throw Error('Capital trophies did not use final recorded snapshot');
@@ -437,9 +448,7 @@ try{
    const laterCapitalDate=new Date(+event+21*86400000).toISOString().slice(0,10);await db.query("INSERT INTO leaderboard_history_clan_capital(location_id,date,clan_tag,clan_name,clan_badge_token,clan_level,capital_points,members,rank) VALUES('global',$1,$2,'Alpha Clan','fixture',10,4300,40,999999)",[laterCapitalDate,group]);graphCapitalDates.push(laterCapitalDate);
    const weekly=await(await fetch(`http://127.0.0.1:${port}/v2/bot/clans/${encodeURIComponent(group)}/capital-trophy-history?season=${season}&months=2`,{headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`}})).json();
    if(weekly.weeks.length<6||weekly.values.filter(v=>v!==null).join(',')!=='4200,4300'||weekly.sampleDates.filter(v=>v!==null).at(-1)!==laterCapitalDate)throw Error('Weekly Capital observations or gaps incorrect '+JSON.stringify(weekly));
-   const trophiesChart=await interact(command('graph','over-time',[{name:'attribute',type:3,value:'capitalTrophies'},{name:'season',type:3,value:season},{name:'months',type:4,value:2}]));assertChart(trophiesChart);
-   const weeklyRefresh=await click(trophiesChart,'refresh');assertChart(weeklyRefresh);if(weeklyRefresh.imageHash!==trophiesChart.imageHash)throw Error('Weekly graph refresh lost options');
-   console.log(JSON.stringify({capitalTrophyGraph:'passed',checks:['latest snapshot instead of sum','missing remains unknown','series PNG and historical gap']}));
+   console.log(JSON.stringify({capitalTrophyHistory:'passed',checks:['latest snapshot instead of sum','missing remains unknown','weekly historical gaps']}));
    const dailyQuery=async(metric,days=3)=>{const response=await fetch(`http://127.0.0.1:${port}/v2/bot/clans/daily-stats`,{method:'POST',headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({clans:[group,'#PYLQGRJJ',group],metric,days})});return {status:response.status,data:await response.json()};};
    const gain=await dailyQuery('troopLevels');if(gain.status!==200||gain.data.basis!=='latest_stored_members'||gain.data.series.length!==2||gain.data.series.find(x=>x.tag==='#PYLQGRJJ').values.reduce((a,b)=>a+b,0)!==3)throw Error('Daily upgrade delta or attribution failed '+JSON.stringify(gain));
    const names=await dailyQuery('nameChanges');if(names.data.series.find(x=>x.tag==='#PYLQGRJJ').values.reduce((a,b)=>a+b,0)!==1)throw Error('Name change was not counted once');
@@ -447,17 +456,38 @@ try{
    const activity=await dailyQuery('activity');if(activity.data.series.find(x=>x.tag===group).values.reduce((a,b)=>a+b,0)!==2)throw Error('Activity aggregate incorrect');
    if((await dailyQuery('donated',181)).status!==400)throw Error('Unbounded daily range accepted');
    const dayOptions=[{name:'attribute',type:3,value:'donated'},{name:'days',type:4,value:3}];
-   const chart=await interact(command('graph','daily',dayOptions));assertChart(chart);
+   const chart=await interact(graph('daily',dayOptions));assertChart(chart);
    const dailyRefresh=await click(chart,'refresh');assertChart(dailyRefresh);if(dailyRefresh.imageHash!==chart.imageHash)throw Error('Daily refresh lost options');
-   dailyGraphFailure=true;const missingDaily=await interact(command('graph','daily',dayOptions));if(missingDaily.posterBytes||!text(missingDaily).includes('unavailable'))throw Error('Missing daily data rendered as zero');dailyGraphFailure=false;
+   dailyGraphFailure=true;const missingDaily=await interact(graph('daily',dayOptions));if(missingDaily.posterBytes||!text(missingDaily).includes('unavailable'))throw Error('Missing daily data rendered as zero');dailyGraphFailure=false;
    for(let i=0;i<26;i++)graphExtraTags.push('#QQY'+i.toString(6).split('').map(n=>'0289PY'[Number(n)]).join(''));
    if((await db.query('SELECT 1 FROM basic_clan WHERE tag=ANY($1::text[])',[graphExtraTags])).rowCount)throw Error('Extra graph scope exists');
-   for(const [i,clanTag]of graphExtraTags.entries()){await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,$2,true,0,0,'',0,0)",[clanTag,'Extra '+String(i).padStart(2,'0')]);await db.query('INSERT INTO server_clans(tag,server_id) VALUES($1,$2)',[clanTag,server]);}
-   const big=await interact(command('graph','month',[{name:'season',type:3,value:season}]));assertChart(big);
-   const next=control(big,'clan').options.find(o=>o.value.startsWith('page:'));if(!next)throw Error('Large family omitted more-clans option');
-   const nextPage=await click(big,'clan',next.value);assertChart(nextPage);
-   const visibleTags=new Set([...control(big,'clan').options,...control(nextPage,'clan').options].filter(o=>o.value.startsWith('#')).map(o=>o.value));if(visibleTags.size!==28)throw Error('Clan pagination omitted/duplicated scope '+visibleTags.size);
-   console.log(JSON.stringify({graphInteraction:'passed',checks:['metric switch','clan switch','custom-clan scope','icon-only refresh','28-clan pagination','deterministic refresh','no repeated raw content']}));
+   for(const [i,clanTag]of graphExtraTags.entries()){await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES($1,$2,true,0,$3,'',0,0)",[clanTag,'Extra '+String(i).padStart(2,'0'),i===0?0:i+1]);await db.query('INSERT INTO server_clans(tag,server_id) VALUES($1,$2)',[clanTag,server]);}
+   const big=await interact(graph('month',[{name:'season',type:3,value:season}]));assertChart(big);
+   const picker=control(big,'clan');
+   const choices=picker.options.filter(o=>o.value.startsWith('#'));
+   if(choices.length!==24||picker.max_values!==24||picker.min_values!==1)throw Error('Expected 24-clan multiselect');
+   if(choices.some(o=>graphExtraTags.slice(0,3).includes(o.value)))throw Error('Empty/smaller clans displaced larger clans');
+   const labels=choices.map(o=>o.label);if(JSON.stringify(labels)!==JSON.stringify([...labels].sort((a,b)=>a.localeCompare(b))))throw Error('Clans not alphabetical');
+   const multi=await click(big,'clan',choices.map(o=>o.value));assertChart(multi);
+   if(control(multi,'clan').options.filter(o=>o.default).length!==24)throw Error('Did not retain 24 selected clans');
+   await db.query('UPDATE basic_clan SET member_count=50 WHERE tag=$1',[graphExtraTags[1]]);
+   const multiRefresh=await click(multi,'refresh');assertChart(multiRefresh);
+   if(multi.imageHash!==multiRefresh.imageHash||control(multiRefresh,'clan').options.filter(o=>o.default).length!==24)throw Error('Member ranking changes lost selected clans');
+   const newRanking=await interact(graph('month',[{name:'season',type:3,value:season}]));assertChart(newRanking);
+   if(!control(newRanking,'clan').options.some(o=>o.value===graphExtraTags[1]))throw Error('Fresh chart did not use updated member ranking');
+   const multiMetric=await click(multi,'metric','received');assertChart(multiMetric);
+   if(control(multiMetric,'clan').options.filter(o=>o.default).length!==24)throw Error('Metric change lost selection');
+   const dailySelected=await click(multi,'view','daily');assertChart(dailySelected);
+   if(control(dailySelected,'clan').options.filter(o=>o.default).length!==24)throw Error('Daily view lost selection');
+   if(dailySelected.imageHeight>=2000)throw Error('24-clan trend expanded into separate clan panels');
+   const all=await click(multi,'clan',['all',choices[0].value]);assertChart(all);
+   if(control(all,'clan').options.filter(o=>o.default).map(o=>o.value).join()!=='all')throw Error('All must override individual selections');
+   const removed=await click(big,'clan',graphExtraTags[0]);if(removed.posterBytes||!text(removed).includes('no longer available'))throw Error('Empty clan selection accepted');
+   const foreign=await interact({type:3,message:{id:'999999999999996577',components:big.components},data:{custom_id:picker.custom_id.replace(server,'999999999999996512'),component_type:3,values:[group]}},other);
+   if(foreign.posterBytes||!text(foreign).includes('Open a fresh command'))throw Error('Cross-guild chart accepted');
+   await db.query('DELETE FROM server_clans WHERE server_id=$1 AND tag=$2',[server,group]);
+   const unlinked=await click(oneClan,'refresh');if(unlinked.posterBytes||!text(unlinked).includes('no longer available'))throw Error('Unlinked selection retained');
+   console.log(JSON.stringify({graphInteraction:'passed',checks:['category autocomplete and filtering','metric switch','1–24 clan selections','24-clan shared trend plot','selected clan retains history when latest season is missing','member ranking changes retain selections','alphabetical largest non-empty clans','icon-only refresh','deterministic refresh','All overrides individual selection','guild binding','unlinked clan rejection','no repeated raw content']}));
    console.log(JSON.stringify({dailyGraph:'passed',checks:['positive level gains counted once','decreases/boosts ignored','name events','recorded donation clan','schema rejects negative resets','aggregate activity','bounded range','duplicate clans','real PNG','refresh options','upstream failure'],externalDiscordWrites:0}));
    console.log(JSON.stringify({graphMonth:'passed',checks:['actual recorded clan totals','PNG rendering','custom clan selection','public refresh','unavailable clan excluded','multi-season totals','missing season preserved as gap','series refresh options'],externalDiscordWrites:0}));
   }finally{if(graphCapitalDates.length)await db.query('DELETE FROM leaderboard_history_clan_capital WHERE clan_tag=$1 AND date=ANY($2::date[])',[group,graphCapitalDates]);if(graphRaidStarts.length)await db.query('DELETE FROM capital_raid_history WHERE clan_tag=$1 AND start_time=ANY($2::timestamptz[])',[group,graphRaidStarts]);if(graphWarIds.length)await db.query('DELETE FROM wars WHERE war_id=ANY($1::int[])',[graphWarIds]);if(dailyOwned){await db.query('DELETE FROM battles_farming WHERE player_tag=$1',[dailyPlayer]);await db.query('DELETE FROM player_change_history WHERE player_tag=$1',[dailyPlayer]);await db.query('DELETE FROM player_stat_changes WHERE player_tag=$1',[dailyPlayer]);await db.query('DELETE FROM player_online_events WHERE tag=$1',[dailyPlayer]);await db.query('DELETE FROM basic_player WHERE tag=$1',[dailyPlayer]);}if(event)await db.query('DELETE FROM player_stat_changes WHERE event_time=ANY($1::timestamptz[]) AND player_tag=ANY($2::text[])',[[event,...(priorEvent?[priorEvent]:[])],[tag,tags[1]]]);await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ',...graphExtraTags]]);}

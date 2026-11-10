@@ -30,7 +30,7 @@ export async function graphCwl(ctx:CommandContext,clans:GraphClans,season:string
   for(const result of results)if(result.status==='fulfilled')rows.push(result.value);else missing=true;
  }
  const latest=(values:Array<number|null>)=>values.findLast((v):v is number=>v!==null)??0;
- const selected=rows.filter(row=>latest(row.values)>0).sort((a,b)=>latest(b.values)-latest(a.values)||a.name.localeCompare(b.name)).slice(0,limit);
+ const selected=rows.filter(row=>latest(row.values)>0).sort((a,b)=>latest(b.values)-latest(a.values)||a.name.localeCompare(b.name)).slice(0,clans.selectedTags.length || limit);
  const values=selected.flatMap(row=>row.values.filter((v):v is number=>v!==null));
  const min=values.length?Math.max(1,Math.min(...values)-1):1,max=values.length?Math.min(18,Math.max(...values)+1):18;
  const tiers=['','Bronze III','Bronze II','Bronze I','Silver III','Silver II','Silver I','Gold III','Gold II','Gold I','Crystal III','Crystal II','Crystal I','Master III','Master II','Master I','Champion III','Champion II','Champion I'];

@@ -5,7 +5,7 @@ import { graphDaily } from "./graph-daily";
 import { barChartSvg, chartDate } from "./graph-renderer";
 import { graphControls, graphScope, resolveGraphClans } from "./graph-controls";
 import { componentsV2 } from "../discord/components";
-import { CommandInputError, OptionType, stringOption } from "./command-utils";
+import { CommandInputError, OptionType, requireGuildId, stringOption } from "./command-utils";
 import type { Command } from "./types";
 
 type Metric = keyof typeof graphMetrics;
@@ -20,9 +20,17 @@ export const graphCommand: Command = {
     name:"graph",description:"Explore clan and family statistics",type:1,
     options:[
       {name:"attribute",description:"Statistic (default Activity)",type:OptionType.String,choices:Object.entries({...graphMetrics,...dailyMetrics}).map(([value,name])=>({name,value}))},
-      {name:"clans",description:"Clan tags (default linked family)",type:OptionType.String,max_length:250},
+      {name:"clan_category",description:"Family clan category (default all family clans)",type:OptionType.String,autocomplete:true,max_length:100},
       {name:"limit",description:"Clans to compare (default 5)",type:OptionType.Integer,min_value:1,max_value:5},
     ],
+  },
+  async autocomplete(ctx) {
+    if (!ctx.options.get("clan_category")?.focused) return [];
+    const query = (stringOption(ctx, "clan_category") ?? "").toLocaleLowerCase();
+    const clans = await ctx.services.api.get<Array<{category?: string | null}>>(`/v2/server/${requireGuildId(ctx)}/clans-basic`);
+    return [...new Set(clans.map(clan => clan.category).filter((name): name is string => !!name))]
+      .filter(name => name.length <= 100 && name.toLocaleLowerCase().includes(query))
+      .sort((a, b) => a.localeCompare(b)).slice(0, 25).map(name => ({name, value: name}));
   },
   async execute(context) {
     const ctx = context,
@@ -85,7 +93,7 @@ export const graphCommand: Command = {
           (order === "desc" ? -1 : 1) * (a.value - b.value) ||
           a.tag.localeCompare(b.tag),
       )
-      .slice(0, limit);
+      .slice(0, clans.selectedTags.length || limit);
     const { posterArtwork } = await import("./legend-poster");
   const { renderGraphSvg, graphDecoration } = await import("./graph-image");
   const decoration=await graphDecoration(ctx,attribute,selected);
