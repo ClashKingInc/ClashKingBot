@@ -108,11 +108,13 @@ export function lineChartSvg(input:LineChartInput){
  const x=(i:number)=>input.labels.length<=1?(left+right)/2:left+(right-left)*i/(input.labels.length-1);
  const y=(v:number)=>bottom-(v-min)/(max-min)*(bottom-top);
  let svg=frame(input,height)+`<defs>${area('area',colors[0]!)}</defs>`;
+ // The clan selector supports 24 series; keep every league line colored even
+ // after the palette repeats. Numeric trends already use separate clan plots.
  input.series.forEach((series,index)=>{
   const col=dense?64+(index%2)*576:64+index*(1152/Math.max(1,input.series.length));
   const base=dense?185+Math.floor(index/2)*54:183;
   if(series.icon)svg+=`<image href="${series.icon}" x="${col}" y="${base-28}" width="34" height="34"/>`;
-  svg+=text(series.icon?col+46:col,base,short(series.name,input.series.length===1?48:22),27,colors[index], 'start',500);
+  svg+=text(series.icon?col+46:col,base,short(series.name,input.series.length===1?48:22),27,colors[index%colors.length], 'start',500);
   const last=series.headline!==undefined?series.headline:series.values.at(-1);
   svg+=text(dense?col+535:col,dense?base:230,last===null||last===undefined?'—':input.formatValue?.(last)??chartNumber(last)+(input.valueSuffix??""),input.formatValue?28:38,ink,dense?'end':'start',600);
  });
@@ -126,7 +128,7 @@ export function lineChartSvg(input:LineChartInput){
   const index=xTicks<=1?0:Math.round(i*(input.labels.length-1)/(xTicks-1));
   svg+=text(x(index),bottom+45,input.labels[index]!,24,muted,index===0?'start':index===input.labels.length-1?'end':'middle');
  }
- input.series.forEach((series,index)=>svg+=marks(series,x,y,colors[index]!,bottom,input.series.length===1&&!input.stepped?'area':undefined,input.stepped));
+ input.series.forEach((series,index)=>svg+=marks(series,x,y,colors[index%colors.length]!,bottom,input.series.length===1&&!input.stepped?'area':undefined,input.stepped));
  if(!input.series.length||!input.series.some(series=>series.values.some(v=>v!==null)))svg+=text(64,435,'No data for this period',28);
  return svg+finish(input,height);
 }

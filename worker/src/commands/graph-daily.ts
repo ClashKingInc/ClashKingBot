@@ -56,7 +56,7 @@ export async function graphDaily(ctx: CommandContext) {
       total: row.values.reduce((sum, value) => sum + value, 0),
     }))
     .sort((a, b) => b.total - a.total || a.tag.localeCompare(b.tag))
-    .slice(0, limit);
+    .slice(0, clans.selectedTags.length || limit);
   if (rows.some((row) => !Number.isSafeInteger(row.total)))
     throw new CommandInputError(
       "The daily total exceeds the supported numeric range.",

@@ -106,7 +106,7 @@ export async function graphSeries(ctx: CommandContext) {
         b.values[count - 1]! - a.values[count - 1]! ||
         a.tag.localeCompare(b.tag),
     )
-    .slice(0, limit);
+    .slice(0, clans.selectedTags.length || limit);
   const { posterArtwork } = await import("./legend-poster");
   const { renderGraphSvg, graphDecoration } = await import("./graph-image");
   const decoration=await graphDecoration(ctx,metric,selected);
