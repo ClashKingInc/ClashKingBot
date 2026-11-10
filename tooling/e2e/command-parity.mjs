@@ -41,7 +41,7 @@ let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
 const giveawayDeliveryMode=process.argv.includes("--giveaway-delivery");
 const giveawayMessages=[];
 const giveawayMode=process.argv.includes("--giveaway-only")||giveawayDeliveryMode;
-const graphMode=process.argv.includes("--graph-month-only");let graphFailure=false,graphGap=false,dailyGraphFailure=false;
+const graphMode=process.argv.includes("--graph-month-only");let graphFailure=false,graphGap=false,graphLatestGap=false,dailyGraphFailure=false;
 const warPanelMode=process.argv.includes("--war-panel-only");
 const roleUsersMode=process.argv.includes("--role-users-only");
 const boostsMode=process.argv.includes("--boosts-only");let boostFailure=false;
@@ -227,6 +227,7 @@ try{
   if(warStatsMode&&privacyUnavailable&&url.pathname.endsWith('/preferences'))return Response.json({message:'Unavailable'},{status:503});
   if(botInfoMode&&botInfoFailure&&url.pathname==="/v2/bot/status")return Response.json({message:"Unavailable"},{status:503});
   if(graphMode&&dailyGraphFailure&&url.pathname==='/v2/bot/clans/daily-stats')return Response.json({message:'Unavailable'},{status:503});
+  if(graphMode&&graphLatestGap&&decodeURIComponent(url.pathname).includes(group+'/season-stats')&&url.searchParams.get('season')==='2025-01')return Response.json({message:'Unavailable'},{status:503});
   if(graphMode&&graphGap&&decodeURIComponent(url.pathname).includes(group+'/season-stats')&&url.searchParams.get('season')==='2024-12')return Response.json({message:'Unavailable'},{status:503});
   if(graphMode&&graphFailure&&decodeURIComponent(url.pathname).includes('#PYLQGRJJ/season-stats'))return Response.json({message:'Unavailable'},{status:503});
   if(todoMode&&legendFails&&url.pathname==='/v2/legends/days')return Response.json({message:'Temporarily unavailable'},{status:503});
@@ -410,6 +411,12 @@ try{
    graphGap=true;
    const gap=await click(series,'refresh');assertChart(gap);if(gap.imageHash===series.imageHash)throw Error('Missing observation did not change chart');
    graphGap=false;
+   graphLatestGap=true;
+   const selectedHistory=await click(series,'clan',group);assertChart(selectedHistory);
+   graphGap=true;
+   const noHistory=await click(selectedHistory,'refresh');assertChart(noHistory);
+   if(selectedHistory.imageHash===noHistory.imageHash)throw Error('Selected clan lost earlier history when latest season is missing');
+   graphGap=false;graphLatestGap=false;
    graphFailure=true;const partial=await interact(graph('month',[{name:'attribute',type:3,value:'donated'},{name:'season',type:3,value:season}]));
    assertChart(partial);if(partial.imageHash===first.imageHash)throw Error('Failed clan did not change chart');graphFailure=false;
    if((await db.query('SELECT 1 FROM basic_player WHERE tag=$1',[dailyPlayer])).rowCount)throw Error('Daily player fixture already exists');
@@ -477,7 +484,7 @@ try{
    if(foreign.posterBytes||!text(foreign).includes('Open a fresh command'))throw Error('Cross-guild chart accepted');
    await db.query('DELETE FROM server_clans WHERE server_id=$1 AND tag=$2',[server,group]);
    const unlinked=await click(oneClan,'refresh');if(unlinked.posterBytes||!text(unlinked).includes('no longer available'))throw Error('Unlinked selection retained');
-   console.log(JSON.stringify({graphInteraction:'passed',checks:['category autocomplete and filtering','metric switch','1–24 clan selections','24-clan shared trend plot','alphabetical largest non-empty clans','icon-only refresh','deterministic refresh','All overrides individual selection','guild binding','unlinked clan rejection','no repeated raw content']}));
+   console.log(JSON.stringify({graphInteraction:'passed',checks:['category autocomplete and filtering','metric switch','1–24 clan selections','24-clan shared trend plot','selected clan retains history when latest season is missing','alphabetical largest non-empty clans','icon-only refresh','deterministic refresh','All overrides individual selection','guild binding','unlinked clan rejection','no repeated raw content']}));
    console.log(JSON.stringify({dailyGraph:'passed',checks:['positive level gains counted once','decreases/boosts ignored','name events','recorded donation clan','schema rejects negative resets','aggregate activity','bounded range','duplicate clans','real PNG','refresh options','upstream failure'],externalDiscordWrites:0}));
    console.log(JSON.stringify({graphMonth:'passed',checks:['actual recorded clan totals','PNG rendering','custom clan selection','public refresh','unavailable clan excluded','multi-season totals','missing season preserved as gap','series refresh options'],externalDiscordWrites:0}));
   }finally{if(graphCapitalDates.length)await db.query('DELETE FROM leaderboard_history_clan_capital WHERE clan_tag=$1 AND date=ANY($2::date[])',[group,graphCapitalDates]);if(graphRaidStarts.length)await db.query('DELETE FROM capital_raid_history WHERE clan_tag=$1 AND start_time=ANY($2::timestamptz[])',[group,graphRaidStarts]);if(graphWarIds.length)await db.query('DELETE FROM wars WHERE war_id=ANY($1::int[])',[graphWarIds]);if(dailyOwned){await db.query('DELETE FROM battles_farming WHERE player_tag=$1',[dailyPlayer]);await db.query('DELETE FROM player_change_history WHERE player_tag=$1',[dailyPlayer]);await db.query('DELETE FROM player_stat_changes WHERE player_tag=$1',[dailyPlayer]);await db.query('DELETE FROM player_online_events WHERE tag=$1',[dailyPlayer]);await db.query('DELETE FROM basic_player WHERE tag=$1',[dailyPlayer]);}if(event)await db.query('DELETE FROM player_stat_changes WHERE event_time=ANY($1::timestamptz[]) AND player_tag=ANY($2::text[])',[[event,...(priorEvent?[priorEvent]:[])],[tag,tags[1]]]);await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=ANY($1::text[])',[[group,'#PYLQGRJJ',...graphExtraTags]]);}
