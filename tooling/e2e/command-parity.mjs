@@ -206,7 +206,6 @@ try{
    return new Response(fankitOversize?new Uint8Array(262145):readFileSync(join(botRepo,'worker/src/assets/pepe/sign.png')),{headers:{'Content-Type':'image/png'}});
   }
   if(url.hostname==='discord.com'){
-   if(graphMode)console.log('Local Discord HTTP',request.method,url.pathname.replace(/\/webhooks\/[^/]+\/[^/]+/,'/webhooks/:id/:token'),request.headers.get('content-type'));
    if(fankitMode&&request.method==='POST'&&url.pathname.endsWith('/guilds/999999999999996510/emojis')){fankitWrites.push(await request.json());return fankitEmojiFailure?Response.json({message:'Unavailable'},{status:503}):Response.json({id:'999999999999991234',name:fankitWrites.at(-1).name});}
    if(roleMode||quickPanelMode){
     if(url.pathname==='/api/v10/users/@me')return Response.json({id:app});
@@ -237,7 +236,7 @@ try{
     const dimension=pepeMode?250:graphMode?1280:1600,height=pepeMode?250:graphMode?bytes.readUInt32BE(20):1100;
     if(bytes.subarray(0,8).toString('hex')!=='89504e470d0a1a0a'||bytes.readUInt32BE(16)!==dimension||bytes.readUInt32BE(20)!==height)throw Error('Invalid rendered PNG');
     if(graphMode&&height<330)throw Error("Graph PNG is too short");
-    if(graphMode){data.imageHeight=bytes.readUInt32BE(20);data.imageHash=createHash("sha256").update(bytes).digest("hex");await (await import("node:fs/promises")).writeFile(`/private/tmp/clashking-graph-${token}.png`,bytes);}
+    if(graphMode){data.imageHeight=bytes.readUInt32BE(20);data.imageHash=createHash("sha256").update(bytes).digest("hex");await (await import("node:fs/promises")).writeFile(join(directory,`clashking-graph-${token}.png`),bytes);}
     if(pepeMode){data.imageHash=createHash('sha256').update(bytes).digest('hex');data.imageName=file.name;}
     data.posterBytes=bytes.length;
    }else data=await request.json();replies.set(token,data);return Response.json({id:'999999999999996999'});
