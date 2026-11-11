@@ -2,7 +2,7 @@ import { graphTotal } from "./graph-data";
 import { compactTableRow } from "./display-width";
 import { actionRow, legacyMessage } from "../discord/components";
 import { CommandInputError, invokingUserId, requireGuildId, stringOption } from "./command-utils";
-import { compact, emojis, escapeMarkdown } from "./game-common";
+import { compact, emojis, escapeMarkdown, escapeLinkLabel } from "./game-common";
 import { serverEmbedColor } from "./embed-color";
 import type { ApplicationCommandOption, CommandContext } from "./types";
 const groups={categories:"Categories",overview:"Overview",cwl:"CWL leagues",capital:"Capital leagues",location:"Location"};
@@ -24,16 +24,19 @@ export async function familyDirectory(ctx:CommandContext){
  })));
  rows.sort((a,b)=>(type==="categories"?(a.ref.categoryOrder??Infinity)-(b.ref.categoryOrder??Infinity):type==="cwl"?(b.clan?.warLeague?.id??0)-(a.clan?.warLeague?.id??0):type==="capital"?(b.clan?.capitalLeague?.id??0)-(a.clan?.capitalLeague?.id??0):a.group.localeCompare(b.group))||a.group.localeCompare(b.group)||a.ref.name.localeCompare(b.ref.name));
  const emoji=await emojis(ctx),server=await ctx.services.discordRest.getGuild(guild),pages:string[]=[];
- let description="",lastGroup:string|undefined;
+ // Keep the page bounded by both clan count and Discord description length.
+ let description="",lastGroup:string|undefined,pageClans=0;
  for(const row of rows){
-  const groupIcon=type==="cwl"||type==="capital"?emoji.get(row.group):type==="location"?emoji.get("earth"):"";
+  const country=row.clan?.location?.countryCode?.toUpperCase();
+  const flag=country&&/^[A-Z]{2}$/u.test(country)?String.fromCodePoint(...[...country].map(letter=>127397+letter.charCodeAt(0))):emoji.get("earth");
+  const groupIcon=type==="cwl"||type==="capital"?emoji.get(row.group):type==="location"?flag:"";
   const heading=row.group!==lastGroup&&row.group?`${description?"\n":""}${groupIcon} **${escapeMarkdown(row.group)}**\n`:"";
   const members=row.clan?.members??row.clan?.memberList?.length;
   const league=type==="categories"||type==="overview"?emoji.get(row.clan?.warLeague?.name??"Unranked"):"";
-  const line=`${league} **${escapeMarkdown(row.ref.name)}** ${emoji.get("people")} [${members===undefined?"—":members}/50](https://link.clashofclans.com/en?action=OpenClanProfile&tag=${encodeURIComponent(row.ref.tag)})`;
-  if(description.length+heading.length+line.length+1>3700){pages.push(description);description=heading.trimStart()+line;}
+  const line=`• ${league ? `${league} ` : ""}[${escapeLinkLabel(row.ref.name)}](https://c.clashk.ing/${row.ref.tag.replace(/^#/, "")}) (${members===undefined?"—":members}/50)`;
+  if(description.length+heading.length+line.length+1>3950||pageClans>=45){pages.push(description);description=`${row.group?`${groupIcon} **${escapeMarkdown(row.group)}**\n`:""}${line}`;pageClans=0;}
   else description+=heading+(heading||!description?"":"\n")+line;
-  lastGroup=row.group;
+  pageClans++;lastGroup=row.group;
  }
  if(description)pages.push(description);
  const page=Math.min(pages.length-1,Math.max(0,Number(ctx.options.get("__page")?.value??0)));

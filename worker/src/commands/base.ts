@@ -14,6 +14,8 @@ interface BaseRecord {
   downloadCount: number;
   downloaders: string[];
   downvotes: number;
+  description: string;
+  images: string[];
   id: string;
   messageId: string;
   upvotes: number;
@@ -94,9 +96,9 @@ export const submitBase: ComponentHandler = async (context) => {
     }));
     const publicLocale = resolveLocale(context.interaction.guild_locale);
     if (!publicLocale.startsWith("en") && base.id && base.messageId) {
-      // The API owns publication; only localize the existing controls, never repost.
+      // Localize controls in place while preserving the gallery and counters; never repost.
       try {
-        await context.services.discordRest.editChannelMessage(channelId, base.messageId, { components: baseButtons(base.id, publicLocale, base) });
+        await context.services.discordRest.editChannelMessage(channelId, base.messageId, baseMessagePatch(base, publicLocale));
       } catch {
         console.warn("Base published but button localization failed", { baseId: base.id, locale: publicLocale });
       }
@@ -114,6 +116,16 @@ async function performDownload(context: CommandContext, base: LegacyBaseRecord) 
   await context.services.api.postEmpty<{ downloadCount: number }>(
     `/v2/bases/${encodeURIComponent(base.id)}/downloaders/${invokingUserId(context)}`,
   );
+  // A display failure must not take away a successfully recorded download/link.
+  try {
+    const current = await context.services.api.get<BaseRecord>(`/v2/server/${requireGuildId(context)}/bases/${base.id}`);
+    const message = requiredLegacyMessage(context.interaction.message, context.locale);
+    const channelId = context.interaction.channel_id ?? message.channel_id;
+    if (channelId) await context.services.discordRest.editChannelMessage(channelId, message.id,
+      baseMessagePatch(current, resolveLocale(context.interaction.guild_locale)));
+  } catch {
+    console.warn("Base download recorded but count display refresh failed", { baseId: base.id });
+  }
   return legacyMessage({ content: normalizedLayoutLink(base.baseLink) }, { ephemeral: true });
 }
 
@@ -127,9 +139,8 @@ const recordVote = (direction: "up" | "down"): ComponentHandler => async (contex
   const message = requiredLegacyMessage(context.interaction.message, context.locale);
   const channelId = context.interaction.channel_id ?? message.channel_id;
   if (!channelId) throw new CommandInputError(translate("base.missingMessageChannel", context.locale));
-  await context.services.discordRest.editChannelMessage(channelId, message.id, {
-    components: baseButtons(baseId, resolveLocale(context.interaction.guild_locale), base),
-  });
+  await context.services.discordRest.editChannelMessage(channelId, message.id,
+    baseMessagePatch(base, resolveLocale(context.interaction.guild_locale)));
   return legacyMessage({ content: translate(direction === "up" ? "base.upvote" : "base.downvote", context.locale) }, { ephemeral: true });
 };
 
@@ -206,6 +217,21 @@ async function showLegacyDownloaders(context: CommandContext, baseId: string) {
     description: empty ? translate("base.noDownloads", context.locale) : base.downloaders.map((id) => `➼ <@${id}>`).join("\n"),
     ...(empty ? {} : { title: translate("base.downloads", context.locale) }),
   }] }, { ephemeral: true });
+}
+
+/** Rebuild from the stored base, not stale interaction components. Votes and
+ * localization must preserve V2's gallery and download line. Clearing attachments
+ * avoids duplicate image display when upgrading a legacy message to hosted media. */
+function baseMessagePatch(base: BaseRecord, locale: string): Record<string, unknown> {
+  return {
+    flags: 1 << 15, content: null, embeds: [], attachments: [], allowed_mentions: { parse: [] },
+    components: [
+      ...(base.description ? [{ type: 10, content: base.description }] : []),
+      ...(base.images.length ? [{ type: 12, items: base.images.map(url => ({ media: { url } })) }] : []),
+      { type: 10, content: `-# ${base.downloadCount} ${base.downloadCount === 1 ? "download" : "downloads"}` },
+      ...baseButtons(base.id, locale, base),
+    ],
+  };
 }
 
 function baseButtons(baseId: string, locale: string, counts: Pick<BaseRecord, "upvotes" | "downvotes"> = { upvotes: 0, downvotes: 0 }): ActionRowComponent[] {
