@@ -4,7 +4,7 @@ import { Effect, Layer, ManagedRuntime, Redacted } from 'effect';
 import { FetchHttpClient } from 'effect/http';
 
 export class DiscordRestError extends Error {
- constructor(readonly status:number, readonly body:string, readonly retryAfterSeconds?:number, options?:ErrorOptions) { super('Discord API request failed with '+status, options); }
+ constructor(readonly status:number, readonly body:string, readonly retryAfterSeconds?:number, options?:ErrorOptions, readonly providerKind?:string) { super('Discord API request failed with '+status, options); }
 }
 type PromiseMethod<F> = F extends (...args:infer P)=>Effect.Effect<infer A, infer _E, never> ? (...args:P)=>Promise<A> : never;
 export type DiscordClient = { [K in Exclude<keyof DiscordRestService,'httpClient'|'withFiles'|'withFormData'>]: PromiseMethod<DiscordRestService[K]> } & {
@@ -30,7 +30,8 @@ export function createDiscordClient(options:{applicationId:string;token:string;f
   if(error && typeof error==='object' && 'response' in error && error.response && typeof error.response==='object' && 'status' in error.response){
    const data='data' in error?error.data:undefined;
    const retry=data && typeof data==='object' && 'retry_after' in data ? Number(data.retry_after):undefined;
-   return new DiscordRestError(Number(error.response.status),JSON.stringify(data??{}),retry,{cause:new Error('Discord provider failure '+('_tag' in error ? String(Reflect.get(error,'_tag')) : 'HTTP'))});
+   const kind=('_tag' in error?String(Reflect.get(error,'_tag')):'HTTP')+('reason' in error && error.reason && typeof error.reason==='object' && '_tag' in error.reason ? ':'+String(error.reason._tag):'');
+   return new DiscordRestError(Number(error.response.status),JSON.stringify(data??{}),retry,{cause:new Error('Discord provider failure '+kind)},kind);
   }
   return error;
  })),{signal:AbortSignal.timeout(10_000)});

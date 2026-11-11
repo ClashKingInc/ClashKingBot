@@ -109,6 +109,6 @@ jobs:
           CLASHKING_E2E_API_REPO: ${{ github.workspace }}/.ci-api
           CLASHKING_E2E_ASSETS_REPO: ${{ github.workspace }}/.ci-assets
         run: |
-          for mode in --dfx-only --contract-wire-only --graph-month-only --fankit-only; do
+          for mode in --graph-month-only --dfx-only --contract-wire-only --fankit-only; do
             bash .ci-schema/scripts/with-test-integration.sh --profile retained-api -- node tooling/e2e/command-parity.mjs "$mode"
           done

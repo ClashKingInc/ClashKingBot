@@ -206,6 +206,7 @@ try{
    return new Response(fankitOversize?new Uint8Array(262145):readFileSync(join(botRepo,'worker/src/assets/pepe/sign.png')),{headers:{'Content-Type':'image/png'}});
   }
   if(url.hostname==='discord.com'){
+   if(graphMode)console.log('Local Discord HTTP',request.method,url.pathname.replace(/\/webhooks\/[^/]+\/[^/]+/,'/webhooks/:id/:token'),request.headers.get('content-type'));
    if(fankitMode&&request.method==='POST'&&url.pathname.endsWith('/guilds/999999999999996510/emojis')){fankitWrites.push(await request.json());return fankitEmojiFailure?Response.json({message:'Unavailable'},{status:503}):Response.json({id:'999999999999991234',name:fankitWrites.at(-1).name});}
    if(roleMode||quickPanelMode){
     if(url.pathname==='/api/v10/users/@me')return Response.json({id:app});

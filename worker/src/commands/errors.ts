@@ -60,7 +60,7 @@ function explain(error:unknown,interaction:DiscordInteraction):Explanation{
     if(code===30008)return {title:'No emoji slots available',description:'This server has reached its emoji limit. Remove an unused emoji and try again.'};
     if(code===10062||code===10008||code===10015)return {title:'This interaction expired',description:'Run the command again to open a fresh message.'};
     if(error.status===429)return {title:'Please wait a moment',description:'Discord is limiting requests. Try again shortly.'};
-    if(error.status>=500)return {title:'Discord is temporarily unavailable',description:'Discord could not complete this request. Please try again shortly.'};
+    if(error.status>=500)return {title:'Discord is temporarily unavailable',description:'Discord could not complete this request. Please try again shortly.',unexpected:true};
   }
   if(error instanceof Error&&['AbortError','TimeoutError'].includes(error.name))return {title:'Request timed out',description:'The service took too long to respond. If you were making a change, check whether it completed before trying again.'};
   if(error instanceof TypeError&&/fetch|network|connect/iu.test(error.message))return {title:'Service temporarily unavailable',description:'ClashKing could not reach the service. Please try again shortly.'};
@@ -71,7 +71,7 @@ function explain(error:unknown,interaction:DiscordInteraction):Explanation{
  * Keep tokens, raw upstream bodies, and command options out of messages and logs. */
 export function interactionErrorData(error:unknown,interaction:DiscordInteraction):NonNullable<DiscordInteractionResponse['data']>{
   const info=explain(error,interaction),reference=interaction.id;
-  if(info.unexpected||error instanceof ClashKingApiError&&error.status>=500)console.warn('interaction_error',{reference,command:interaction.data?.name,type:error instanceof Error?error.name:'UnknownError',status:error instanceof ClashKingApiError||error instanceof DiscordRestError?error.status:undefined,...(error instanceof ClashContractError?{operation:error.operation,classification:error.kind}:{})});
+  if(info.unexpected||error instanceof ClashKingApiError&&error.status>=500)console.warn('interaction_error',{reference,command:interaction.data?.name,type:error instanceof Error?error.name:'UnknownError',status:error instanceof ClashKingApiError||error instanceof DiscordRestError?error.status:undefined,...(error instanceof ClashContractError?{operation:error.operation,classification:error.kind}:{}),...(error instanceof DiscordRestError?{providerKind:error.providerKind}:{})});
   return {content:'',embeds:[{color:0xed4245,title:info.title,description:info.description,...(info.unexpected?{footer:{text:`Reference: ${reference}`}}:{})}],components:info.unexpected?[actionRow(linkButton('Support server','https://discord.gg/clashking'))]:[],allowed_mentions:{parse:[]},flags:MessageFlags.Ephemeral};
 }
 export function interactionErrorReply(error:unknown,interaction:DiscordInteraction):DiscordInteractionResponse{
