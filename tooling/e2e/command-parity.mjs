@@ -184,6 +184,7 @@ try{
  bot=new Miniflare(convertV4MiniflareOptions({host:'127.0.0.1',port:0,workers:[{name:'command-e2e',...bundle,compatibilityDate:'2026-08-22',compatibilityFlags:['nodejs_compat'],
  bindings:{APP_ENV:'dev',LOCAL_TEST_USER_ID:'',DASHBOARD_BASE_URL:'https://dash.clashk.ing',CLASHKING_API_BASE_URL:`http://127.0.0.1:${port}`,CLASHKING_API_TOKEN:keys.API_BOT_TOKEN,DISCORD_APPLICATION_ID:app,DISCORD_BOT_TOKEN:`${Buffer.from(app).toString('base64')}.local.token`,DISCORD_PUBLIC_KEY:publicHex},
  outboundService:async request=>{
+ try{
   const url=new URL(request.url);
   if(url.hostname==='cdn.discordapp.com'&&url.pathname==='/attachments/local/evidence.png')return new Response(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXZkAAAAASUVORK5CYII=','base64'),{headers:{'Content-Type':'image/png'}});
   if(url.hostname==='assets.clashk.ing'&&/^\/static_data\/(troops|spells|heroes|pets|equipment|buildings|league_tiers)\.json$/u.test(url.pathname))return new Response(readFileSync(join(assetsRepo,'assets',url.pathname)),{headers:{'Content-Type':'application/json'}});
@@ -226,6 +227,7 @@ try{
     if(status===429){dfxRateResponses++;return Response.json({retry_after:0.01,global:false},{status,headers:{'retry-after':'0.01'}});}
     return Response.json({code:50013,message:'Missing permissions'},{status});
    }
+   if(request.method==='DELETE')return new Response(null,{status:204});
    const token=url.pathname.split('/')[5];let data;
    if(request.headers.get('content-type')?.startsWith('multipart/form-data')){
     const form=await request.formData();const payload=form.get('payload_json');data=JSON.parse(typeof payload==='string'?payload:await payload.text());
@@ -255,6 +257,7 @@ try{
   if(todoMode&&legendFails&&url.pathname==='/v2/legends/days')return Response.json({message:'Temporarily unavailable'},{status:503});
   if(url.hostname==='127.0.0.1'&&url.port===String(port))return fetch(request.url,{method:request.method,headers:Object.fromEntries(request.headers),body:['GET','HEAD'].includes(request.method)?undefined:await request.arrayBuffer()});
   throw Error('External request blocked by local integration harness');
+ }catch(error){console.error('Loopback provider failed:',request.method,new URL(request.url).pathname.replace(/\/webhooks\/[^/]+\/[^/]+/,'/webhooks/:id/:token'),String(error));throw error;}
  }}]}));
  const origin=new URL('/interactions',String(await bot.ready)).href;
  async function interact(data,who=actor,permissions='0'){const token=String(counter++);const rawBody=JSON.stringify({id:token,application_id:app,guild_id:'999999999999996510',channel_id:'999999999999996511',member:{user:{id:who,username:'Local'},roles:[],permissions},version:1,token,...data});const timestamp=String(Math.floor(Date.now()/1000));const response=await fetch(origin,{method:'POST',headers:{'Content-Type':'application/json','X-Signature-Timestamp':timestamp,'X-Signature-Ed25519':sign(null,Buffer.from(timestamp+rawBody),privateKey).toString('hex')},body:rawBody});const initial=await response.json();if(pepeMode)pepeAcks.push(initial);if(warStatsMode)privacyAcks.push(initial);if(response.status!==200)throw Error(`Bot HTTP ${response.status}`);const result=[5,6].includes(initial.type)?await wait(()=>replies.get(token),'deferred reply'):initial.data;return result;}

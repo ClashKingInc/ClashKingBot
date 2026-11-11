@@ -1,6 +1,6 @@
 import { editOriginalInteractionResponse } from "../discord/message-actions";
 import { interactionErrorReply } from "./errors";
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { ApplicationEmojis } from "../discord/emojis";
 import { InteractionResponseType, InteractionType, MessageFlags, type DiscordInteraction, type DiscordInteractionResponse } from "../discord/types";
 import { CommandInputError } from "./command-utils";
@@ -67,7 +67,7 @@ export async function ticketInteraction(interaction: DiscordInteraction, proof: 
   try {
     const [raw, emojis] = await Promise.all([
       services.api.post<unknown>(path, { interaction: proof }),
-      path.endsWith("/open/prepare") ? services.discordRest.listApplicationEmojis(services.discordRest.applicationId).then(result=>result.items).catch(() => []) : Promise.resolve([]),
+      path.endsWith("/open/prepare") ? services.discordRest.run(api=>api.listApplicationEmojis(services.discordRest.applicationId).pipe(Effect.timeout("1200 millis"))).then(result=>result.items).catch(() => []) : Promise.resolve([]),
     ]);
     const result = Schema.decodeUnknownSync(reply)(raw);
     if (background && "state" in result && !["completed", "succeeded", "failed"].includes(result.state)) {

@@ -1,3 +1,4 @@
+import { Effect } from 'effect';
 import { createInteractionFollowup, editOriginalInteractionResponse } from "../discord/message-actions";
 import { interactionErrorReply } from "./errors";
 import { ApplicationEmojis } from "../discord/emojis";
@@ -175,7 +176,7 @@ async function joinModal(ctx: CommandContext, id: string, page?: number, removin
   // Modal responses cannot be deferred: cap this one read below Discord's acknowledgement deadline.
   const [roster, result, emojis] = await Promise.all([load(ctx, id, true), ctx.services.api.get<{ items: SignupAccount[]; remainingSlots?: number | null }>(
     endpoint(ctx, id) + "/accounts", { discordUserId: invokingUserId(ctx) }, AbortSignal.timeout(1500)),
-    ctx.services.discordRest.listApplicationEmojis(ctx.services.discordRest.applicationId).then(result=>result.items)]);
+    ctx.services.discordRest.run(api=>api.listApplicationEmojis(ctx.services.discordRest.applicationId).pipe(Effect.timeout("1500 millis"))).then(result=>result.items).catch(()=>[])]);
   const accounts = result.items.filter(a => removing ? a.signedUp : !a.signedUp && (!roster.requireVerified || a.isVerified));
   if (!accounts.length) return interactionErrorReply(new CommandInputError(t(ctx,"roster.empty")),ctx.interaction);
   const action = removing ? "leave" : "join";

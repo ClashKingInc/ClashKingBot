@@ -1,3 +1,4 @@
+let rateLimitedMember;
 // Signed Bot Worker -> real API Worker -> disposable PostgreSQL -> local HTTP Discord provider.
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
@@ -41,8 +42,9 @@ const provider=createServer(async(req,res)=>{
   const member=members.get(match[1]);
   if(req.method==='GET'){if(!member.roles.includes(late))member.roles.push(late);return send(member);}
   if(req.method==='PATCH'){
-   if(throttle){throttle=false;first429=Date.now();res.setHeader('retry-after','2');res.setHeader('x-ratelimit-bucket','member-edits');return send({retry_after:2,global:false},429);}
-   if(Date.now()-first429<2000)earlyRetries++;
+   if(throttle){throttle=false;first429=Date.now();rateLimitedMember=match[1];res.setHeader('retry-after','2');res.setHeader('x-ratelimit-bucket','member-edits');return send({retry_after:2,global:false},429);}
+   // Other members can already be in flight when a bucket first responds 429.
+   if(match[1]===rateLimitedMember&&Date.now()-first429<2000)earlyRetries++;
    assert(body.roles.includes(keep)&&body.roles.includes(late));if(expectEmptyAccounts){assert(!body.roles.includes(add)&&!body.roles.includes(remove));assert.equal(body.nick,undefined);}else{assert(body.roles.includes(add)&&!body.roles.includes(remove));assert.equal(body.nick,'Updated');}
    rolePatches.push({id:match[1],body});Object.assign(member,{roles:body.roles,...(body.nick===undefined?{}:{nick:body.nick})});res.setHeader('x-ratelimit-bucket','member-edits');res.setHeader('x-ratelimit-remaining','0');res.setHeader('x-ratelimit-reset-after','0.05');return send(member);
   }
