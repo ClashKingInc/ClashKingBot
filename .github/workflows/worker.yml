@@ -26,6 +26,8 @@ jobs:
       - run: npm run check
       - name: Verify contextual autocomplete through the local Worker
         run: node ../tooling/e2e/contextual-autocomplete.mjs
+      - name: Verify modal acknowledgement deadlines through the local Worker
+        run: node ../tooling/e2e/modal-deadlines.mjs
       - name: Verify mobile table messages through the local Worker
         run: node ../tooling/e2e/mobile-table-width.mjs
 
