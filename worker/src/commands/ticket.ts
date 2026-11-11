@@ -1,3 +1,4 @@
+import { editOriginalInteractionResponse } from "../discord/message-actions";
 import { interactionErrorReply } from "./errors";
 import { Schema } from "effect";
 import { ApplicationEmojis } from "../discord/emojis";
@@ -66,7 +67,7 @@ export async function ticketInteraction(interaction: DiscordInteraction, proof: 
   try {
     const [raw, emojis] = await Promise.all([
       services.api.post<unknown>(path, { interaction: proof }),
-      path.endsWith("/open/prepare") ? services.discordRest.listApplicationEmojis(AbortSignal.timeout(1200)).catch(() => []) : Promise.resolve([]),
+      path.endsWith("/open/prepare") ? services.discordRest.listApplicationEmojis(services.discordRest.applicationId).then(result=>result.items).catch(() => []) : Promise.resolve([]),
     ]);
     const result = Schema.decodeUnknownSync(reply)(raw);
     if (background && "state" in result && !["completed", "succeeded", "failed"].includes(result.state)) {
@@ -88,10 +89,10 @@ async function updateTicketProgress(interaction: DiscordInteraction, proof: Tick
       const result = Schema.decodeUnknownSync(reply)(await services.api.post<unknown>(path, { interaction: proof }));
       if (!("state" in result) || !["completed", "succeeded", "failed"].includes(result.state)) continue;
       const response = ticketReply(result, interaction, interaction.guild_id!, interaction.channel_id);
-      if (response.data) await services.discordRest.editOriginalInteractionResponse(interaction.token, response.data);
+      if (response.data) await editOriginalInteractionResponse(services.discordRest,interaction.token,response.data);
       return;
     }
-    await services.discordRest.editOriginalInteractionResponse(interaction.token, {
+    await editOriginalInteractionResponse(services.discordRest,interaction.token,{
       content: "This ticket action is still processing. You can dismiss this message; its progress is available in the dashboard.",
       components: [], allowed_mentions: { parse: [] },
     });

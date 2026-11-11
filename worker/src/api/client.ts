@@ -1,3 +1,5 @@
+import { validateClashBody } from './clash-wire';
+import { classifyClashResponse } from '@clashking/clash-contract/outcomes';
 export interface ClashKingApiClientOptions {
   baseUrl: string;
   fetch?: typeof fetch;
@@ -5,6 +7,10 @@ export interface ClashKingApiClientOptions {
 }
 
 export class ClashKingApiError extends Error {
+  get outcome() {
+    let value:unknown;try{value=JSON.parse(this.body);}catch{value=null;}
+    return classifyClashResponse({path:this.path??'/',status:this.status,body:value});
+  }
   constructor(
     readonly status: number,
     readonly body: string,
@@ -96,7 +102,8 @@ export class ClashKingApiClient {
     if (response.status === 204) {
       return undefined as T;
     }
-    const body=await response.json<T>();
+    const raw=await response.json<T>();
+    const body=(url.pathname.startsWith("/v2/bot/clash/")?validateClashBody(url.pathname,init.method??"GET",raw):raw) as T;
     if(init.method === "GET")this.#readObserver?.(url.pathname,body);
     return body;
   }

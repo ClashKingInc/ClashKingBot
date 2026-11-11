@@ -1,3 +1,4 @@
+import { editOriginalInteractionResponse } from "../discord/message-actions";
 import { sendInteractionError } from "./errors";
 import { actionRow, legacyMessage } from "../discord/components";
 import { InteractionResponseType, InteractionType, } from "../discord/types";
@@ -103,7 +104,7 @@ export async function dispatchHelpControl(ctx: CommandContext, waitUntil?: (prom
   if (command) options.set("command", { name: "command", type: OptionType.String, value: command });
   const run = () => helpCommand.execute({ ...ctx, options });
   if (!waitUntil) return { ...(await run()), type: InteractionResponseType.UpdateMessage };
-  waitUntil(run().then(response => ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token, response.data ?? {}))
+  waitUntil(run().then(response => editOriginalInteractionResponse(ctx.services.discordRest,ctx.interaction.token,response.data ?? {}))
     .catch((error) => sendInteractionError(ctx,error)));
   return { type: InteractionResponseType.DeferredUpdateMessage };
 }

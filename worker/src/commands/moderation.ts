@@ -1,3 +1,4 @@
+import { downloadDiscordAttachment, editOriginalInteractionResponse } from "../discord/message-actions";
 import { modalFields, textField } from "./modals";
 import { sendInteractionError } from "./errors";
 import { legacyMessage } from "../discord/components";
@@ -129,10 +130,7 @@ async function executeModeration(
       throw new CommandInputError(
         "Choose a PNG, JPEG, GIF or WebP image up to 10 MB.",
       );
-    const bytes = await ctx.services.discordRest.download(
-        attachment.url,
-        10 * 1024 * 1024,
-      ),
+    const bytes = await downloadDiscordAttachment(attachment.url,10 * 1024 * 1024),
       form = new FormData();
     form.set("file", bytes, attachment.filename);
     image = (
@@ -195,6 +193,6 @@ export function dispatchModeration(
   if(images[0])options.set("image",{name:"image",type:OptionType.Attachment,value:images[0]});
   const run=()=>executeModeration({...ctx,path:["add"],options},match[3] as Kind);
   if(!waitUntil)return run();
-  waitUntil(run().then(reply=>ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token,reply.data??{})).catch(error=>sendInteractionError(ctx,error,true)));
+  waitUntil(run().then(reply=>editOriginalInteractionResponse(ctx.services.discordRest,ctx.interaction.token,reply.data??{})).catch(error=>sendInteractionError(ctx,error,true)));
   return {type:InteractionResponseType.DeferredChannelMessageWithSource};
 }

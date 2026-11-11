@@ -1,3 +1,4 @@
+import { editOriginalInteractionResponse } from "../discord/message-actions";
 import { sendInteractionError } from "./errors";
 import { actionRow, legacyMessage, linkButton, type LegacyEmbed } from '../discord/components';
 import { InteractionResponseType } from '../discord/types';
@@ -139,6 +140,6 @@ export async function dispatchCwlSearch(ctx:CommandContext,waitUntil?:(promise:P
  else if(control!=='refresh')throw new CommandInputError('Invalid CWL control.');
  const run=cwlSearch(ctx,state);
  if(!waitUntil)return {...await run,type:InteractionResponseType.UpdateMessage};
- waitUntil(run.then(reply=>ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token,reply.data??{})).catch((error)=>sendInteractionError(ctx,error)));
+ waitUntil(run.then(reply=>editOriginalInteractionResponse(ctx.services.discordRest,ctx.interaction.token,reply.data??{})).catch((error)=>sendInteractionError(ctx,error)));
  return {type:InteractionResponseType.DeferredUpdateMessage};
 }

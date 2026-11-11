@@ -1,3 +1,4 @@
+import { validClashFixture } from '../../worker/scripts/e2e-clash-fixtures.mjs';
 // Actual workerd -> local API -> local SQL/HTTP provider integration. No Discord network calls.
 import { createServer } from 'node:http';
 import { bundleWorker } from './bundle-worker.mjs';
@@ -14,8 +15,8 @@ const apiRepo=resolve(process.env.CLASHKING_E2E_API_REPO??join(botRepo,'../clash
 const assetsRepo=resolve(process.env.CLASHKING_E2E_ASSETS_REPO??join(botRepo,'../clashking_assets'));
 const require=createRequire(join(apiRepo,'package.json'));
 const {Client}=require('pg'),{build}=require('esbuild'),{Miniflare,convertV4MiniflareOptions}=require('miniflare');
-const database=process.env.CLASHKING_E2E_DATABASE_URL??'postgres://clashking_local:clashking_local@127.0.0.1:54330/clashking_dev';
-const dbURL=new URL(database);if(dbURL.protocol!=='postgres:'||dbURL.hostname!=='127.0.0.1'||dbURL.pathname!=='/clashking_dev')throw Error('Use the owned loopback clashking_dev database');
+const database=process.env.CLASHKING_E2E_DATABASE_URL??(process.env.CLASHKING_DISPOSABLE_TIMESCALE==='1'?process.env.TEST_DATABASE_URL:undefined)??'postgres://clashking_local:clashking_local@127.0.0.1:54330/clashking_dev';
+const dbURL=new URL(database);if(dbURL.protocol!=='postgres:'||dbURL.hostname!=='127.0.0.1'||(dbURL.pathname!=='/clashking_dev'&&process.env.CLASHKING_DISPOSABLE_TIMESCALE!=='1'))throw Error('Use the owned loopback clashking_dev database');
 const port=Number(process.env.CLASHKING_E2E_API_PORT??8801);if(!Number.isInteger(port)||port<1024||port>65535)throw Error('Invalid local API port');
 const {publicKey,privateKey}=generateKeyPairSync('ed25519');
 const publicHex=publicKey.export({type:'spki',format:'der'}).subarray(-32).toString('hex');
@@ -53,7 +54,9 @@ const verificationMode=process.argv.includes("--clan-verification-only")||handof
 const warEventMode=process.argv.includes("--war-events-only");
 const quickPanelMode=process.argv.includes("--quick-panel-only");
 const rosterReadMode=process.argv.includes("--roster-commands-only")||quickPanelMode||warEventMode;let rosterProfileFailure=false;
-const helpMode=process.argv.includes("--help-only");
+const dfxMode=process.argv.includes("--dfx-only");let dfxFailure=0,dfxRateResponses=0;
+const wireMode=process.argv.includes('--contract-wire-only');let wireFault=false;
+const helpMode=process.argv.includes("--help-only")||dfxMode;
 const linksMode=process.argv.includes("--links-only");
 const warPreferenceMode=process.argv.includes("--war-preference-only");let warPreferenceFailure=false;
 const activityMode=process.argv.includes("--activity-only");
@@ -86,9 +89,17 @@ const roleDefinitions=[{id:roleServer,name:'@everyone',position:0,permissions:'0
 const provider=createServer(async(req,res)=>{
  let text='';for await(const chunk of req)text+=chunk;
  const url=new URL(req.url,'http://provider');live.push(url.pathname+url.search);res.setHeader('Content-Type','application/json');
+ const send=res.end.bind(res);
+ res.end=(chunk,...args)=>{
+  if(res.statusCode>=200&&res.statusCode<300&&url.pathname.startsWith('/v1/')&&chunk){
+   try{chunk=JSON.stringify(validClashFixture(url.pathname,req.method,JSON.parse(String(chunk))));}catch{/* Non-JSON fixture failures remain visible to the client. */}
+  }
+  return send(chunk,...args);
+ };
  if((roleMode)&&url.pathname===`/api/v10/guilds/${roleServer}/roles`)return res.end(JSON.stringify(roleDefinitions.map(role=>({...role,managed:role.id===botRole}))));
  if(roleMode&&url.pathname===`/api/v10/guilds/${roleServer}`)return res.end(JSON.stringify({id:roleServer,owner_id:other}));
  const p=decodeURIComponent(url.pathname),endTime=fixtureEnd;
+ if(wireMode&&wireFault&&url.pathname.startsWith('/v1/'))return res.end(JSON.stringify({reason:'unknownException'}));
  if(giveawayDeliveryMode&&url.pathname==='/webhooks/999999999999996588'&&req.method==='GET')return res.end(JSON.stringify({id:'999999999999996588',type:1,guild_id:'999999999999996510',channel_id:'999999999999996511',token:'local-only'}));
  if(giveawayDeliveryMode&&url.pathname==='/webhooks/999999999999996588/local-only'&&req.method==='POST'){
   giveawayMessages.push(JSON.parse(text));return res.end(JSON.stringify({id:'999999999999996589',channel_id:'999999999999996511',timestamp:new Date().toISOString(),content:'',embeds:[]}));
@@ -155,10 +166,10 @@ try{
  ownsRecords=true;
  for(const playerTag of tags)await db.query("INSERT INTO player_links(tag,user_id,source) VALUES($1,$2,'discord')",[playerTag,actor]);
  const armies=(await db.query('SELECT share_code FROM army_compositions ORDER BY length(share_code),share_code LIMIT 30')).rows;
- if(armies.length<30)throw Error('Thirty existing local compositions required');
+ if(armies.length<30&&!helpMode&&!botInfoMode&&!fankitMode&&!graphMode&&!wireMode)throw Error('Thirty existing local compositions required');
  for(const army of armies)await db.query('INSERT INTO user_saved_armies(user_id,share_code) VALUES($1,$2)',[actor,army.share_code]);
  for(const season of historySeasons)await db.query(`INSERT INTO ranked_league_group_members(season_id,group_tag,league_tier_id,player_tag,player_name,placement,league_trophies,attack_win_count,attack_loss_count,defense_win_count,defense_loss_count,town_hall,maximum_battle_count) VALUES($1,$2,$3,$4,'Historical Player',1,5000,8,1,4,5,16,10)`,[season,group,tier,tag]);
- const env={PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR,CLASHKING_PERSISTENT_LOCAL_API:'1',CLASHKING_LOCAL_DATABASE_URL:database,CLASHKING_LOCAL_API_PORT:String(port),CLASHKING_LOCAL_DISCORD_CLIENT_ID:app,CLASHKING_LOCAL_DISCORD_TEST_ORIGIN:`http://127.0.0.1:${providerPort}`,CLASHKING_LOCAL_DISCORD_CLIENT_SECRET:'local-only',CLASHKING_LOCAL_DISCORD_PUBLIC_KEY:publicHex,CLASHKING_LOCAL_ARCHIVE_BRIDGE:'0',CLASHKING_LOCAL_CLASH_PROXY_ORIGIN:`http://127.0.0.1:${providerPort}`,CLASHKING_LOCAL_STATIC_ASSETS_ROOT:join(assetsRepo,'assets/static_data'),CLASHKING_LOCAL_STORAGE_ROOT:join(directory,'storage'),...Object.fromEntries(Object.entries(keys).map(([key,value])=>[`CLASHKING_LOCAL_${key}`,value]))};
+ const env={PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR,CLASHKING_PERSISTENT_LOCAL_API:process.env.CLASHKING_DISPOSABLE_TIMESCALE==='1'?'0':'1',CLASHKING_DISPOSABLE_TIMESCALE:process.env.CLASHKING_DISPOSABLE_TIMESCALE,TEST_DATABASE_URL:database,CLASHKING_LOCAL_DATABASE_URL:database,CLASHKING_LOCAL_API_PORT:String(port),CLASHKING_LOCAL_DISCORD_CLIENT_ID:app,CLASHKING_LOCAL_DISCORD_TEST_ORIGIN:`http://127.0.0.1:${providerPort}`,CLASHKING_LOCAL_DISCORD_CLIENT_SECRET:'local-only',CLASHKING_LOCAL_DISCORD_PUBLIC_KEY:publicHex,CLASHKING_LOCAL_ARCHIVE_BRIDGE:'0',CLASHKING_LOCAL_CLASH_PROXY_ORIGIN:`http://127.0.0.1:${providerPort}`,CLASHKING_LOCAL_STATIC_ASSETS_ROOT:join(assetsRepo,'assets/static_data'),CLASHKING_LOCAL_STORAGE_ROOT:join(directory,'storage'),...Object.fromEntries(Object.entries(keys).map(([key,value])=>[`${process.env.CLASHKING_DISPOSABLE_TIMESCALE==='1'?'CLASHKING_E2E_':'CLASHKING_LOCAL_'}${key}`,value]))};
  api=spawn(process.execPath,['scripts/start-local-rewrite-api.mjs'],{cwd:apiRepo,env,stdio:['ignore','pipe','pipe']});api.stdout.on('data',data=>logs+=data);api.stderr.on('data',data=>logs+=data);
  // Health can become ready before static metadata is seeded. Army previews
  // exercise that metadata, so do not race the real launcher's second phase.
@@ -176,6 +187,12 @@ try{
   const url=new URL(request.url);
   if(url.hostname==='cdn.discordapp.com'&&url.pathname==='/attachments/local/evidence.png')return new Response(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXZkAAAAASUVORK5CYII=','base64'),{headers:{'Content-Type':'image/png'}});
   if(url.hostname==='assets.clashk.ing'&&/^\/static_data\/(troops|spells|heroes|pets|equipment|buildings|league_tiers)\.json$/u.test(url.pathname))return new Response(readFileSync(join(assetsRepo,'assets',url.pathname)),{headers:{'Content-Type':'application/json'}});
+  if(fankitMode&&url.hostname==='assets.clashk.ing'&&url.pathname==='/manifest.json')return Response.json({version:2,assets:{units:[
+   {path:'assets/queen.png',display_name:'Archer Queen',sha:'a'.repeat(64)},
+   {path:'assets/queen_skin.png',display_name:'Archer Queen Skin',sha:'b'.repeat(64)},
+   {path:'../private.png',display_name:'Archer Queen Unsafe',sha:'c'.repeat(64)},
+  ]}});
+  if(fankitMode&&url.hostname==='assets.clashk.ing'&&url.pathname.startsWith('/assets/'))return new Response(fankitOversize?new Uint8Array(262145):readFileSync(join(botRepo,'worker/src/assets/pepe/sign.png')),{headers:{'Content-Type':'image/png'}});
   if(fankitMode&&url.hostname==='fankit.supercell.com'){
    if(fankitFailure)return Response.json({success:false},{status:503});
    fankitQueries.push(url.searchParams.get('q'));
@@ -204,9 +221,14 @@ try{
    if(request.method==='GET'&&url.pathname.endsWith('/emojis')){emojiInventoryRequests++;return Response.json({items:emojiItems});}
    if(request.method==='GET'&&url.pathname.includes('/channels/'))return Response.json({id:url.pathname.split('/').at(-1),guild_id:quickPanelMode&&url.pathname.endsWith('/999999999999996599')?'999999999999996512':'999999999999996510',type:0});
    if(request.method==='POST'&&url.pathname.endsWith('/messages')){if(reminderSendFails)return Response.json({message:'Missing permissions'},{status:403});sentReminders.push(await request.json());return Response.json({id:'999999999999996999'});}
+   if(dfxMode&&request.method==='PATCH'&&url.pathname.includes('/webhooks/')&&dfxFailure){
+    const status=dfxFailure;dfxFailure=0;
+    if(status===429){dfxRateResponses++;return Response.json({retry_after:0.01,global:false},{status,headers:{'retry-after':'0.01'}});}
+    return Response.json({code:50013,message:'Missing permissions'},{status});
+   }
    const token=url.pathname.split('/')[5];let data;
    if(request.headers.get('content-type')?.startsWith('multipart/form-data')){
-    const form=await request.formData();data=JSON.parse(form.get('payload_json'));
+    const form=await request.formData();const payload=form.get('payload_json');data=JSON.parse(typeof payload==='string'?payload:await payload.text());
     const file=form.get('files[0]');if(!file)throw Error('Missing poster attachment');
     const bytes=Buffer.from(await file.arrayBuffer());
     const dimension=pepeMode?250:graphMode?1280:1600,height=pepeMode?250:graphMode?bytes.readUInt32BE(20):1100;
@@ -239,7 +261,14 @@ try{
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(process.argv.includes('--reddit-only')){
+ if(wireMode){
+  const request=()=>interact(command('clan','search',[{name:'clan',type:3,value:group}]));
+  const normal=await request();
+  if(!text(normal).includes(group)||text(normal).includes('Service temporarily unavailable'))throw Error('Valid wire response rejected '+text(normal));
+  wireFault=true;const invalid=await request();
+  if(invalid.embeds?.[0]?.title!=='Service temporarily unavailable'||!text(invalid).includes('Reference:'))throw Error('Invalid wire success was accepted '+text(invalid));
+  console.log('PASS actual bot wire boundary: published schema validation, malformed 200 rejected, safe user recovery/reference');
+ }else if(process.argv.includes('--reddit-only')){
   for (const who of [actor,other]) {
    const result=await interact({type:3,data:{custom_id:'redditplayer_'+tag,component_type:2}},who);
    if(!(result.flags&64)||!text(result).includes('Current Player')||!result.components?.length)throw Error('Reddit profile must open private current profile for either viewer');
@@ -248,21 +277,21 @@ try{
  }else if(fankitMode){
   const run=query=>interact({type:2,data:{name:'fankit',options:[{name:'query',type:3,value:query}]}});
   const first=await run('archer & queen');
-  if(first.embeds?.[0]?.title!=='Archer'||!first.embeds[0].footer.text.startsWith('1/2')||fankitQueries.at(-1)!=='archer & queen')throw Error('Fan-kit query encoding/filter mismatch '+text(first));
-  const selector=first.components[0].components[0],controls=first.components[1].components;
-  if(selector.type!==3||selector.options.length!==2||!controls[0].url.startsWith('https://media.ffycdn.net/'))throw Error('Fan-kit controls invalid');
-  const second=await interact({type:3,data:{custom_id:selector.custom_id,component_type:3,values:['102']}},other);
-  if(second.embeds?.[0]?.title!=='Queen'||!second.components[0].components[0].options.find(item=>item.value==='102')?.default)throw Error('Public fan-kit selection failed');
-  const emoji=second.components[1].components[1].custom_id;
-  const denied=await interact({type:3,data:{custom_id:emoji,component_type:2}},other,'0');if(!text(denied).includes('Create Expressions')||fankitWrites.length)throw Error('Emoji permission bypass');
+  if(!text(first).includes('Archer Queen')||text(first).includes('Unsafe'))throw Error('Catalog filtering failed '+text(first));
+  const container=first.components.find(item=>item.type===17);
+  const emoji=container.components.find(item=>item.type===9).accessory.custom_id;
+  const denied=await interact({type:3,data:{custom_id:emoji,component_type:2}},other,'0');
+  if(!text(denied).includes('Create Expressions')||fankitWrites.length)throw Error('Emoji permission bypass');
   const created=await interact({type:3,data:{custom_id:emoji,component_type:2}},other,String(1n<<43n));
-  if(created.flags!==64||!text(created).includes('Emoji added')||fankitWrites.length!==1||!fankitWrites[0].image.startsWith('data:image/png;base64,'))throw Error('Emoji upload failed '+text(created));
-  fankitOversize=true;const big=await interact({type:3,data:{custom_id:emoji,component_type:2}},actor,'8');if(!text(big).includes('too large')||fankitWrites.length!==1)throw Error('Oversized emoji uploaded');fankitOversize=false;
-  const missing=await interact({type:3,data:{custom_id:emoji.replace(/:102$/,':103'),component_type:2}},actor,'8');if(!text(missing).includes('no longer available')||fankitWrites.length!==1)throw Error('Unverified asset uploaded');
-  fankitEmojiFailure=true;const failed=await interact({type:3,data:{custom_id:emoji,component_type:2}},actor,'8');if(!text(failed).includes('Could not add')||fankitWrites.length!==2)throw Error('Failed upload retried or hidden');fankitEmojiFailure=false;
-  const empty=await run('empty');if(!text(empty).includes('No fan-kit images'))throw Error('Fan-kit empty state missing');
-  fankitFailure=true;const upstream=await interact({type:3,data:{custom_id:selector.custom_id,component_type:3,values:['102']}},other);if(upstream.flags!==64||upstream.embeds||!text(upstream).includes('unavailable'))throw Error('Upstream failure overwrote results');
-  console.log(JSON.stringify({fankit:'passed',checks:['actual Worker integration','encoded search','untrusted URLs excluded','public persistent image selector','download URL','current clicker permission','canonical result verified before upload','emoji image bytes','256KiB streamed bound','no retry on uncertain creation','empty and failure states'],externalDiscordWrites:0}));
+  if(created.flags!==64||!text(created).includes('Emoji added')||fankitWrites.length!==1||!fankitWrites[0].image.startsWith('data:image/png;base64,'))throw Error('dfx emoji upload failed '+text(created));
+  fankitOversize=true;const big=await interact({type:3,data:{custom_id:emoji,component_type:2}},actor,'8');
+  if(!text(big).includes('too large')||fankitWrites.length!==1)throw Error('Oversized emoji uploaded');fankitOversize=false;
+  const missing=await interact({type:3,data:{custom_id:emoji.replace(/:[a-f0-9]{12}$/,':dddddddddddd'),component_type:2}},actor,'8');
+  if(!text(missing).includes('cannot be added')||fankitWrites.length!==1)throw Error('Unverified asset uploaded');
+  fankitEmojiFailure=true;const failed=await interact({type:3,data:{custom_id:emoji,component_type:2}},actor,'8');
+  if(!text(failed).includes('temporarily unavailable')||fankitWrites.length!==2)throw Error('Uncertain creation retried or hidden '+text(failed));
+  const empty=await run('empty');if(!text(empty).includes('No ClashKing assets'))throw Error('Empty state missing');
+  console.log('PASS signed fan-kit interactions: canonical catalog, dfx emoji upload, clicker permissions, bounded images and no retry after uncertain creation');
  }else if(pepeMode){
   const run=(value,hidden)=>interact({type:2,data:{name:'pepe',options:[{name:'sign_text',type:3,value},...(hidden?[{name:'hidden',type:3,value:hidden}]:[])]}});
   const privateImage=await run('Hello clan');
@@ -812,12 +841,12 @@ try{
  }else if(helpMode){
   const list=await interact({type:2,data:{name:'help'}});
   if(!text(list).includes('/clan')||!text(list).includes('/link')||!text(list).includes('/help'))throw Error('Help missing current command roots');
-  const detail=await interact({type:2,data:{name:'help',options:[{name:'command',type:3,value:'clan war-preference'}]}});
-  if(!text(detail).includes('Required')||!text(detail).includes('townhall')||!text(detail).includes('Last preference change'))throw Error('Help detail missing real options');
+  const detail=await interact({type:2,data:{name:'help',options:[{name:'command',type:3,value:'clan search'}]}});
+  if(!text(detail).includes('Overview style')||!text(detail).includes('clan'))throw Error('Help detail missing real options '+text(detail));
   const refresh=detail.components.flatMap(row=>row.components).find(item=>item.custom_id?.startsWith("ck:help:refresh:")).custom_id;
-  if(!text(await interact({type:3,data:{custom_id:refresh,component_type:2}},other)).includes('/clan war-preference'))throw Error('Help refresh lost command');
+  if(!text(await interact({type:3,data:{custom_id:refresh,component_type:2}},other)).includes('/clan search'))throw Error('Help refresh lost command');
   const root=await interact({type:2,data:{name:'help',options:[{name:'command',type:3,value:'clan'}]}});
-  if(!text(root).includes('/clan summary')||!text(root).includes('/clan war-preference'))throw Error('Help group missing subcommands');
+  if(!text(root).includes('/clan summary')||!text(root).includes('/clan search'))throw Error('Help group missing subcommands');
   if(text(root).includes('member-warning'))throw Error('Removed warning command remains registered');
   const retired=await interact(command('clan','member-warning',[{name:'clan',type:3,value:group}]));
   if(!text(retired).includes('no longer available'))throw Error('Cached warning command fell through to another report');
@@ -829,10 +858,19 @@ try{
   for(const [name,action]of [['roster','create'],['roster','settings'],['roster','post'],['ticket','panel-post'],['clan','war-events']]){
    const response=await interact(command(name,action,[]),actor,'32');if(response.embeds?.some(embed=>embed.title?.includes('Created')))throw Error('Retired setup action succeeded');
   }
-  const complete=await interact({type:4,data:{name:'help',options:[{name:'command',type:3,value:'war',focused:true}]}});
-  if(!complete.choices?.some(choice=>choice.value==='clan war-preference'))throw Error('Help autocomplete missing leaf');
+  const complete=await interact({type:4,data:{name:'help',options:[{name:'command',type:3,value:'clan search',focused:true}]}});
+  if(!complete.choices?.some(choice=>choice.value==='clan search'))throw Error('Help autocomplete missing leaf');
   const bad=await interact({type:2,data:{name:'help',options:[{name:'command',type:3,value:'not-real'}]}});
   if(!text(bad).includes('Choose a current command'))throw Error('Unknown help command accepted');
+  if(dfxMode){
+   dfxFailure=429;
+   const limited=await interact({type:2,data:{name:'help'}});
+   if(dfxRateResponses!==1||!text(limited).includes('/clan'))throw Error('dfx did not recover from rate limiting');
+   dfxFailure=403;
+   const denied=await interact({type:2,data:{name:'help'}});
+   if(!text(denied).includes('Bot permission needed'))throw Error('dfx permission failure lost its classification '+text(denied));
+   console.log('PASS dfx: native 429 retry and provider permission-error reporting through signed interactions');
+  }
   console.log(JSON.stringify({help:'passed',checks:['current registry roots','generated required/options/choices','group children','autocomplete','public refresh retains selection','unknown command rejected'],externalDiscordWrites:0}));
  }else if(warPreferenceMode){
   const ids=[],selected=[tag,tags[1]],key='test-war-preference';

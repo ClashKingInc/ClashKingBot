@@ -94,7 +94,7 @@ async function renderClan(context: Parameters<Command["execute"]>[0]){
    const halls=new Map<number,number>();for(const member of clan.memberList){const th=member.townHallLevel??0;if(th)halls.set(th,(halls.get(th)??0)+1);}
    const composition=[...halls].sort((a,b)=>b[0]-a[0]).map(([th,count])=>`${emoji.get(th)} ${count}`);
    const compositionLines=[];for(let i=0;i<composition.length;i+=4)compositionLines.push(composition.slice(i,i+4).join("  "));
-   const capitalHall=clan.clanCapital?.districts.find(district=>district.id===70000000)?.districtHallLevel;
+   const capitalHall=clan.clanCapital?.districts?.find(district=>district.id===70000000)?.districtHallLevel;
    const ratio=clan.isWarLogPublic?((clan.warWins??0)/Math.max(1,clan.warLosses??0)).toFixed(2):"Hidden Log";
    const ranking=style==="d"?await ctx.services.api.get<{homeVillage:{placements:Array<{locationId:string;rank:number}>}}>(`/v2/clan/${encodeURIComponent(tag)}/rankings`).catch(()=>undefined):undefined;
    const placements=ranking?.homeVillage.placements??[],global=placements.find(row=>row.locationId==="global"),local=placements.find(row=>row.locationId!=="global");

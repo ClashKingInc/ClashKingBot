@@ -1,5 +1,5 @@
 import type { ClashKingApiClient } from "../api/client";
-import type { DiscordRestClient } from "../discord/rest";
+import type { DiscordClient } from "../discord/rest";
 import type { DiscordInteraction, DiscordInteractionResponse, InteractionOption } from "../discord/types";
 import type { Env } from "../env";
 
@@ -33,7 +33,7 @@ export interface ApplicationCommandOption {
 
 export interface CommandServices {
   api: ClashKingApiClient;
-  discordRest: DiscordRestClient;
+  discordRest: DiscordClient;
 }
 
 export interface CommandContext {

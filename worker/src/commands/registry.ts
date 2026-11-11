@@ -1,3 +1,4 @@
+import { editOriginalInteractionResponse, createInteractionFollowup } from "../discord/message-actions";
 import { interactionErrorReply, sendInteractionError } from "./errors";
 import { dispatchCwlSearch } from "./cwl-search";
 import { dispatchLegendStats } from "./legend-global";
@@ -119,10 +120,10 @@ async function executeCommand(
       // Discord fixes visibility at acknowledgement time. A private result
       // after a public defer needs its own follow-up, not an ignored flag edit.
       if(!ephemeral&&typeof response.data?.flags==="number"&&(response.data.flags&MessageFlags.Ephemeral)){
-        await context.services.discordRest.editOriginalInteractionResponse(context.interaction.token,{content:"This result is private.",embeds:[],components:[]});
-        await context.services.discordRest.createInteractionFollowup(context.interaction.token,response.data??{});
-        await context.services.discordRest.deleteOriginalInteractionResponse(context.interaction.token);
-      }else await context.services.discordRest.editOriginalInteractionResponse(context.interaction.token, response.data ?? {});
+        await editOriginalInteractionResponse(context.services.discordRest,context.interaction.token,{content:"This result is private.",embeds:[],components:[]});
+        await createInteractionFollowup(context.services.discordRest,context.interaction.token,response.data??{});
+        await context.services.discordRest.deleteOriginalWebhookMessage(context.services.discordRest.applicationId,context.interaction.token);
+      }else await editOriginalInteractionResponse(context.services.discordRest,context.interaction.token,response.data ?? {});
     },
   ).catch((error: unknown) => {
     // The first follow-up after a defer can resolve the original response.
@@ -223,7 +224,7 @@ function deferPersistentHandler(
 async function completeDeferredInteraction(context: CommandContext, pending: Promise<DiscordInteractionResponse>): Promise<void> {
   try {
     const response = await pending;
-    await context.services.discordRest.editOriginalInteractionResponse(context.interaction.token, response.data ?? {});
+    await editOriginalInteractionResponse(context.services.discordRest,context.interaction.token,response.data ?? {});
   } catch (error) {
     await sendInteractionError(context,error,true);
   }

@@ -1,5 +1,5 @@
 import { applicationEmojis } from "./emojis";
-import type { DiscordRestClient } from "./rest";
+import type { DiscordClient } from "./rest";
 
 const object = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 const isRefresh = (value: Record<string, unknown>) => value.type === 2 && typeof value.custom_id === "string" &&
@@ -8,7 +8,7 @@ const isRefresh = (value: Record<string, unknown>) => value.type === 2 && typeof
 
 /** Apply one refresh treatment at both initial and subsequent message boundaries.
  * Existing panels and less common renderers must not reintroduce text labels. */
-export async function normalizeMessageControls(data: Record<string, unknown>, rest: DiscordRestClient): Promise<Record<string, unknown>> {
+export async function normalizeMessageControls(data: Record<string, unknown>, rest: DiscordClient): Promise<Record<string, unknown>> {
   const targets: Record<string, unknown>[] = [];
   const clone = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(clone);

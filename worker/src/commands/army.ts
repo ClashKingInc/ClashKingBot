@@ -1,3 +1,4 @@
+import { editOriginalInteractionResponse } from "../discord/message-actions";
 import { interactionErrorReply, sendInteractionError } from "./errors";
 import { ClashKingApiError } from "../api/client";
 import { actionRow, legacyMessage, linkButton } from "../discord/components";
@@ -86,7 +87,7 @@ export async function armyInteraction(interaction:DiscordInteraction,proof:Proof
       await sendInteractionError({interaction,services},armyError(error),true);
       return;
     }
-    try{await services.discordRest.editOriginalInteractionResponse(interaction.token,data);}catch(error){await sendInteractionError({interaction,services},error);}
+    try{await editOriginalInteractionResponse(services.discordRest,interaction.token,data);}catch(error){await sendInteractionError({interaction,services},error);}
   })());
   const save=interaction.data?.custom_id?.startsWith("ck:army:save:");
   return {type:InteractionResponseType.DeferredChannelMessageWithSource,data:save?{flags:MessageFlags.Ephemeral}:{}};

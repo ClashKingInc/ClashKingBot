@@ -1,3 +1,4 @@
+import { editOriginalInteractionResponse, createInteractionFollowup } from "../discord/message-actions";
 import { applicationEmojis } from "../discord/emojis";
 import { warAttackAllowance } from "./war-data";
 import { CommandInputError } from "./command-utils";
@@ -100,8 +101,8 @@ export async function dispatchWarPanel(context: CommandContext, waitUntil?: (pro
   const run = () => warPanelComponentHandler(context, (context.interaction.data?.custom_id ?? "").split(":").slice(2));
   if (!waitUntil) return run();
   waitUntil(run().then(response => response.type === InteractionResponseType.UpdateMessage
-    ? context.services.discordRest.editOriginalInteractionResponse(context.interaction.token, response.data ?? {})
-    : context.services.discordRest.createInteractionFollowup(context.interaction.token, response.data ?? {}))
+    ? editOriginalInteractionResponse(context.services.discordRest,context.interaction.token,response.data ?? {})
+    : createInteractionFollowup(context.services.discordRest,context.interaction.token,response.data ?? {}))
     .catch((error) => sendInteractionError(context,error)));
   return { type: InteractionResponseType.DeferredUpdateMessage };
 }

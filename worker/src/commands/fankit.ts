@@ -1,3 +1,4 @@
+import { editOriginalInteractionResponse, createInteractionFollowup } from "../discord/message-actions";
 import { DiscordRestError } from "../discord/rest";
 import { sendInteractionError } from "./errors";
 import { actionRow, componentsV2, legacyMessage, type ContainerChild } from "../discord/components";
@@ -79,7 +80,7 @@ async function addEmoji(ctx:CommandContext,query:string,id:string){
  const name=asset.title.toLowerCase().replace(/[^a-z0-9_]/gu,"_").replace(/_+/gu,"_").replace(/^_|_$/gu,"").slice(0,32)||"asset";
  try{
   // Do not retry an uncertain creation; Discord may already have accepted it.
-  const emoji=await ctx.services.discordRest.createGuildEmoji(guild,name,`data:${type};base64,${btoa(binary)}`);
+  const emoji=await ctx.services.discordRest.createGuildEmoji(guild,{name:name,image:`data:${type};base64,${btoa(binary)}`});
   return legacyMessage({content:`Emoji added: <${asset.animated?'a':''}:${emoji.name}:${emoji.id}>`,allowed_mentions:{parse:[]}},{ephemeral:true});
  }catch(error){if(error instanceof DiscordRestError)throw error;throw new CommandInputError("Could not add the emoji. Check available emoji slots and the bot's Create Expressions permission.");}
 }
@@ -92,6 +93,6 @@ export function dispatchFankit(ctx:CommandContext,waitUntil?:(promise:Promise<un
  if(browsing&&!/^\d{1,5}$/u.test(match[3]!))throw new CommandInputError("Invalid asset page.");
  const run=()=>browsing?page(ctx,query,Number(match[3])):addEmoji(ctx,query,match[3]!);
  if(!waitUntil)return run().then(result=>browsing?{...result,type:InteractionResponseType.UpdateMessage}:result);
- waitUntil(run().then(result=>browsing?ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token,result.data??{}):ctx.services.discordRest.createInteractionFollowup(ctx.interaction.token,result.data??{})).catch(error=>sendInteractionError(ctx,error)));
+ waitUntil(run().then(result=>browsing?editOriginalInteractionResponse(ctx.services.discordRest,ctx.interaction.token,result.data??{}):createInteractionFollowup(ctx.services.discordRest,ctx.interaction.token,result.data??{})).catch(error=>sendInteractionError(ctx,error)));
  return {type:InteractionResponseType.DeferredUpdateMessage};
 }

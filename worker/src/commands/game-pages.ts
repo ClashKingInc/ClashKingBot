@@ -1,3 +1,4 @@
+import { createInteractionFollowup, editOriginalInteractionResponse } from "../discord/message-actions";
 import { sendInteractionError } from "./errors";
 import { warCommand } from "./war";
 import { botInfoCommand } from "./bot-info";
@@ -159,8 +160,8 @@ export async function dispatchGamePage(ctx: CommandContext, waitUntil?: (promise
   const run=async()=>command.execute(context);
   if(!waitUntil){const result=await run();return typeof result.data?.flags==="number"&&(result.data.flags&MessageFlags.Ephemeral)?result:{...result,type:InteractionResponseType.UpdateMessage};}
   waitUntil(run().then(result=>typeof result.data?.flags==="number"&&(result.data.flags&MessageFlags.Ephemeral)
-    ?ctx.services.discordRest.createInteractionFollowup(ctx.interaction.token,result.data)
-    :ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token,result.data??{}))
+    ?createInteractionFollowup(ctx.services.discordRest,ctx.interaction.token,result.data)
+    :editOriginalInteractionResponse(ctx.services.discordRest,ctx.interaction.token,result.data??{}))
     .catch(error=>{
       return sendInteractionError(ctx,error);
     }));

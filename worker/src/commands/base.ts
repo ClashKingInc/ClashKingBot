@@ -1,3 +1,4 @@
+import { editChannelMessage, downloadDiscordAttachment } from "../discord/message-actions";
 import { ClashKingApiError } from "../api/client";
 import { DiscordRestError } from "../discord/rest";
 import { actionRow, legacyMessage, type ActionRowComponent } from "../discord/components";
@@ -98,7 +99,7 @@ export const submitBase: ComponentHandler = async (context) => {
     if (!publicLocale.startsWith("en") && base.id && base.messageId) {
       // Localize controls in place while preserving the gallery and counters; never repost.
       try {
-        await context.services.discordRest.editChannelMessage(channelId, base.messageId, baseMessagePatch(base, publicLocale));
+        await editChannelMessage(context.services.discordRest,channelId,base.messageId,baseMessagePatch(base, publicLocale));
       } catch {
         console.warn("Base published but button localization failed", { baseId: base.id, locale: publicLocale });
       }
@@ -121,8 +122,7 @@ async function performDownload(context: CommandContext, base: LegacyBaseRecord) 
     const current = await context.services.api.get<BaseRecord>(`/v2/server/${requireGuildId(context)}/bases/${base.id}`);
     const message = requiredLegacyMessage(context.interaction.message, context.locale);
     const channelId = context.interaction.channel_id ?? message.channel_id;
-    if (channelId) await context.services.discordRest.editChannelMessage(channelId, message.id,
-      baseMessagePatch(current, resolveLocale(context.interaction.guild_locale)));
+    if (channelId) await editChannelMessage(context.services.discordRest,channelId,message.id,baseMessagePatch(current, resolveLocale(context.interaction.guild_locale)));
   } catch {
     console.warn("Base download recorded but count display refresh failed", { baseId: base.id });
   }
@@ -139,8 +139,7 @@ const recordVote = (direction: "up" | "down"): ComponentHandler => async (contex
   const message = requiredLegacyMessage(context.interaction.message, context.locale);
   const channelId = context.interaction.channel_id ?? message.channel_id;
   if (!channelId) throw new CommandInputError(translate("base.missingMessageChannel", context.locale));
-  await context.services.discordRest.editChannelMessage(channelId, message.id,
-    baseMessagePatch(base, resolveLocale(context.interaction.guild_locale)));
+  await editChannelMessage(context.services.discordRest,channelId,message.id,baseMessagePatch(base, resolveLocale(context.interaction.guild_locale)));
   return legacyMessage({ content: translate(direction === "up" ? "base.upvote" : "base.downvote", context.locale) }, { ephemeral: true });
 };
 
@@ -190,7 +189,7 @@ async function prepareBaseForAction(context: CommandContext, expectedBaseId?: st
 
   await conversionStep(
     translate("base.updateFailed", context.locale),
-    () => context.services.discordRest.editChannelMessage(channelId, message.id, { components: baseButtons(base.id, resolveLocale(context.interaction.guild_locale)) }),
+    () => editChannelMessage(context.services.discordRest,channelId,message.id,{ components: baseButtons(base.id, resolveLocale(context.interaction.guild_locale)) }),
   );
   const description = legacyDescription(message);
   await conversionStep(
@@ -277,7 +276,7 @@ async function conversionStep<T>(message: string, operation: () => Promise<T>): 
 }
 
 async function uploadImage(context: CommandContext, guildId: string, attachment: DiscordAttachment): Promise<UploadResponse> {
-  const image = await context.services.discordRest.download(attachment.url);
+  const image = await downloadDiscordAttachment(attachment.url);
   const form = new FormData();
   form.set("file", image, attachment.filename);
   return context.services.api.postForm<UploadResponse>(`/v2/server/${guildId}/bases/images`, form);

@@ -1,3 +1,4 @@
+import { editOriginalInteractionResponse } from "../discord/message-actions";
 import { sendInteractionError } from "./errors";
 import {actionRow,componentsV2} from "../discord/components";
 import {InteractionResponseType,InteractionType,MessageFlags,type DiscordInteractionResponse} from "../discord/types";
@@ -32,6 +33,6 @@ export function dispatchMeme(ctx:CommandContext,waitUntil?:(p:Promise<unknown>)=
  if(action==='choose'||action==='write')return form(owner,template);
  const run=()=>preview(ctx,owner,template);
  if(!waitUntil)return run();
- waitUntil(run().then(r=>ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token,r.data??{})).catch(error=>sendInteractionError(ctx,error,true)));
+ waitUntil(run().then(r=>editOriginalInteractionResponse(ctx.services.discordRest,ctx.interaction.token,r.data??{})).catch(error=>sendInteractionError(ctx,error,true)));
  return {type:InteractionResponseType.DeferredChannelMessageWithSource,data:{flags:MessageFlags.Ephemeral}};
 }

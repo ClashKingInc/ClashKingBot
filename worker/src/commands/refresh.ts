@@ -1,3 +1,4 @@
+import { getOriginalInteractionResponse, editChannelMessage, editOriginalInteractionResponse } from "../discord/message-actions";
 import { emojis, escapeMarkdown } from "./game-common";
 import { serverEmbedColor } from "./embed-color";
 import { sendInteractionError } from "./errors";
@@ -50,7 +51,7 @@ async function runManualRefresh(ctx: CommandContext, kind: string, target: strin
   const requestId=ctx.interaction.id;
   // A public deferred response is a durable channel message. Store its ID
   // before enqueueing work, then edit it with bot auth after the token expires.
-  const original=await ctx.services.discordRest.getOriginalInteractionResponse(ctx.interaction.token);
+  const original=await getOriginalInteractionResponse(ctx.services.discordRest,ctx.interaction.token);
   await ctx.services.api.post(`/v2/bot/role-refresh/${guild}/manual-start`,{actorId:actor,requestId,channelId,messageId:original.id,targetId:target,targetKind:kind,preview,categories,treatment});
   return status(ctx,requestId);
 
@@ -61,7 +62,7 @@ async function publishManualRefresh(ctx:CommandContext,guild:string,requestId:st
   const payload=(await status(ctx,requestId,0,report)).data??{};
   const messageId=report.messageId;
   if(!messageId)return;
-  await ctx.services.discordRest.editChannelMessage(report.channelId,messageId,payload);
+  await editChannelMessage(ctx.services.discordRest,report.channelId,messageId,payload);
   await ctx.services.api.post(`/v2/bot/role-refresh/${guild}/manual-progress?requestId=${requestId}`,{messageId,updatedAt:report.updatedAt,finished:report.finished});
   return messageId;
 }
@@ -152,7 +153,7 @@ export async function dispatchRefresh(ctx: CommandContext, waitUntil?: (promise:
     return runManualRefresh(ctx, first!, second!, preview === "1", values as RefreshCategory[], roleTreatment(treatment));
   };
   if (!waitUntil) return run();
-  waitUntil(run().then(response => ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token, response.data ?? {})).catch(
+  waitUntil(run().then(response => editOriginalInteractionResponse(ctx.services.discordRest,ctx.interaction.token,response.data ?? {})).catch(
     error => sendInteractionError(ctx,error,action!=="status"&&action!=="again")));
   return { type: (action==="status"||action==="again")?InteractionResponseType.DeferredUpdateMessage:InteractionResponseType.DeferredChannelMessageWithSource, data: {} };
 }

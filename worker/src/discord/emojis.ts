@@ -1,5 +1,5 @@
 import type { DiscordApplicationEmoji } from "./types";
-import type { DiscordRestClient } from "./rest";
+import type { DiscordClient } from "./rest";
 
 /** Preserve utility underscores, but normalize punctuation in game names. */
 export function emojiName(name: string | number): string {
@@ -45,13 +45,13 @@ type EmojiCacheEntry = { expires: number; value?: ApplicationEmojis; pending?: P
 // A REST client is created for every interaction. Key by application instead,
 // so one isolate shares inventory without mixing Beta and production IDs.
 const cache = new Map<string, EmojiCacheEntry>();
-export function applicationEmojis(rest: DiscordRestClient): Promise<ApplicationEmojis> {
+export function applicationEmojis(rest: DiscordClient): Promise<ApplicationEmojis> {
   const key = rest.applicationId;
   const existing = cache.get(key);
   if (existing?.pending) return existing.pending;
   if (existing?.value && existing.expires > Date.now()) return Promise.resolve(existing.value);
   const entry = existing ?? { expires: 0 };
-  const pending = rest.listApplicationEmojis().then(items => {
+  const pending = rest.listApplicationEmojis(rest.applicationId).then(result=>result.items).then(items => {
     entry.value = new ApplicationEmojis(items);
     entry.expires = Date.now() + 300_000;
     return entry.value;

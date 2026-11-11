@@ -1,3 +1,5 @@
+import { ClashContractError } from '../api/clash-wire';
+import { editOriginalInteractionResponse, createInteractionFollowup } from "../discord/message-actions";
 import { ClashKingApiError } from '../api/client';
 import { DiscordRestError } from '../discord/rest';
 import { actionRow, linkButton } from '../discord/components';
@@ -19,10 +21,11 @@ function explain(error:unknown,interaction:DiscordInteraction):Explanation{
     if(message===translate('error.tag',resolveLocale(interaction.locale,interaction.guild_locale)))return {title:'Invalid player or clan tag',description:'Copy the tag from Clash of Clans and try again. A tag starts with # and is different from the player or clan name.'};
     return {title:/permission|manage server|manage roles|access|another (?:user|person|server)/iu.test(message)?'Permission needed':/no .*linked|not found|unavailable|not available|no active|not in|already|not ongoing/iu.test(message)?'Not available':'Check your selection',description:message};
   }
+  if(error instanceof ClashContractError)return {title:'Service temporarily unavailable',description:'ClashKing or the game API could not respond. Please try again shortly.',unexpected:true};
   if(error instanceof ClashKingApiError){
     const reason=apiReason(error);
-    if(reason==='inMaintenance'||reason==='maintenance')return {title:'Clash of Clans maintenance',description:'Game data is temporarily unavailable. Please try again after maintenance ends.'};
-    if(reason==='privateWarLog')return {title:'Private war log',description:'This clan’s war log is private. Ask a clan leader to make it public in Clash of Clans.'};
+    if(error.outcome.kind==='maintenance')return {title:'Clash of Clans maintenance',description:'Game data is temporarily unavailable. Please try again after maintenance ends.'};
+    if(error.outcome.kind==='privateWarLog'||reason==='privateWarLog')return {title:'Private war log',description:'This clan’s war log is private. Ask a clan leader to make it public in Clash of Clans.'};
     if(reason==='linked_account')return {title:'Link an account first',description:'Use /link add to link and verify your account, then try again.'};
     if(reason==='wrong_message')return {title:'This control is no longer available',description:'Run the command again or open the current panel.'};
     if(reason==='roles')return {title:'Permission needed',description:'Your server roles do not allow this action. Ask a server administrator to check your access.'};
@@ -68,7 +71,7 @@ function explain(error:unknown,interaction:DiscordInteraction):Explanation{
  * Keep tokens, raw upstream bodies, and command options out of messages and logs. */
 export function interactionErrorData(error:unknown,interaction:DiscordInteraction):NonNullable<DiscordInteractionResponse['data']>{
   const info=explain(error,interaction),reference=interaction.id;
-  if(info.unexpected||error instanceof ClashKingApiError&&error.status>=500)console.warn('interaction_error',{reference,command:interaction.data?.name,type:error instanceof Error?error.name:'UnknownError',status:error instanceof ClashKingApiError||error instanceof DiscordRestError?error.status:undefined});
+  if(info.unexpected||error instanceof ClashKingApiError&&error.status>=500)console.warn('interaction_error',{reference,command:interaction.data?.name,type:error instanceof Error?error.name:'UnknownError',status:error instanceof ClashKingApiError||error instanceof DiscordRestError?error.status:undefined,...(error instanceof ClashContractError?{operation:error.operation,classification:error.kind}:{})});
   return {content:'',embeds:[{color:0xed4245,title:info.title,description:info.description,...(info.unexpected?{footer:{text:`Reference: ${reference}`}}:{})}],components:info.unexpected?[actionRow(linkButton('Support server','https://discord.gg/clashking'))]:[],allowed_mentions:{parse:[]},flags:MessageFlags.Ephemeral};
 }
 export function interactionErrorReply(error:unknown,interaction:DiscordInteraction):DiscordInteractionResponse{
@@ -79,7 +82,7 @@ export function interactionErrorReply(error:unknown,interaction:DiscordInteracti
 export async function sendInteractionError(ctx:ErrorContext,error:unknown,original=false):Promise<void>{
   const data=interactionErrorData(error,ctx.interaction);
   try{
-    if(original)await ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token,data);
-    else await ctx.services.discordRest.createInteractionFollowup(ctx.interaction.token,data);
+    if(original)await editOriginalInteractionResponse(ctx.services.discordRest,ctx.interaction.token,data);
+    else await createInteractionFollowup(ctx.services.discordRest,ctx.interaction.token,data);
   }catch{console.warn('interaction_error_delivery_failed',{reference:ctx.interaction.id});}
 }

@@ -1,3 +1,4 @@
+import { editOriginalInteractionResponse } from "../discord/message-actions";
 import { escapeLinkLabel } from "./game-common";
 import { sendInteractionError } from "./errors";
 import { actionRow } from "../discord/components";
@@ -84,7 +85,7 @@ export async function dispatchLegendStats(ctx: CommandContext, waitUntil?: (prom
     ["limit", { name: "limit", type: 4, value: Number(match[1]) }],
   ]) });
   if (!waitUntil) return { ...(await run()), type: InteractionResponseType.UpdateMessage };
-  waitUntil(run().then(response => ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token, response.data ?? {})).catch((error) =>
+  waitUntil(run().then(response => editOriginalInteractionResponse(ctx.services.discordRest,ctx.interaction.token,response.data ?? {})).catch((error) =>
     sendInteractionError(ctx,error)));
   return { type: InteractionResponseType.DeferredUpdateMessage };
 }

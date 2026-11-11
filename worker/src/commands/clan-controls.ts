@@ -1,3 +1,4 @@
+import { editOriginalInteractionResponse } from "../discord/message-actions";
 import { sendInteractionError } from "./errors";
 import { clanSelector, type ClanChoice } from "./clan-selector";
 import { CommandInputError, invokingUserId } from "./command-utils";
@@ -72,7 +73,7 @@ export async function dispatchClanControl(ctx: CommandContext, waitUntil?: (prom
     return dispatchGamePage({ ...ctx, interaction: { ...ctx.interaction, data: { ...ctx.interaction.data, custom_id: id } } });
   };
   if (!waitUntil) return run();
-  waitUntil(run().then(response => ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token, response.data ?? {})).catch(error =>
+  waitUntil(run().then(response => editOriginalInteractionResponse(ctx.services.discordRest,ctx.interaction.token,response.data ?? {})).catch(error =>
     sendInteractionError(ctx,error)));
   return { type: InteractionResponseType.DeferredUpdateMessage };
 }

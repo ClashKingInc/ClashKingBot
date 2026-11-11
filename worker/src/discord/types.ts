@@ -64,21 +64,20 @@ export interface ModalComponent {
 }
 
 export interface DiscordUser {
+  bot?: boolean;
   avatar?: string | null;
   discriminator?: string;
   global_name?: string | null;
   id: string;
   username: string;
-  [key: string]: unknown;
 }
 
 export interface DiscordMember {
   joined_at?: string;
   nick?: string | null;
   permissions?: string;
-  roles: string[];
+  roles: readonly string[];
   user?: DiscordUser;
-  [key: string]: unknown;
 }
 
 export interface DiscordGuild {
@@ -96,9 +95,11 @@ export interface DiscordChannel {
 }
 
 export interface DiscordRole {
+  managed?: boolean;
   id: string;
   name: string;
-  [key: string]: unknown;
+  permissions?: string;
+  position?: number;
 }
 
 export interface DiscordInteraction {
