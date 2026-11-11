@@ -45,13 +45,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ClashKingInc/ClashKingAPI
-          ref: 8260e9cc15760c7764c845f32edca17f28819ad9
+          ref: 14aac2041a6004e64cae0e1abbee4cb0d6ca3dce
           path: .ci-api
           persist-credentials: false
       - uses: actions/checkout@v4
         with:
           repository: ClashKingInc/DevKit
-          ref: eedc5e718bbe735668d68f1a9db01a727e46e814
+          ref: 677c0b77f20638e69e7e466df1a24a78bdc1da3a
           path: .ci-schema
           persist-credentials: false
       - uses: actions/checkout@v4
@@ -85,7 +85,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ClashKingInc/ClashKingAPI
-          ref: 7d514f19371470b46d86bf6eba746b0b29f8c505
+          ref: 14aac2041a6004e64cae0e1abbee4cb0d6ca3dce
           path: .ci-api
           persist-credentials: false
       - uses: actions/checkout@v4

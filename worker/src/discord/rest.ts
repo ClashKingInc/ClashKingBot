@@ -22,9 +22,16 @@ export function createDiscordClient(options:{applicationId:string;token:string;f
  const entry=clients.get(options.applicationId);
  if(entry?.token===options.token&&entry.fetch===options.fetch)return entry.client;
  if(entry)void entry.dispose().catch(()=>undefined);
+ // Bound each network attempt, including its response body, without counting
+ // dfx's deliberate rate-limit sleeps. A whole-operation deadline can cancel
+ // a valid Retry-After wait and make durable refresh retry too early.
+ const providerFetch=options.fetch??globalThis.fetch.bind(globalThis);
+ const boundedFetch:typeof fetch=(input,init)=>providerFetch(input,{...init,signal:AbortSignal.any([
+  ...(init?.signal?[init.signal]:[]),AbortSignal.timeout(10_000),
+ ])});
  const runtime=ManagedRuntime.make(DiscordRESTMemoryLive.pipe(Layer.provide([
   DiscordConfig.layer({token:Redacted.make(options.token)}),
-  FetchHttpClient.layer.pipe(Layer.provide(Layer.succeed(FetchHttpClient.Fetch,options.fetch??globalThis.fetch.bind(globalThis)))),
+  FetchHttpClient.layer.pipe(Layer.provide(Layer.succeed(FetchHttpClient.Fetch,boundedFetch))),
  ])));
  const run=<A,E>(f:(rest:DiscordRestService)=>Effect.Effect<A,E>):Promise<A>=>runtime.runPromise(Effect.flatMap(DiscordREST,f).pipe(Effect.mapError(error=>{
   if(error && typeof error==='object' && 'response' in error && error.response && typeof error.response==='object' && 'status' in error.response){
@@ -34,7 +41,7 @@ export function createDiscordClient(options:{applicationId:string;token:string;f
    return new DiscordRestError(Number(error.response.status),JSON.stringify(data??{}),retry,{cause:new Error('Discord provider failure '+kind)},kind);
   }
   return error;
- })),{signal:AbortSignal.timeout(10_000)});
+ })));
  const client = new Proxy({applicationId:options.applicationId,run},{get(target,key){
   if(key==='applicationId'||key==='run')return Reflect.get(target,key);
   return (...args:unknown[])=>run(rest=>{ const effect=Reflect.apply(Reflect.get(rest,key),rest,args); if(!Effect.isEffect(effect)) return Effect.die(new Error("Invalid dfx method")); return effect as Effect.Effect<unknown,unknown>; });
