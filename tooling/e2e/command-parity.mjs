@@ -38,12 +38,13 @@ const tier=codes.find(row=>row.name!=='Unranked')?._id??105000001;
 const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
-let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
+let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false,opponentWarError;
 const giveawayDeliveryMode=process.argv.includes("--giveaway-delivery");
 const giveawayMessages=[];
 const giveawayMode=process.argv.includes("--giveaway-only")||giveawayDeliveryMode;
 const graphMode=process.argv.includes("--graph-month-only");let graphFailure=false,graphGap=false,graphLatestGap=false,dailyGraphFailure=false;
 const warPanelMode=process.argv.includes("--war-panel-only");
+const warContractMode=process.argv.includes("--war-contract-only");
 const roleUsersMode=process.argv.includes("--role-users-only");
 const boostsMode=process.argv.includes("--boosts-only");let boostFailure=false;
 const warStatsMode=process.argv.includes("--war-statistics-only");
@@ -126,14 +127,15 @@ const provider=createServer(async(req,res)=>{
  }
  if((familyOpsMode||clanReportMode)&&(p===`/v1/clans/${group}`||p==='/v1/clans/#PYLQGRJJ'))return res.end(JSON.stringify({tag:p.split('/').at(-1),name:p.endsWith(group)?'Alpha Clan':'Beta Clan',members:20,clanPoints:p.endsWith(group)?1000:2000,clanBuilderBasePoints:500,clanCapitalPoints:300,requiredTownhallLevel:16,warLeague:{name:'Champion League I'},capitalLeague:{name:'Titan'},location:{name:'International'},memberList:[]}));
  if(clanReportMode&&p.endsWith('/warlog')){
-  if(privateWar){res.statusCode=403;return res.end('{}');}
+  if(privateWar){res.statusCode=403;return res.end(JSON.stringify({reason:'accessDenied',message:'This clan has a private war log'}));}
   return res.end(JSON.stringify({items:[{result:'win',endTime:fixturePrep,teamSize:2,attacksPerMember:2,clan:{tag:group,name:'Alpha Clan',stars:5,destructionPercentage:90,attacks:3},opponent:{tag:'#PYLQGRJJ',name:'Official Opponent',stars:4,destructionPercentage:85}}]}));
  }
  const startTime=new Date(Date.now()+1800000).toISOString(),warState=warEnded?'warEnded':reminderPreparation?'preparation':'inWar';
  const own={tag:group,name:'Reminder Clan',stars:5,destructionPercentage:80,members:[{tag,name:'Missing Player',townhallLevel:16,mapPosition:1,attacks:[]},{tag:tags[1],name:'Finished Player',townhallLevel:16,mapPosition:2,attacks:[{attackerTag:tags[1],defenderTag:'#PYLR',stars:3,destructionPercentage:100,order:1},{attackerTag:tags[1],defenderTag:'#PYLQ',stars:2,destructionPercentage:80,order:2}]}]};
  const opponent={tag:'#PYLQGRJJ',name:'Other Clan',stars:3,destructionPercentage:50,members:[]};
  const warBody={state:warState,teamSize:2,preparationStartTime:fixturePrep,startTime:startTime.replace(/[-:]/g,''),endTime,attacksPerMember:2,clan:own,opponent};
- if(p===`/v1/clans/${group}/currentwar`&&privateWar){res.statusCode=403;return res.end('{}');}
+ if(p===`/v1/clans/${group}/currentwar`&&privateWar){res.statusCode=403;return res.end(JSON.stringify({reason:'accessDenied',message:'This clan has a private war log'}));}
+ if(p==='/v1/clans/#PYLQGRJJ/currentwar'&&opponentWarError){res.statusCode=opponentWarError.status;return res.end(JSON.stringify(opponentWarError.body));}
  if(familyOpsMode&&reminderCwl&&p==='/v1/clans/#PYLQGRJJ/currentwar')return res.end(JSON.stringify({state:'notInWar'}));
  if(p==='/v1/clans/#PYLQGRJJ/currentwar')return res.end(JSON.stringify({...warBody,endTime:opponentNextWar?new Date(fixtureNow+7200000).toISOString():endTime}));
  if(p===`/v1/clans/${group}/currentwar`)return res.end(JSON.stringify(reminderWarActive&&!reminderCwl?warBody:{state:'notInWar'}));
@@ -166,7 +168,7 @@ try{
  ownsRecords=true;
  for(const playerTag of tags)await db.query("INSERT INTO player_links(tag,user_id,source) VALUES($1,$2,'discord')",[playerTag,actor]);
  const armies=(await db.query('SELECT share_code FROM army_compositions ORDER BY length(share_code),share_code LIMIT 30')).rows;
- if(armies.length<30&&!helpMode&&!botInfoMode&&!fankitMode&&!graphMode&&!wireMode)throw Error('Thirty existing local compositions required');
+ if(armies.length<30&&!helpMode&&!botInfoMode&&!fankitMode&&!graphMode&&!wireMode&&!warContractMode)throw Error('Thirty existing local compositions required');
  for(const army of armies)await db.query('INSERT INTO user_saved_armies(user_id,share_code) VALUES($1,$2)',[actor,army.share_code]);
  for(const season of historySeasons)await db.query(`INSERT INTO ranked_league_group_members(season_id,group_tag,league_tier_id,player_tag,player_name,placement,league_trophies,attack_win_count,attack_loss_count,defense_win_count,defense_loss_count,town_hall,maximum_battle_count) VALUES($1,$2,$3,$4,'Historical Player',1,5000,8,1,4,5,16,10)`,[season,group,tier,tag]);
  const env={PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR,CLASHKING_PERSISTENT_LOCAL_API:process.env.CLASHKING_DISPOSABLE_TIMESCALE==='1'?'0':'1',CLASHKING_DISPOSABLE_TIMESCALE:process.env.CLASHKING_DISPOSABLE_TIMESCALE,TEST_DATABASE_URL:database,CLASHKING_LOCAL_DATABASE_URL:database,CLASHKING_LOCAL_API_PORT:String(port),CLASHKING_LOCAL_DISCORD_CLIENT_ID:app,CLASHKING_LOCAL_DISCORD_TEST_ORIGIN:`http://127.0.0.1:${providerPort}`,CLASHKING_LOCAL_DISCORD_CLIENT_SECRET:'local-only',CLASHKING_LOCAL_DISCORD_PUBLIC_KEY:publicHex,CLASHKING_LOCAL_ARCHIVE_BRIDGE:'0',CLASHKING_LOCAL_CLASH_PROXY_ORIGIN:`http://127.0.0.1:${providerPort}`,CLASHKING_LOCAL_STATIC_ASSETS_ROOT:join(assetsRepo,'assets/static_data'),CLASHKING_LOCAL_STORAGE_ROOT:join(directory,'storage'),...Object.fromEntries(Object.entries(keys).map(([key,value])=>[`${process.env.CLASHKING_DISPOSABLE_TIMESCALE==='1'?'CLASHKING_E2E_':'CLASHKING_LOCAL_'}${key}`,value]))};
@@ -1189,6 +1191,26 @@ try{
    if(!text(degraded).includes('Legend attacks unavailable')||!text(degraded).includes('raid attacks left')||!text(degraded).includes('1200/2000 observed points'))throw Error('Legend failure erased other tasks');
    console.log(JSON.stringify({todo:'passed',checks:['calendar season points exclude earlier month','missing observations stay unknown','daily Legend vs weekly Ranked','explicit season target','capital donation age','goal survives pagination','Legend failure preserves other tasks'],externalDiscordWrites:0}));
   }finally{await db.query('DELETE FROM player_stat_changes WHERE player_tag=ANY($1::text[])',[tags]);}
+ }else if(warContractMode){
+  const search=()=>interact(command('war','search',[{name:'clan',type:3,value:group}]));
+  const regular=await search();if(!text(regular).includes('Reminder Clan')||!text(regular).includes('Other Clan')||!text(regular).includes('2/4'))throw Error('Regular war unavailable '+text(regular));
+  if((await db.query('SELECT 1 FROM war_schedule WHERE source_clan_tag=$1 OR opponent_tag=$1',[group])).rowCount)throw Error('Synthetic war contract pointer already exists');
+  try{
+   await db.query("INSERT INTO war_schedule(schedule_key,source_clan_tag,opponent_tag,prep_time,end_time,next_run_at,war_type) VALUES('test-war-contract',$1,'#PYLQGRJJ',$2,$3,now(),'random')",[group,fixturePrep,fixtureEnd]);
+   privateWar=true;
+   const discovered=await search();if(!text(discovered).includes('Reminder Clan')||!text(discovered).includes('Other Clan'))throw Error('Exact public opponent discovery failed '+text(discovered));
+   opponentNextWar=true;
+   const stale=await search();if(!text(stale).includes('war log is private'))throw Error('Stale opponent war accepted '+text(stale));
+   opponentWarError={status:403,body:{reason:'accessDenied',message:'This clan has a private war log'}};
+   const privateOpponent=await search();if(!text(privateOpponent).includes('war log is private')||text(privateOpponent).includes('Access unavailable'))throw Error('Confirmed private opponent blocked fallback '+text(privateOpponent));
+   opponentWarError={status:403,body:{reason:'accessDenied.invalidIp'}};
+   const denied=await search();if(!text(denied).includes('Access unavailable'))throw Error('Opponent credential failure became a missing war '+text(denied));
+   opponentWarError={status:503,body:{reason:'upstreamUnavailable'}};
+   const outage=await search();if(!text(outage).includes('Service temporarily unavailable'))throw Error('Opponent outage became a missing war '+text(outage));
+  }finally{opponentWarError=undefined;opponentNextWar=false;await db.query("DELETE FROM war_schedule WHERE schedule_key='test-war-contract'");}
+  reminderCwl=true;
+  const cwl=await search();if(!text(cwl).includes('CWL')||!text(cwl).includes('1/2'))throw Error('Private regular log blocked available CWL '+text(cwl));
+  console.log('PASS signed war contract: exact public opponent discovery, stale pairing rejected, confirmed private opponent skipped, credential/outage failures preserved, CWL despite private regular log');
  }else if(process.argv.includes('--wars-only')){
   const clan={name:'clan',type:3,value:group};
   const search=(name,opts=[])=>interact(command(name,'search',[clan,...opts]));
