@@ -11,7 +11,7 @@ const {publicKey,privateKey}=generateKeyPairSync('ed25519');
 const app='999999999999991001',guild='999999999999991002',actor='999999999999991003';
 const tag='#PYLQGRJC',replies=new Map();let sequence=0;
 const recentWrites=[];
-const directoryClans=Array.from({length:25},(_,i)=>({name:`Family Clan ${String(i+1).padStart(2,'0')}`,tag:i===0?'#PYLQGRJ':'#PYLQ'+i.toString(8).replaceAll('1','P').replaceAll('3','Y').replaceAll('4','L').replaceAll('5','Q').replaceAll('6','G').replaceAll('7','R'),category:'Family',categoryOrder:0}));
+const directoryClans=Array.from({length:46},(_,i)=>({name:`Family Clan ${String(i+1).padStart(2,'0')}`,tag:i===0?'#PYLQGRJ':'#PYLQ'+i.toString(8).replaceAll('1','P').replaceAll('3','Y').replaceAll('4','L').replaceAll('5','Q').replaceAll('6','G').replaceAll('7','R'),category:'Family',categoryOrder:0}));
 const members=[
  {name:'SIR TROLLSON',tag:'#PYLQGRJCUV',townHall:18,hidden:false,link:{userId:actor,inServer:true,username:'emma.polishpower',verified:false}},
  {name:'👩🏽‍🚀 漢字 Café Long Player',tag:'#PYLQGRJCU',townHall:18,hidden:false,link:{userId:actor,inServer:true,username:'abcdefghijklmnopqr',verified:true}},
@@ -89,7 +89,7 @@ try{
  const controls=verifyDirectory(directory);
  assert.ok(controls.find(c=>c.label==='Previous')?.disabled);
  const next=controls.find(c=>c.label==='Next'&&!c.disabled);
- assert.ok(next,'25 linked clans should create a second page');
+ assert.ok(next,'46 linked clans must paginate beyond the compact 45-clan cap');
  const second=await interact({type:3,data:{custom_id:next.custom_id,component_type:2}});
  const previous=verifyDirectory(second).find(c=>c.label==='Previous'&&!c.disabled);
  assert.ok(previous);
