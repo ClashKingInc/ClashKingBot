@@ -240,7 +240,7 @@ try{
    if(request.method==='DELETE')return new Response(null,{status:204});
    const token=url.pathname.split('/')[5];let data;
    if(request.headers.get('content-type')?.startsWith('multipart/form-data')){
-    const form=await request.formData();const payload=form.get('payload_json');data=JSON.parse(typeof payload==='string'?payload:await payload.text());
+    const form=await request.formData();const payload=form.get('payload_json');if(typeof payload!=='string')throw Error('Discord payload_json must be a text field, not an attachment');data=JSON.parse(payload);
     const file=form.get('files[0]');if(!file)throw Error('Missing poster attachment');
     const bytes=Buffer.from(await file.arrayBuffer());
     const dimension=pepeMode?250:graphMode?1280:1600,height=pepeMode?250:graphMode?bytes.readUInt32BE(20):1100;
