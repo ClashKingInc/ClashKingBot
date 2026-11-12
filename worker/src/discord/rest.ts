@@ -26,9 +26,19 @@ export function createDiscordClient(options:{applicationId:string;token:string;f
  // dfx's deliberate rate-limit sleeps. A whole-operation deadline can cancel
  // a valid Retry-After wait and make durable refresh retry too early.
  const providerFetch=options.fetch??globalThis.fetch.bind(globalThis);
- const boundedFetch:typeof fetch=(input,init)=>providerFetch(input,{...init,signal:AbortSignal.any([
-  ...(init?.signal?[init.signal]:[]),AbortSignal.timeout(10_000),
- ])});
+ const boundedFetch:typeof fetch=async(input,init)=>{
+  // Workers preserves dfx's empty Blob filename, which makes Discord treat
+  // payload_json as an attachment. Send that part as text; keep dfx's actual
+  // files, authentication and rate-limit handling unchanged.
+  const body=init?.body;
+  if(body instanceof FormData){
+   const payload=body.get('payload_json');
+   if(payload instanceof Blob)body.set('payload_json',await payload.text());
+  }
+  return providerFetch(input,{...init,signal:AbortSignal.any([
+   ...(init?.signal?[init.signal]:[]),AbortSignal.timeout(10_000),
+  ])});
+ };
  const runtime=ManagedRuntime.make(DiscordRESTMemoryLive.pipe(Layer.provide([
   DiscordConfig.layer({token:Redacted.make(options.token)}),
   FetchHttpClient.layer.pipe(Layer.provide(Layer.succeed(FetchHttpClient.Fetch,boundedFetch))),
