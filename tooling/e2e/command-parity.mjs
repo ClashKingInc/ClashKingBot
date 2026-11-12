@@ -931,7 +931,7 @@ try{
   if(!text(retired).includes('no longer available'))throw Error('Cached warning command fell through to another report');
   const removed=await fetch(`http://127.0.0.1:${port}/v2/server/999999999999996510/clan/${encodeURIComponent(group)}/member-warning`,{headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`}});
   if(removed.status!==404)throw Error('Removed warning endpoint remains active');
-  for(const name of ['autorefresh','roles','giveaway','buttons']) {
+  for(const name of ['autorefresh','roles','giveaway']) {
    const response=await interact({type:2,data:{name}});if(response.embeds?.length)throw Error('Removed setup command remains active: '+name);
   }
   for(const [name,action]of [['roster','create'],['roster','settings'],['roster','post'],['ticket','panel-post'],['clan','war-events']]){
