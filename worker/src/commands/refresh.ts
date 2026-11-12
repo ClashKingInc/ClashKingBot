@@ -1,4 +1,5 @@
 import { getOriginalInteractionResponse, editChannelMessage, editOriginalInteractionResponse } from "../discord/message-actions";
+import { processManualRefresh } from "../refresh/runtime";
 import { emojis, escapeMarkdown } from "./game-common";
 import { serverEmbedColor } from "./embed-color";
 import { sendInteractionError } from "./errors";
@@ -45,6 +46,19 @@ export const refreshCommand: Command = {
 
 interface ManualResult {user_id:string;result:{displayName?:string;skippedAccountTags?:string[];add?:string[];remove?:string[];nickname?:string;blocked?:string[];preview?:boolean;skipped?:string;error?:string}}
 interface ManualReport {requestId:string;actorId:string;channelId:string;messageId:string|null;createdAt:string;updatedAt:string;finished:boolean;waiting?:Array<ManualResult&{nextRetryAt:string}>;results:ManualResult[];total:number;completed:number;failed:number;target:string;kind:string;preview:boolean;categories:RefreshCategory[];treatment:RoleTreatment}
+export async function memberPanelRefresh(ctx:CommandContext){
+  const guild=requireGuildId(ctx),actor=invokingUserId(ctx),rest=ctx.services.discordRest;
+  // A private reply cannot be edited later with channel-message bot auth. Run
+  // this one-member action through the existing authorized manual engine;
+  // public bulk refreshes retain their durable queue and progress messages.
+  await ctx.services.api.post(`/v2/bot/role-refresh/${guild}/manual-targets`,{actorId:actor,targetId:actor,targetKind:"user"});
+  const bot=await rest.getMyUser();
+  const [roles,botMember,server]=await Promise.all([rest.listGuildRoles(guild),rest.getGuildMember(guild,bot.id),rest.getGuild(guild)]);
+  const result=await processManualRefresh(ctx.services,{server_id:guild,user_id:actor,manual:true,preview:false,categories:[...refreshCategories],role_treatment:"both"},{roles,bot:botMember,owner:String(server.owner_id)});
+  const now=new Date().toISOString();
+  return status(ctx,ctx.interaction.id,0,{requestId:ctx.interaction.id,actorId:actor,channelId:ctx.interaction.channel_id??"",messageId:null,createdAt:now,updatedAt:now,finished:true,results:[{user_id:actor,result}],total:1,completed:1,failed:0,target:actor,kind:"user",preview:false,categories:[...refreshCategories],treatment:"both"},true);
+}
+
 async function runManualRefresh(ctx: CommandContext, kind: string, target: string, preview: boolean, categories: RefreshCategory[], treatment: RoleTreatment = "both") {
   const guild=requireGuildId(ctx),actor=invokingUserId(ctx),channelId=ctx.interaction.channel_id;
   if(!channelId)throw new CommandInputError("Run refresh in a server channel.");
@@ -81,7 +95,7 @@ export async function publishManualRefreshes(services:CommandServices,env:Env){
   return activeRequests??requests;
 }
 
-async function status(ctx: CommandContext, requestId: string, requestedPage=0, supplied?:ManualReport) {
+async function status(ctx: CommandContext, requestId: string, requestedPage=0, supplied?:ManualReport, privateRefresh=false) {
   const guild = requireGuildId(ctx),size=10;
   const report=supplied??await ctx.services.api.get<ManualReport>(`/v2/bot/role-refresh/${guild}/manual-report`,{requestId,actorId:invokingUserId(ctx)});
   if(!report.finished){
@@ -128,7 +142,7 @@ async function status(ctx: CommandContext, requestId: string, requestedPage=0, s
       {type:2 as const,style:2 as const,label:`${page+1} / ${last+1}`,custom_id:`${id(page)}:counter`,disabled:true},
       {type:2 as const,style:2 as const,label:'›',custom_id:id(page+1),disabled:page===last},
     ]:[]),
-    {type:2,style:2,emoji:emoji.component('refresh')??{name:'↻'},custom_id:`ck:refresh:again:${report.actorId}:${requestId}`},
+    {type:2,style:2,emoji:emoji.component('refresh')??{name:'↻'},custom_id:privateRefresh?`ck:quick:${guild}:refresh`:`ck:refresh:again:${report.actorId}:${requestId}`},
   )]});
 }
 

@@ -98,6 +98,10 @@ const provider=createServer(async(req,res)=>{
   }
   return send(chunk,...args);
  };
+ if(quickPanelMode&&url.pathname===`/api/v10/guilds/${roleServer}`)return res.end(JSON.stringify({id:roleServer,name:'Panel Server',icon:'local-icon',owner_id:other}));
+ if(quickPanelMode&&url.pathname.endsWith('/emojis'))return res.end(JSON.stringify({items:[{id:'999999999999996591',name:'refresh'},{id:'999999999999996592',name:'green_check'},{id:'999999999999996593',name:'calendar'}]}));
+ if(quickPanelMode&&req.method==='GET'&&url.pathname.startsWith('/api/v10/channels/'))return res.end(JSON.stringify({id:url.pathname.split('/').at(-1),guild_id:url.pathname.endsWith('/999999999999996599')?'999999999999996512':roleServer,type:0}));
+ if(quickPanelMode&&req.method==='POST'&&url.pathname.endsWith('/messages')){sentReminders.push(JSON.parse(text));return res.end(JSON.stringify({id:'999999999999996999'}));}
  if((roleMode)&&url.pathname===`/api/v10/guilds/${roleServer}/roles`)return res.end(JSON.stringify(roleDefinitions.map(role=>({...role,managed:role.id===botRole}))));
  if(roleMode&&url.pathname===`/api/v10/guilds/${roleServer}`)return res.end(JSON.stringify({id:roleServer,owner_id:other}));
  const p=decodeURIComponent(url.pathname),endTime=fixtureEnd;
@@ -170,7 +174,7 @@ try{
  ownsRecords=true;
  for(const playerTag of tags)await db.query("INSERT INTO player_links(tag,user_id,source) VALUES($1,$2,'discord')",[playerTag,actor]);
  const armies=(await db.query('SELECT share_code FROM army_compositions ORDER BY length(share_code),share_code LIMIT 30')).rows;
- if(armies.length<30&&!helpMode&&!botInfoMode&&!fankitMode&&!graphMode&&!wireMode&&!warContractMode&&!modlinkMode)throw Error('Thirty existing local compositions required');
+ if(armies.length<30&&!helpMode&&!botInfoMode&&!fankitMode&&!graphMode&&!wireMode&&!warContractMode&&!modlinkMode&&!quickPanelMode)throw Error('Thirty existing local compositions required');
  for(const army of armies)await db.query('INSERT INTO user_saved_armies(user_id,share_code) VALUES($1,$2)',[actor,army.share_code]);
  for(const season of historySeasons)await db.query(`INSERT INTO ranked_league_group_members(season_id,group_tag,league_tier_id,player_tag,player_name,placement,league_trophies,attack_win_count,attack_loss_count,defense_win_count,defense_loss_count,town_hall,maximum_battle_count) VALUES($1,$2,$3,$4,'Historical Player',1,5000,8,1,4,5,16,10)`,[season,group,tier,tag]);
  const env={PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR,CLASHKING_PERSISTENT_LOCAL_API:process.env.CLASHKING_DISPOSABLE_TIMESCALE==='1'?'0':'1',CLASHKING_DISPOSABLE_TIMESCALE:process.env.CLASHKING_DISPOSABLE_TIMESCALE,TEST_DATABASE_URL:database,CLASHKING_LOCAL_DATABASE_URL:database,CLASHKING_LOCAL_API_PORT:String(port),CLASHKING_LOCAL_DISCORD_CLIENT_ID:app,CLASHKING_LOCAL_DISCORD_TEST_ORIGIN:`http://127.0.0.1:${providerPort}`,CLASHKING_LOCAL_DISCORD_CLIENT_SECRET:'local-only',CLASHKING_LOCAL_DISCORD_PUBLIC_KEY:publicHex,CLASHKING_LOCAL_ARCHIVE_BRIDGE:'0',CLASHKING_LOCAL_CLASH_PROXY_ORIGIN:`http://127.0.0.1:${providerPort}`,CLASHKING_LOCAL_STATIC_ASSETS_ROOT:join(assetsRepo,'assets/static_data'),CLASHKING_LOCAL_STORAGE_ROOT:join(directory,'storage'),...Object.fromEntries(Object.entries(keys).map(([key,value])=>[`${process.env.CLASHKING_DISPOSABLE_TIMESCALE==='1'?'CLASHKING_E2E_':'CLASHKING_LOCAL_'}${key}`,value]))};
@@ -223,6 +227,7 @@ try{
     const change=new RegExp(`/guilds/${roleServer}/members/${actor}/roles/([0-9]+)$`).exec(url.pathname);
     if(change){if(request.method==='PUT')memberRoles.add(change[1]);else if(request.method==='DELETE')memberRoles.delete(change[1]);else throw Error('Unexpected role method');roleWrites.push({kind:request.method,role:change[1]});return new Response(null,{status:204});}
    }
+   if(quickPanelMode&&request.method==='GET'&&/^\/api\/v10\/users\/\d+$/u.test(url.pathname))return Response.json({id:url.pathname.split('/').at(-1),username:'Local panel member',avatar:null});
    if(request.method==='GET'&&url.pathname.endsWith('/emojis')){emojiInventoryRequests++;return Response.json({items:emojiItems});}
    if(request.method==='GET'&&url.pathname.includes('/channels/'))return Response.json({id:url.pathname.split('/').at(-1),guild_id:quickPanelMode&&url.pathname.endsWith('/999999999999996599')?'999999999999996512':'999999999999996510',type:0});
    if(request.method==='POST'&&url.pathname.endsWith('/messages')){if(reminderSendFails)return Response.json({message:'Missing permissions'},{status:403});sentReminders.push(await request.json());return Response.json({id:'999999999999996999'});}
@@ -259,7 +264,10 @@ try{
   if(graphMode&&graphGap&&decodeURIComponent(url.pathname).includes(group+'/season-stats')&&url.searchParams.get('season')==='2024-12')return Response.json({message:'Unavailable'},{status:503});
   if(graphMode&&graphFailure&&decodeURIComponent(url.pathname).includes('#PYLQGRJJ/season-stats'))return Response.json({message:'Unavailable'},{status:503});
   if(todoMode&&legendFails&&url.pathname==='/v2/legends/days')return Response.json({message:'Temporarily unavailable'},{status:503});
-  if(url.hostname==='127.0.0.1'&&url.port===String(port))return fetch(request.url,{method:request.method,headers:Object.fromEntries(request.headers),body:['GET','HEAD'].includes(request.method)?undefined:await request.arrayBuffer()});
+  if(url.hostname==='127.0.0.1'&&url.port===String(port)){
+   const response=await fetch(request.url,{method:request.method,headers:Object.fromEntries(request.headers),body:['GET','HEAD'].includes(request.method)?undefined:await request.arrayBuffer()});
+   if(quickPanelMode&&url.pathname.endsWith('/member-panels')&&response.ok){const {Effect,Schema}=await import(require.resolve('effect'));const {BotMemberPanelsEndpoint}=await import(pathToFileURL(join(apiRepo,'packages/api-contracts/dist/index.js')).href);await Effect.runPromise(Schema.decodeUnknownEffect(BotMemberPanelsEndpoint.response)(await response.clone().json()));}return response;
+  }
   throw Error('External request blocked by local integration harness');
  }catch(error){console.error('Loopback provider failed:',request.method,new URL(request.url).pathname.replace(/\/webhooks\/[^/]+\/[^/]+/,'/webhooks/:id/:token'),String(error));throw error;}
  }}]}));
@@ -740,8 +748,34 @@ try{
     await db.query('INSERT INTO discord_cache.gateway_shards(application_id,shard_id,shard_count,generation,healthy,heartbeat_at) VALUES($1,0,1,$2,true,now())',[app,generation]);
     await db.query('INSERT INTO discord_cache.guilds(id,data,application_id,shard_id,generation,available,metadata_complete,members_complete) VALUES($1,$2,$3,0,$4,true,true,true)',[server,JSON.stringify({owner_id:other}),app,generation]);
     await db.query('INSERT INTO discord_cache.members(guild_id,user_id,data) VALUES($1,$2,$3)',[server,actor,JSON.stringify({user:{id:actor},roles:[]})]);
-    const removed=await interact({type:2,data:{name:'buttons'}},actor,'32');if(!text(removed).includes('/dashboard')||sentReminders.length)throw Error('Removed panel setup command still posts');
-    // Existing member controls remain valid without exposing a setup slash command.
+    if(!text(await interact({type:2,data:{name:'buttons'}},actor,'32')).includes('Panels manage permission'))throw Error('Interaction permission bit bypassed canonical panel authorization');
+    const panelRole='999999999999996595';
+    await db.query('INSERT INTO discord_cache.roles(guild_id,id,data) VALUES($1,$2,$3)',[server,panelRole,{id:panelRole,name:'Panel team',permissions:'0'}]);
+    await db.query("UPDATE discord_cache.members SET data=jsonb_set(data,'{roles}',$3::jsonb) WHERE guild_id=$1 AND user_id=$2",[server,actor,JSON.stringify([panelRole])]);
+    await db.query("INSERT INTO dashboard_role_grants(server_id,role_id,section,access_level) VALUES($1,$2,'panels','view')",[server,panelRole]);
+    if(!text(await interact({type:2,data:{name:'buttons'}})).includes('Panels manage permission'))throw Error('View-only panel actor allowed');
+    await db.query("UPDATE dashboard_role_grants SET access_level='manage' WHERE server_id=$1 AND role_id=$2",[server,panelRole]);
+    const select=async(options=[])=>{const response=await interact({type:2,data:{name:'buttons',options}});const menu=response.components?.[0]?.components?.[0];if(menu?.type!==3||menu.max_values!==4||menu.options.length!==5||menu.custom_id.length>100)throw Error('Legacy panel chooser missing '+text(response));return menu.custom_id;};
+    const finish=(id,values,who=actor)=>interact({type:3,data:{custom_id:id,component_type:3,values}},who);
+    const id=await select([{name:'button_color',type:3,value:'Green'}]);
+    if(!text(await finish(id,['Link Button'],other)).includes('Only the panel creator'))throw Error('Another user could finish private builder');
+    if(!text(await finish(id,['Link Button','Link Button'])).includes('different buttons'))throw Error('Duplicate panel button allowed');
+    if(!text(await finish(id.replace(/:[^:]+$/u,':1'),['Link Button'])).includes('expired'))throw Error('Expired selection accepted');
+    const posted=await finish(id,['Link Button','Refresh Button','To-Do Button','Roster Button']);
+    if(!text(posted).includes('View message')||sentReminders.length!==1)throw Error('Panel did not post '+text(posted));
+    const panel=sentReminders[0];
+    if(panel.components[0].components.some(button=>button.style!==3)||panel.components[0].components[1].emoji.name!=='refresh'||panel.components[0].components[1].label!=='Refresh Roles'||panel.embeds[0].description!=='Use the buttons below to view info about your accounts.'||panel.embeds[0].thumbnail?.url!==`https://cdn.discordapp.com/icons/${server}/local-icon.png`||panel.allowed_mentions.parse.length)throw Error('Legacy panel render/emoji/mention policy changed '+text(panel));
+    await db.query("INSERT INTO server_custom_embeds(server_id,name,data) VALUES($1,'Member welcome',$2)",[server,{content:'@everyone hello',embeds:[{title:'Saved welcome'}],allowed_mentions:{parse:['everyone']}}]);
+    const auto=await interact({type:4,data:{name:'buttons',options:[{name:'embed',type:3,value:'welcome',focused:true}]}});
+    if(auto.choices?.length!==1||auto.choices[0].name!=='Member welcome')throw Error('Saved embed autocomplete missing');
+    const welcome=await select([{name:'embed',type:3,value:auto.choices[0].value},{name:'button_color',type:3,value:'Red'},{name:'on_welcome_channel',type:7,value:'999999999999996511'}]);
+    const preview=await finish(welcome,['Link Button','Link Help Button']);
+    const saved=(await db.query('SELECT embed_name,button_color,welcome_channel_id FROM server_welcome_panels WHERE server_id=$1',[server])).rows[0];
+    if(saved.embed_name!=='Member welcome'||saved.button_color!=='Red'||saved.welcome_channel_id!=='999999999999996511'||preview.embeds?.[0]?.title!=='Saved welcome'||preview.components?.[0]?.components?.[0]?.style!==4||preview.allowed_mentions.parse.length||sentReminders.length!==1)throw Error('Welcome config/preview failed '+text(preview));
+    const foreign=await select([{name:'on_welcome_channel',type:7,value:'999999999999996599'}]);if(!text(await finish(foreign,['Link Button'])).includes('this server'))throw Error('Foreign welcome destination allowed');
+    const revoked=await select();await db.query("UPDATE dashboard_role_grants SET access_level='view' WHERE server_id=$1 AND role_id=$2",[server,panelRole]);
+    if(!text(await finish(revoked,['Link Button'])).includes('Panels manage permission')||sentReminders.length!==1)throw Error('Panel permission not rechecked at selection');
+    // Existing member controls keep their clicker identity and privacy.
     const click=async(action,who=actor,legacy=false)=>interact({type:3,data:{component_type:2,custom_id:legacy?action:`ck:quick:${server}:${action}`}},who);
     const link=await click('link');if(link.custom_id!=='ck:link:submit')throw Error('Panel link did not open existing modal');
     const help=await click('help');if(help.flags!==64||!help.embeds?.length)throw Error('Panel help not private');
@@ -749,11 +783,13 @@ try{
     const stranger=await click('rosters',other);if(text(stranger).includes('Stored member'))throw Error('Panel reused creator identity');
     await db.query('UPDATE player_links SET hidden=true,is_verified=true WHERE tag=$1',[tags[1]]);if(text(await click('rosters')).includes('Stored member'))throw Error('Hidden link exposed');await db.query('UPDATE player_links SET hidden=false,is_verified=false WHERE tag=$1',[tags[1]]);
     if(!text(await click('MyRosters',actor,true)).includes('Visible roster'))throw Error('Legacy roster button broken');
-    const refresh=await click('refresh');if(refresh.flags!==64||!text(refresh).includes('refreshes completed'))throw Error('Panel refresh failed '+text(refresh));
-    const todo=await click('todo');if(todo.flags!==64||!todo.embeds?.length)throw Error('Panel to-do failed '+text(todo));
+    const refresh=await click('refresh');if(refresh.flags!==64||!text(refresh).includes('Refresh Complete')||refresh.components?.[0]?.components?.at(-1)?.custom_id!==`ck:quick:${server}:refresh`)throw Error('Private member refresh failed '+text(refresh));
+    if((await db.query('SELECT 1 FROM role_refresh_requests WHERE server_id=$1',[server])).rowCount)throw Error('Private panel response was stored as a durable public message');
+    const todo=await click('todo');if(todo.flags!==64||!todo.embeds?.length||text(todo).includes('temporarily unavailable')||text(todo).includes('Something went wrong'))throw Error('Panel to-do failed '+text(todo));
     const cross=await interact({type:3,data:{component_type:2,custom_id:`ck:quick:${elsewhere}:rosters`}});if(!text(cross).includes('another server'))throw Error('Foreign panel accepted');
-    console.log(JSON.stringify({quickPanel:'passed',checks:['setup command removed','existing link modal','private help/tasks/refresh','clicker identity','own roster scope','hidden links excluded','legacy IDs','cross-server rejection'],externalDiscordWrites:0,localPanelPosts:sentReminders.length}));
+    console.log(JSON.stringify({quickPanel:'passed',checks:['legacy private button chooser','canonical Panels permission and live revocation','saved embed autocomplete','four styles and authentic refresh emoji','current channel publication','welcome persistence and preview','foreign destination/owner/expiry denial','existing link modal','private help/tasks/refresh through the actual authorized manual engine','clicker identity','own roster scope','hidden links excluded','legacy IDs','cross-server rejection'],externalDiscordWrites:0,localPanelPosts:sentReminders.length}));
    }
+   if(!quickPanelMode){
    const list=await interact(command('roster','list'),actor,'32');if(!text(list).includes('Visible roster')||text(list).includes('Other server secret'))throw Error('Roster list scope failed: '+text(list));
    const selection=await interact({type:3,data:{custom_id:'ck:roster:select',component_type:3,values:[created.roster_id]}},actor,'32');if(!text(selection).includes('Stored member'))throw Error('Roster selection failed');
    const view=await interact(command('roster','view',[{name:'roster',type:3,value:created.roster_id}]),actor,'32');if(!text(view).includes('Stored member'))throw Error('Roster view failed');
@@ -812,6 +848,7 @@ try{
    await call('DELETE',`/v2/roster/${copy.id}?server_id=${server}`);
    if((await db.query('SELECT 1 FROM rosters WHERE id=$1',[copy.id])).rowCount)throw Error('Delete failed');
    console.log(JSON.stringify({rosterReads:'passed',checks:['setup commands rejected','canonical API-created rosters','server-scoped list and selection','direct view','player and self search','search refresh','failed refresh preserves profile','stored profile update','cooldown reuse','label CRUD/display','foreign label rejected','in-use label protected','atomic move','foreign server move rejected','copy preserves labels','remove/clear/delete'],externalDiscordWrites:0}));
+   }
   }finally{if(quickPanelMode){await db.query('DELETE FROM discord_cache.members WHERE guild_id=$1',[server]);await db.query('DELETE FROM discord_cache.guilds WHERE id=$1',[server]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);}await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,elsewhere]]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);}
  }else if(modlinkMode){
   const server='999999999999996510',generation=randomBytes(16).toString('hex'),role='999999999999996599',playerTag=tags[3];

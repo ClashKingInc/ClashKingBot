@@ -1,14 +1,13 @@
 import { legacyMessage } from "../discord/components";
 import { CommandInputError, invokingUserId, requireGuildId } from "./command-utils";
 import { playerCommand } from "./player";
-import { refreshCommand } from "./refresh";
+import { memberPanelRefresh } from "./refresh";
 import type { CommandContext } from "./types";
 
-// Published panels still resolve their current clicker. Creation belongs in the
-// dashboard; retaining the interaction handler does not register a setup command.
+// Published panels always resolve their current clicker, including old messages.
 export async function quickMemberAction(ctx:CommandContext,action:string){
  // Shared actions must resolve the current clicker, never the panel author.
- if(action==='refresh')return refreshCommand.execute({...ctx,options:new Map()});
+ if(action==='refresh')return memberPanelRefresh(ctx);
  if(action==='todo')return playerCommand.execute({...ctx,options:new Map([['to-do',{name:'to-do',type:1,options:[]}]])});
  if(action!=='rosters')throw new CommandInputError("Unknown member action.");
  const data=await ctx.services.api.get<{truncated:boolean;items:Array<{rosterName:string;playerName:string;playerTag:string;clanName:string|null;groupName:string}>}>(`/v2/bot/servers/${requireGuildId(ctx)}/users/${invokingUserId(ctx)}/rosters`);
