@@ -88,7 +88,11 @@ async function optional<T>(
   try {
     return await ctx.services.api.get<T>(path, query);
   } catch (error) {
-    if (error instanceof ClashKingApiError && [403, 404].includes(error.status))
+    // A confirmed private opponent is unavailable for discovery, not a failed
+    // credential check. Keep stored/CWL fallback reachable without hiding a
+    // generic 403 or an outage behind an empty-war result.
+    if (error instanceof ClashKingApiError &&
+      (error.status === 404 || error.status === 403 && error.outcome.kind === 'privateWarLog'))
       return null;
     throw error;
   }
@@ -198,7 +202,8 @@ export async function loadCurrentWar(
       ![403, 404].includes(error.status)
     )
       throw error;
-    privateLog = error.status === 403;
+    if (error.status === 403 && error.outcome.kind !== 'privateWarLog') throw error;
+    privateLog = error.outcome.kind === 'privateWarLog';
   }
   if (isWar(current, tag)) return { war: current, privateLog, cwl: isCwlWar(current) };
   const pointer = await optional<Pointer>(

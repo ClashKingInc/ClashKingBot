@@ -11,9 +11,10 @@ const api=resolve(process.env.CLASHKING_E2E_API_REPO??'/Users/matthewanderson/Py
 const require=createRequire(join(api,'package.json')),pg=require('pg');
 const {SignJWT}=await import(require.resolve('jose'));
 const appRequire=createRequire('/Users/matthewanderson/IdeaProjects/ClashKingApp/expo/package.json');
-const {Effect:AppEffect,Schema:AppSchema}=await import(appRequire.resolve('effect'));
-const {ClanCapitalRankingListResponse}=await import('/Users/matthewanderson/IdeaProjects/ClashKingApp/expo/node_modules/@clashking/clash-contract/dist/effect.js');
-const database='postgres://clashking_local:clashking_local@127.0.0.1:54330/clashking_dev';
+const {Effect:AppEffect,Schema:AppSchema}=process.argv.includes('--donation-logs-only')?{}:await import(appRequire.resolve('effect'));
+const {ClanCapitalRankingListResponse}=process.argv.includes('--donation-logs-only')?{}:await import('/Users/matthewanderson/IdeaProjects/ClashKingApp/expo/node_modules/@clashking/clash-contract/dist/effect.js');
+const database=process.env.TEST_DATABASE_URL??'postgres://clashking_local:clashking_local@127.0.0.1:54330/clashking_dev';
+const databaseURL=new URL(database);if(databaseURL.hostname!=='127.0.0.1'||(databaseURL.pathname!=='/clashking_dev'&&process.env.CLASHKING_DISPOSABLE_TIMESCALE!=='1'))throw Error('Only owned loopback fixture is allowed');
 const db=new pg.Client({connectionString:database});await db.connect();
 const actor='999999999999992601',server='999999999999992602',app='999999999999992603',channel='999999999999992604',hook='999999999999992605';
 const inviteOwner='999999999999992621',inviteManager='999999999999992622',ordinaryMember='999999999999992623';
@@ -42,7 +43,20 @@ const provider=createServer((req,res)=>{res.setHeader('content-type','applicatio
 const origin='http://127.0.0.1:8824';
 const assert=(value,message)=>{if(!value)throw Error(message)};
 const request=async(path,method='GET',body,expected=200,credential=token)=>{const r=await fetch(origin+path,{method,headers:{authorization:`Bearer ${credential}`,'content-type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});lastResponseHeaders=r.headers;const value=await r.json();assert(r.status===expected,`${method} ${path}: ${r.status} ${JSON.stringify(value)}`);return value};
-try {
+async function verifyDonationLogs(){
+ await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received) VALUES('#P09LP8CY','Donation E2E',true,0,0,'',0,0)");
+ await db.query("INSERT INTO server_clans(server_id,tag) VALUES($1,'#P09LP8CY')",[server]);
+ const donationLogPath=`/v2/server/${server}/logs`;
+ await request(donationLogPath,'PUT',{log_types:['donation_log'],channel_id:channel,clan_tag:'#P09LP8CY'});
+ assert((await request(donationLogPath)).logs.some(log=>log.type==='donation_log'&&log.clan_tag==='#P09LP8CY'),'Donation log not listed');
+ await request(donationLogPath,'PATCH',{log_types:['donation_log'],clan_tag:'#P09LP8CY',disabled:true});
+ assert((await request(donationLogPath)).logs.find(log=>log.type==='donation_log').disabled,'Donation log pause did not persist');
+ await request(donationLogPath,'PATCH',{log_types:['donation_log'],clan_tag:'#P09LP8CY',disabled:false});
+ await request(donationLogPath+'?log_types=donation_log&clan_tag=%23P09LP8CY','DELETE');
+ assert(!(await db.query("SELECT 1 FROM server_logs WHERE server_id=$1 AND type='donation_log'",[server])).rowCount,'Donation log delete failed');
+ console.log('PASS donation autoboard and donation log configure/list/pause/resume/delete through actual HTTP and SQL');
+}
+try {await(async()=>{
  assert(!(await db.query('SELECT 1 FROM auth_users WHERE user_id=$1',[actor])).rowCount,'Synthetic user exists');
  assert(!(await db.query('SELECT 1 FROM servers WHERE id=$1',[server])).rowCount,'Synthetic server exists');
  await db.query("INSERT INTO auth_users(user_id,provider) VALUES($1,'discord')",[actor]);seeded=true;
@@ -62,9 +76,10 @@ try {
  const encoded=Buffer.concat([signed,createHmac('sha256',encryptionKey.subarray(0,16)).update(signed).digest()]).toString('base64url');
  const storedToken=Buffer.from(encoded).toString('base64url');
  await db.query("INSERT INTO auth_discord_tokens(user_id,device_id,access_token_ciphertext,refresh_token_ciphertext,expires_at) VALUES($1,'e2e-device',$2,$2,now()+interval '1 day')",[actor,storedToken]);
- child=spawn(process.execPath,['scripts/start-local-rewrite-api.mjs'],{cwd:api,env:{...process.env,...keys,CLASHKING_LOCAL_JWT_ACCESS_SECRET:secret,CLASHKING_PERSISTENT_LOCAL_API:'1',CLASHKING_LOCAL_DATABASE_URL:database,CLASHKING_LOCAL_API_PORT:'8824',CLASHKING_LOCAL_DISCORD_CLIENT_ID:app,CLASHKING_LOCAL_DISCORD_CLIENT_SECRET:'local',CLASHKING_LOCAL_DISCORD_BOT_TOKEN:'local.fake.token',CLASHKING_LOCAL_ARCHIVE_BRIDGE:'0',CLASHKING_LOCAL_CLASH_PROXY_ORIGIN:`http://127.0.0.1:${provider.address().port}`,CLASHKING_LOCAL_DISCORD_TEST_ORIGIN:`http://127.0.0.1:${provider.address().port}`,CLASHKING_LOCAL_STORAGE_ROOT:mkdtempSync(join(tmpdir(),'ck-farming-api-'))},stdio:['ignore','pipe','pipe']});
+ child=spawn(process.execPath,['scripts/start-local-rewrite-api.mjs'],{cwd:api,env:{...process.env,...keys,...(process.env.CLASHKING_DISPOSABLE_TIMESCALE==='1'?Object.fromEntries(Object.entries(keys).map(([key,value])=>[key.replace('CLASHKING_LOCAL_','CLASHKING_E2E_'),value])):{}),CLASHKING_E2E_JWT_ACCESS_SECRET:secret,CLASHKING_LOCAL_JWT_ACCESS_SECRET:secret,CLASHKING_PERSISTENT_LOCAL_API:process.env.CLASHKING_DISPOSABLE_TIMESCALE==='1'?'0':'1',CLASHKING_LOCAL_DATABASE_URL:database,CLASHKING_LOCAL_API_PORT:'8824',CLASHKING_LOCAL_DISCORD_CLIENT_ID:app,CLASHKING_LOCAL_DISCORD_CLIENT_SECRET:'local',CLASHKING_LOCAL_DISCORD_BOT_TOKEN:'local.fake.token',CLASHKING_LOCAL_ARCHIVE_BRIDGE:'0',CLASHKING_LOCAL_CLASH_PROXY_ORIGIN:`http://127.0.0.1:${provider.address().port}`,CLASHKING_LOCAL_DISCORD_TEST_ORIGIN:`http://127.0.0.1:${provider.address().port}`,CLASHKING_LOCAL_STORAGE_ROOT:mkdtempSync(join(tmpdir(),'ck-farming-api-'))},stdio:['ignore','pipe','pipe']});
  child.stdout.on('data',b=>logs+=b);child.stderr.on('data',b=>logs+=b);
  for(let i=0;i<200;i++){try{if((await fetch(origin+'/v2/health')).ok)break}catch{}if(child.exitCode!==null)throw Error(logs.slice(-1800));if(i===199)throw Error('API start timeout '+logs.slice(-1800));await new Promise(r=>setTimeout(r,100))}
+ if(process.argv.includes('--donation-logs-only')){await verifyDonationLogs();return;}
  const path=`/v2/server/${server}/autoboards`;
  const directory=await request('/v2/guilds');
  assert(directory.some(g=>g.id===server&&g.has_bot),'Installed server missing from directory');
@@ -97,8 +112,7 @@ try {
  assert(donationEdited.rowLimit===30,'Donation row limit edit failed');
  assert((await request(path)).items.some(item=>item.id===donationBoard.id),'Donation board not listed');
  await request(path+'/'+donationBoard.id,'DELETE');
- await request(`/v2/server/${server}/logs`,'PUT',{log_types:['donation_log'],channel_id:channel,clan_tag:'#P09LP8CY'},400);
- console.log('PASS donation autoboard create/edit/list/delete and retired donation-log setup rejection');
+ await verifyDonationLogs();
  const initial=await request('/v2/users/me/home-layout');assert(initial.revision===0&&initial.items.length===4,'Initial cards missing');
  const items=[initial.items[2],initial.items[3],initial.items[0],initial.items[1]];
  const saved=await request('/v2/users/me/home-layout','PUT',{revision:0,items});assert(saved.revision===1,'Layout not saved');
@@ -152,7 +166,7 @@ try {
  await request(path,'GET',undefined,401,session.access_token);
  assert(writes===0,'Unexpected upstream writes');
  console.log(JSON.stringify({checks:['farming create/validate/edit/list/delete','Home preserves original cards','Home order roundtrip','Home revision conflict','Home cannot delete builtins','grant proof rejection','bot grants require recipient user authentication','one-use exchange','scoped own-server access','cross-server denied','private Home denied','refresh origin enforcement','refresh rotation and replay rejection','permission loss','parent device revocation'],realDiscordWrites:0}));
-}finally{
+})();}finally{
  if(child&&child.exitCode===null){child.kill('SIGTERM');await Promise.race([new Promise(r=>child.once('exit',r)),new Promise(r=>setTimeout(r,6000))]);}
  if(seeded){await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM discord_cache.members WHERE guild_id=$1',[server]);await db.query('DELETE FROM discord_cache.guilds WHERE id=$1',[server]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);await db.query('DELETE FROM auth_users WHERE user_id=$1',[actor]);}
  for(const table of ['battles_farming','battles_ranked','player_stat_changes','player_change_history'])await db.query('DELETE FROM '+table+' WHERE player_tag=$1',[activityTag]);

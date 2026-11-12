@@ -43,7 +43,7 @@ export const remindersCommand: Command = {
     const channelId = stringOption(ctx, "channel") ?? ctx.interaction.channel_id;
     if (!channelId) throw new CommandInputError("Choose a destination channel.");
     const channel = await ctx.services.discordRest.getChannel(channelId);
-    if (channel.guild_id !== serverId || ![0, 5, 10, 11, 12].includes(channel.type)) throw new CommandInputError("Choose a text channel or thread in this server.");
+    if (!("guild_id" in channel) || channel.guild_id !== serverId || ![0, 5, 10, 11, 12].includes(channel.type)) throw new CommandInputError("Choose a text channel or thread in this server.");
     let heading: string, missing: Missing[];
     if (type === "War") {
       const war = await currentWar(ctx, tag), own = war.clan.tag === tag ? war.clan : war.opponent, other = own === war.clan ? war.opponent : war.clan;
@@ -101,9 +101,7 @@ export const remindersCommand: Command = {
     pages.push(content);
     // Send directly, like legacy manual reminders. No saved configuration,
     // schedule or background worker; acknowledge only after Discord accepts.
-    for (const page of pages) await ctx.services.discordRest.request(`/channels/${channelId}/messages`, {
-      method: "POST", body: JSON.stringify({ content: page, allowed_mentions: { parse: [], users: [...new Set(mentions)] } }),
-    });
+    for (const page of pages) await ctx.services.discordRest.createMessage(channelId, { content: page, allowed_mentions: { parse: [], users: [...new Set(mentions)] } });
     return { type: InteractionResponseType.ChannelMessageWithSource, data: { content: "Reminder sent.", flags: MessageFlags.Ephemeral } };
   },
 };

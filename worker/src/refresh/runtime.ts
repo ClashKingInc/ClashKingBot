@@ -9,12 +9,12 @@ export interface RefreshJob {
   token: string; expires_at: string; preview: boolean; categories: RefreshCategory[]; roster_role_ids?: string[]; role_treatment?: "add" | "remove" | "both";
   auto_role_treatment?: "add" | "remove" | "both"; auto_role_blacklist_ids?: string[];
 }
-export interface GuildState { roles: DiscordRole[]; bot: DiscordMember; owner: string }
+export interface GuildState { roles: readonly DiscordRole[]; bot: DiscordMember; owner: string }
 const permissions = (state: GuildState) => state.roles.filter(role => role.id === state.bot.user?.id || state.bot.roles.includes(role.id)
   || role.name === "@everyone").reduce((bits, role) => bits | BigInt(String(role.permissions ?? "0")), 0n);
 const higher = (left: DiscordRole, right: DiscordRole) => Number(left.position) > Number(right.position)
   || Number(left.position) === Number(right.position) && BigInt(left.id) < BigInt(right.id);
-const topRole = (roles: DiscordRole[], member: DiscordMember) => roles.filter(role => member.roles.includes(role.id))
+const topRole = (roles: readonly DiscordRole[], member: DiscordMember) => roles.filter(role => member.roles.includes(role.id))
   .reduce<DiscordRole | undefined>((top, role) => !top || higher(role, top) ? role : top, undefined);
 
 type ManualRefresh = { server_id:string; user_id:string; preview:boolean; categories:RefreshCategory[]; role_treatment:"add"|"remove"|"both"; manual:true };
@@ -89,7 +89,7 @@ async function processMemberRefresh(services: CommandServices, job: RefreshJob|M
       const current=await rest.getGuildMember(job.server_id,job.user_id);
       const merged=[...new Set([...current.roles.filter(id=>!remove.includes(id)),...add])];
       checkDeadline();
-      await rest.request(`/guilds/${job.server_id}/members/${job.user_id}`,{method:"PATCH",body:JSON.stringify({...(add.length||remove.length?{roles:merged}:{}),...(nickname!==undefined?{nick:nickname}:{})})});
+      await rest.updateGuildMember(job.server_id,job.user_id,{...(add.length||remove.length?{roles:merged}:{}),...(nickname!==undefined?{nick:nickname}:{})});
     }
   }
   return { displayName:nickname??member.nick??member.user?.global_name??member.user?.username, add, remove, ...(nickname === undefined ? {} : { nickname }), blocked, preview: job.preview, skippedAccountTags: data.skippedAccountTags, mainTag: plan.mainTag };
@@ -108,8 +108,8 @@ export async function drainRefreshJobs(services: CommandServices, requestId?: st
       try {
         let state = states.get(job.server_id);
         if (!state) {
-          botId ??= services.discordRest.get<{ id: string }>("/users/@me").then(user => user.id);
-          state = Promise.all([services.discordRest.getGuildRoles(job.server_id),
+          botId ??= services.discordRest.getMyUser().then(user => user.id);
+          state = Promise.all([services.discordRest.listGuildRoles(job.server_id),
             botId.then(id => services.discordRest.getGuildMember(job.server_id, id)), services.discordRest.getGuild(job.server_id)])
             .then(([roles, bot, guild]) => ({ roles, bot, owner: String(guild.owner_id) }));
           states.set(job.server_id, state);

@@ -1,3 +1,5 @@
+let rateLimitedMember;
+const discordRetrySeconds=12;
 // Signed Bot Worker -> real API Worker -> disposable PostgreSQL -> local HTTP Discord provider.
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
@@ -41,8 +43,9 @@ const provider=createServer(async(req,res)=>{
   const member=members.get(match[1]);
   if(req.method==='GET'){if(!member.roles.includes(late))member.roles.push(late);return send(member);}
   if(req.method==='PATCH'){
-   if(throttle){throttle=false;first429=Date.now();res.setHeader('retry-after','2');res.setHeader('x-ratelimit-bucket','member-edits');return send({retry_after:2,global:false},429);}
-   if(Date.now()-first429<2000)earlyRetries++;
+   if(throttle){throttle=false;first429=Date.now();rateLimitedMember=match[1];res.setHeader('retry-after',String(discordRetrySeconds));res.setHeader('x-ratelimit-bucket','member-edits');return send({retry_after:discordRetrySeconds,global:false},429);}
+   // Other members can already be in flight when a bucket first responds 429.
+   if(match[1]===rateLimitedMember&&Date.now()-first429<discordRetrySeconds*1000)earlyRetries++;
    assert(body.roles.includes(keep)&&body.roles.includes(late));if(expectEmptyAccounts){assert(!body.roles.includes(add)&&!body.roles.includes(remove));assert.equal(body.nick,undefined);}else{assert(body.roles.includes(add)&&!body.roles.includes(remove));assert.equal(body.nick,'Updated');}
    rolePatches.push({id:match[1],body});Object.assign(member,{roles:body.roles,...(body.nick===undefined?{}:{nick:body.nick})});res.setHeader('x-ratelimit-bucket','member-edits');res.setHeader('x-ratelimit-remaining','0');res.setHeader('x-ratelimit-reset-after','0.05');return send(member);
   }
@@ -162,7 +165,7 @@ try{
  await wait(async()=>Boolean((await db.query('SELECT published_complete FROM role_refresh_requests WHERE id=$1',[revokedId])).rows[0]?.published_complete),'failure final progress');
  assert.match(JSON.stringify(messages.at(-1)),/Refresh Incomplete/);assert.match(JSON.stringify(messages.at(-1)),/Before/);
  const pausedTenure=(await db.query("SELECT attempts,completed_at FROM role_refresh_jobs WHERE id='tenure:paused'")).rows[0];assert.equal(pausedTenure.attempts,0);assert.equal(pausedTenure.completed_at,null);
- console.log('PASS real signed Bot/API/SQL: immediate defer, durable two-member request, idempotent enqueue, single original progress message, older automatic backlog bypassed, restart after token expiry, provider retry-after, combined roles+nickname PATCH preserving unrelated roles, final progress publication, mixed 404 accounts skipped, all 404 equals no linked accounts, temporary outage retry and recovered error cleared');
+ console.log('PASS real signed Bot/API/SQL: immediate defer, durable two-member request, idempotent enqueue, single original progress message, older automatic backlog bypassed, restart after token expiry, provider retry-after longer than the transport deadline, combined roles+nickname PATCH preserving unrelated roles, final progress publication, mixed 404 accounts skipped, all 404 equals no linked accounts, temporary outage retry and recovered error cleared');
 }catch(error){console.error(logs.slice(-6000));throw error;}finally{
  if(bot)await bot.dispose();if(api&&api.exitCode===null){api.kill('SIGTERM');await new Promise(r=>api.once('exit',r));}await new Promise(r=>provider.close(r));await db.end();
 }

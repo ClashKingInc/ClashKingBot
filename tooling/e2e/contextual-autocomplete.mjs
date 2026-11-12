@@ -1,3 +1,4 @@
+import { validClashFixture } from '../../worker/scripts/e2e-clash-fixtures.mjs';
 // Actual signed HTTP interactions through the bundled Bot Worker. Only external
 // API/Discord responses are local fixtures; no production messages are sent.
 import assert from 'node:assert/strict';
@@ -26,7 +27,7 @@ const bot=new Miniflare(convertV4MiniflareOptions({host:'127.0.0.1',port:0,worke
   if(u.hostname==='local-api.test'){
    if(u.pathname===`/v2/bot/servers/${guild}/player-autocomplete`)return Response.json({items:[{name:'Server Player',tag:'#PYLQGRJC',townHallLevel:18,clanName:'Must not show'}]});
    if(u.pathname===`/v2/server/${guild}/clans-basic`)return Response.json(directoryClans);
-   if(u.pathname.startsWith('/v2/bot/clash/clans/'))return Response.json({members:50,warLeague:{name:'Champion League I'}});
+   if(u.pathname.startsWith('/v2/bot/clash/clans/'))return Response.json(validClashFixture(u.pathname.replace('/v2/bot/clash','/v1'),'GET',{tag:decodeURIComponent(u.pathname.split('/').at(-1)),members:50,warLeague:{name:'Champion League I'}}));
    if(u.pathname.endsWith('/settings'))return Response.json({embed_color:'#000000'});
    if(u.pathname.includes('/search-suggestions')){
     if(request.method==='POST'){recentWrites.push(await request.json());return Response.json({ok:true});}
@@ -38,7 +39,7 @@ const bot=new Miniflare(convertV4MiniflareOptions({host:'127.0.0.1',port:0,worke
     return Response.json({items:[{name:'Global Legend',tag:'#PYLQGRU',townHallLevel:18}]});
    }
    if(u.pathname.includes('/league/history'))return Response.json({items:[{id:'999999999999991010',name:'people'},{id:'999999999999991011',name:'championleaguei'},{id:'999999999999991012',name:'refresh'}]});
-   if(u.pathname.startsWith('/v2/bot/clash/players/'))return Response.json({name:'Recent Player',tag:'#PYLQGRQ',townHallLevel:17});
+   if(u.pathname.startsWith('/v2/bot/clash/players/'))return Response.json(validClashFixture(u.pathname.replace('/v2/bot/clash','/v1'),'GET',{name:'Recent Player',tag:'#PYLQGRQ',townHallLevel:17}));
    if(u.pathname.includes('activity'))return Response.json({ok:true});
    throw Error('Unexpected API request '+request.method+' '+u.pathname);
   }

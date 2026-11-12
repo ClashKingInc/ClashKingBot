@@ -1,3 +1,4 @@
+import { editOriginalInteractionResponse } from "../discord/message-actions";
 import { sendInteractionError } from "./errors";
 import { actionRow, componentsV2, legacyMessage, linkButton, type ContainerChild } from "../discord/components";
 import type { ApplicationEmojis } from "../discord/emojis";
@@ -155,7 +156,7 @@ export function dispatchBanRecord(ctx: CommandContext, waitUntil?: (promise:Prom
       task=async()=>{await ctx.services.api.delete(`/v2/server/${requireGuildId(ctx)}/strikes/${encodeURIComponent(record)}`);return legacyMessage({content:"Strike removed.",components:[]},{ephemeral:true});};
     }
     if(!waitUntil)return task().then(reply=>({...reply,type:InteractionResponseType.UpdateMessage}));
-    waitUntil(task().then(reply=>ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token,reply.data!)).catch(error=>sendInteractionError(ctx,error,action==="confirm-strike")));
+    waitUntil(task().then(reply=>editOriginalInteractionResponse(ctx.services.discordRest,ctx.interaction.token,reply.data!)).catch(error=>sendInteractionError(ctx,error,action==="confirm-strike")));
     return {type:InteractionResponseType.DeferredUpdateMessage};
   }
 
@@ -165,7 +166,7 @@ export function dispatchBanRecord(ctx: CommandContext, waitUntil?: (promise:Prom
     if(parts.length!==5 || !/^\d{1,6}$/u.test(parts[4]!)) throw new CommandInputError("Invalid ban page.");
     const pending=banListReply(ctx,Number(parts[4]));
     if(!waitUntil)return pending.then(r=>({...r,type:InteractionResponseType.UpdateMessage}));
-    waitUntil(pending.then(r=>ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token,r.data!))
+    waitUntil(pending.then(r=>editOriginalInteractionResponse(ctx.services.discordRest,ctx.interaction.token,r.data!))
       .catch((error)=>sendInteractionError(ctx,error)));
     return {type:InteractionResponseType.DeferredUpdateMessage};
   }
@@ -185,7 +186,7 @@ export function dispatchBanRecord(ctx: CommandContext, waitUntil?: (promise:Prom
     return legacyMessage({content:`Ban removed for **${tag}**.`,components:[],allowed_mentions:{parse:[]}},{ephemeral:true});
   };
   if(!waitUntil)return remove();
-  waitUntil(remove().then(r=>ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token,r.data!))
+  waitUntil(remove().then(r=>editOriginalInteractionResponse(ctx.services.discordRest,ctx.interaction.token,r.data!))
     .catch((error)=>sendInteractionError(ctx,error,true)));
   return {type:InteractionResponseType.DeferredUpdateMessage};
 }

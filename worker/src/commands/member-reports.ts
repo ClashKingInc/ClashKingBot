@@ -1,3 +1,4 @@
+import { editOriginalInteractionResponse } from "../discord/message-actions";
 import { sendInteractionError } from "./errors";
 import { builderLeagues } from "./builder-leagues";
 import { compactTableRow, COMPACT_TABLE } from "./display-width";
@@ -325,10 +326,7 @@ export async function dispatchMemberReport(
   waitUntil(
     run
       .then((reply) =>
-        ctx.services.discordRest.editOriginalInteractionResponse(
-          ctx.interaction.token,
-          reply.data ?? {},
-        ),
+        editOriginalInteractionResponse(ctx.services.discordRest,ctx.interaction.token,reply.data ?? {}),
       )
       .catch((error) =>
         sendInteractionError(ctx,error),

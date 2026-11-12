@@ -1,3 +1,4 @@
+import { editOriginalInteractionResponse } from "../discord/message-actions";
 import { CommandInputError } from "./command-utils";
 import { interactionErrorReply, sendInteractionError } from "./errors";
 import { ClashKingApiError } from "../api/client";
@@ -59,7 +60,7 @@ async function completeEntry(interaction: DiscordInteraction, id: string, leavin
     if (!closed) { await sendInteractionError({ interaction, services }, error, true); return; }
     content = leaving ? "Entries are closed, so you can’t leave this giveaway now." : "This giveaway is no longer accepting entries.";
   }
-  await services.discordRest.editOriginalInteractionResponse(interaction.token, {
+  await editOriginalInteractionResponse(services.discordRest,interaction.token,{
     content, components, embeds: [], flags: MessageFlags.Ephemeral,
   });
 }

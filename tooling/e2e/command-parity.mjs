@@ -1,3 +1,4 @@
+import { validClashFixture } from '../../worker/scripts/e2e-clash-fixtures.mjs';
 // Actual workerd -> local API -> local SQL/HTTP provider integration. No Discord network calls.
 import { createServer } from 'node:http';
 import { bundleWorker } from './bundle-worker.mjs';
@@ -14,8 +15,8 @@ const apiRepo=resolve(process.env.CLASHKING_E2E_API_REPO??join(botRepo,'../clash
 const assetsRepo=resolve(process.env.CLASHKING_E2E_ASSETS_REPO??join(botRepo,'../clashking_assets'));
 const require=createRequire(join(apiRepo,'package.json'));
 const {Client}=require('pg'),{build}=require('esbuild'),{Miniflare,convertV4MiniflareOptions}=require('miniflare');
-const database=process.env.CLASHKING_E2E_DATABASE_URL??'postgres://clashking_local:clashking_local@127.0.0.1:54330/clashking_dev';
-const dbURL=new URL(database);if(dbURL.protocol!=='postgres:'||dbURL.hostname!=='127.0.0.1'||dbURL.pathname!=='/clashking_dev')throw Error('Use the owned loopback clashking_dev database');
+const database=process.env.CLASHKING_E2E_DATABASE_URL??(process.env.CLASHKING_DISPOSABLE_TIMESCALE==='1'?process.env.TEST_DATABASE_URL:undefined)??'postgres://clashking_local:clashking_local@127.0.0.1:54330/clashking_dev';
+const dbURL=new URL(database);if(dbURL.protocol!=='postgres:'||dbURL.hostname!=='127.0.0.1'||(dbURL.pathname!=='/clashking_dev'&&process.env.CLASHKING_DISPOSABLE_TIMESCALE!=='1'))throw Error('Use the owned loopback clashking_dev database');
 const port=Number(process.env.CLASHKING_E2E_API_PORT??8801);if(!Number.isInteger(port)||port<1024||port>65535)throw Error('Invalid local API port');
 const {publicKey,privateKey}=generateKeyPairSync('ed25519');
 const publicHex=publicKey.export({type:'spki',format:'der'}).subarray(-32).toString('hex');
@@ -37,12 +38,13 @@ const tier=codes.find(row=>row.name!=='Unranked')?._id??105000001;
 const live=[];
 let reminderWarActive=true, reminderRaidActive=true, reminderCwl=false, reminderSendFails=false, reminderPreparation=false;
 const fixtureNow=Math.floor(Date.now()/1000)*1000,fixtureEnd=new Date(fixtureNow+3600000).toISOString(),fixturePrep=new Date(fixtureNow-86400000).toISOString();
-let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false;
+let privateWar=false,opponentNextWar=false,warEnded=false,cwlGap=false,opponentWarError;
 const giveawayDeliveryMode=process.argv.includes("--giveaway-delivery");
 const giveawayMessages=[];
 const giveawayMode=process.argv.includes("--giveaway-only")||giveawayDeliveryMode;
 const graphMode=process.argv.includes("--graph-month-only");let graphFailure=false,graphGap=false,graphLatestGap=false,dailyGraphFailure=false;
 const warPanelMode=process.argv.includes("--war-panel-only");
+const warContractMode=process.argv.includes("--war-contract-only");
 const roleUsersMode=process.argv.includes("--role-users-only");
 const boostsMode=process.argv.includes("--boosts-only");let boostFailure=false;
 const warStatsMode=process.argv.includes("--war-statistics-only");
@@ -53,7 +55,10 @@ const verificationMode=process.argv.includes("--clan-verification-only")||handof
 const warEventMode=process.argv.includes("--war-events-only");
 const quickPanelMode=process.argv.includes("--quick-panel-only");
 const rosterReadMode=process.argv.includes("--roster-commands-only")||quickPanelMode||warEventMode;let rosterProfileFailure=false;
-const helpMode=process.argv.includes("--help-only");
+const dfxMode=process.argv.includes("--dfx-only");let dfxFailure=0,dfxRateResponses=0;
+const wireMode=process.argv.includes('--contract-wire-only');let wireFault=false;
+const helpMode=process.argv.includes("--help-only")||dfxMode;
+const modlinkMode=process.argv.includes("--modlink-only");
 const linksMode=process.argv.includes("--links-only");
 const warPreferenceMode=process.argv.includes("--war-preference-only");let warPreferenceFailure=false;
 const activityMode=process.argv.includes("--activity-only");
@@ -86,9 +91,21 @@ const roleDefinitions=[{id:roleServer,name:'@everyone',position:0,permissions:'0
 const provider=createServer(async(req,res)=>{
  let text='';for await(const chunk of req)text+=chunk;
  const url=new URL(req.url,'http://provider');live.push(url.pathname+url.search);res.setHeader('Content-Type','application/json');
+ const send=res.end.bind(res);
+ res.end=(chunk,...args)=>{
+  if(res.statusCode>=200&&res.statusCode<300&&url.pathname.startsWith('/v1/')&&chunk){
+   try{chunk=JSON.stringify(validClashFixture(url.pathname,req.method,JSON.parse(String(chunk))));}catch{/* Non-JSON fixture failures remain visible to the client. */}
+  }
+  return send(chunk,...args);
+ };
+ if(quickPanelMode&&url.pathname===`/api/v10/guilds/${roleServer}`)return res.end(JSON.stringify({id:roleServer,name:'Panel Server',icon:'local-icon',owner_id:other}));
+ if(quickPanelMode&&url.pathname.endsWith('/emojis'))return res.end(JSON.stringify({items:[{id:'999999999999996591',name:'refresh'},{id:'999999999999996592',name:'green_check'},{id:'999999999999996593',name:'calendar'}]}));
+ if(quickPanelMode&&req.method==='GET'&&url.pathname.startsWith('/api/v10/channels/'))return res.end(JSON.stringify({id:url.pathname.split('/').at(-1),guild_id:url.pathname.endsWith('/999999999999996599')?'999999999999996512':roleServer,type:0}));
+ if(quickPanelMode&&req.method==='POST'&&url.pathname.endsWith('/messages')){sentReminders.push(JSON.parse(text));return res.end(JSON.stringify({id:'999999999999996999'}));}
  if((roleMode)&&url.pathname===`/api/v10/guilds/${roleServer}/roles`)return res.end(JSON.stringify(roleDefinitions.map(role=>({...role,managed:role.id===botRole}))));
  if(roleMode&&url.pathname===`/api/v10/guilds/${roleServer}`)return res.end(JSON.stringify({id:roleServer,owner_id:other}));
  const p=decodeURIComponent(url.pathname),endTime=fixtureEnd;
+ if(wireMode&&wireFault&&url.pathname.startsWith('/v1/'))return res.end(JSON.stringify({reason:'unknownException'}));
  if(giveawayDeliveryMode&&url.pathname==='/webhooks/999999999999996588'&&req.method==='GET')return res.end(JSON.stringify({id:'999999999999996588',type:1,guild_id:'999999999999996510',channel_id:'999999999999996511',token:'local-only'}));
  if(giveawayDeliveryMode&&url.pathname==='/webhooks/999999999999996588/local-only'&&req.method==='POST'){
   giveawayMessages.push(JSON.parse(text));return res.end(JSON.stringify({id:'999999999999996589',channel_id:'999999999999996511',timestamp:new Date().toISOString(),content:'',embeds:[]}));
@@ -115,14 +132,15 @@ const provider=createServer(async(req,res)=>{
  }
  if((familyOpsMode||clanReportMode)&&(p===`/v1/clans/${group}`||p==='/v1/clans/#PYLQGRJJ'))return res.end(JSON.stringify({tag:p.split('/').at(-1),name:p.endsWith(group)?'Alpha Clan':'Beta Clan',members:20,clanPoints:p.endsWith(group)?1000:2000,clanBuilderBasePoints:500,clanCapitalPoints:300,requiredTownhallLevel:16,warLeague:{name:'Champion League I'},capitalLeague:{name:'Titan'},location:{name:'International'},memberList:[]}));
  if(clanReportMode&&p.endsWith('/warlog')){
-  if(privateWar){res.statusCode=403;return res.end('{}');}
+  if(privateWar){res.statusCode=403;return res.end(JSON.stringify({reason:'accessDenied',message:'This clan has a private war log'}));}
   return res.end(JSON.stringify({items:[{result:'win',endTime:fixturePrep,teamSize:2,attacksPerMember:2,clan:{tag:group,name:'Alpha Clan',stars:5,destructionPercentage:90,attacks:3},opponent:{tag:'#PYLQGRJJ',name:'Official Opponent',stars:4,destructionPercentage:85}}]}));
  }
  const startTime=new Date(Date.now()+1800000).toISOString(),warState=warEnded?'warEnded':reminderPreparation?'preparation':'inWar';
  const own={tag:group,name:'Reminder Clan',stars:5,destructionPercentage:80,members:[{tag,name:'Missing Player',townhallLevel:16,mapPosition:1,attacks:[]},{tag:tags[1],name:'Finished Player',townhallLevel:16,mapPosition:2,attacks:[{attackerTag:tags[1],defenderTag:'#PYLR',stars:3,destructionPercentage:100,order:1},{attackerTag:tags[1],defenderTag:'#PYLQ',stars:2,destructionPercentage:80,order:2}]}]};
  const opponent={tag:'#PYLQGRJJ',name:'Other Clan',stars:3,destructionPercentage:50,members:[]};
  const warBody={state:warState,teamSize:2,preparationStartTime:fixturePrep,startTime:startTime.replace(/[-:]/g,''),endTime,attacksPerMember:2,clan:own,opponent};
- if(p===`/v1/clans/${group}/currentwar`&&privateWar){res.statusCode=403;return res.end('{}');}
+ if(p===`/v1/clans/${group}/currentwar`&&privateWar){res.statusCode=403;return res.end(JSON.stringify({reason:'accessDenied',message:'This clan has a private war log'}));}
+ if(p==='/v1/clans/#PYLQGRJJ/currentwar'&&opponentWarError){res.statusCode=opponentWarError.status;return res.end(JSON.stringify(opponentWarError.body));}
  if(familyOpsMode&&reminderCwl&&p==='/v1/clans/#PYLQGRJJ/currentwar')return res.end(JSON.stringify({state:'notInWar'}));
  if(p==='/v1/clans/#PYLQGRJJ/currentwar')return res.end(JSON.stringify({...warBody,endTime:opponentNextWar?new Date(fixtureNow+7200000).toISOString():endTime}));
  if(p===`/v1/clans/${group}/currentwar`)return res.end(JSON.stringify(reminderWarActive&&!reminderCwl?warBody:{state:'notInWar'}));
@@ -130,9 +148,10 @@ const provider=createServer(async(req,res)=>{
  if(p==='/v1/clanwarleagues/wars/#PYLQGRJQ')return res.end(JSON.stringify({...warBody,attacksPerMember:undefined,clan:opponent,opponent:{...own,members:own.members.map(member=>({...member,attacks:member.attacks.slice(0,1)}))}}));
  if(p==='/v1/clans/#PYLQGRJJ')return res.end(JSON.stringify({tag:opponent.tag,name:opponent.name,warLeague:{id:48000019,name:'Champion League I'},memberList:[]}));
  if(roleMode&&p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Role Clan',description:'',clanLevel:10,members:1,isWarLogPublic:true,warWins:1,warWinStreak:0,clanPoints:1000,badgeUrls:{},memberList:[{tag,name:'Current Player',townHallLevel:16,donations:0,donationsReceived:0}]}));
+ if(modlinkMode&&p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Link Clan',clanLevel:18,badgeUrls:{},memberList:tags.slice(0,4).map((tag,i)=>({tag,name:'Family Player '+i,townHallLevel:18}))}));
  if(p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Reminder Clan',description:verificationDescription,warLeague:{id:48000019,name:'Champion League I'},memberList:[{tag,name:'Missing Player',townHallLevel:16},{tag:tags[1],name:'Finished Player',townHallLevel:16}]}));
  if(p===`/v1/clans/${group}/capitalraidseasons`)return res.end(JSON.stringify({items:reminderRaidActive?[{state:'ongoing',endTime,members:[{tag:tags[1],attacks:6,attackLimit:5,bonusAttackLimit:1}]}]:[]}));
- if(url.pathname.startsWith('/v1/players/')){if((warPreferenceFailure||rosterProfileFailure)&&decodeURIComponent(url.pathname).endsWith(tags[1])){res.statusCode=503;return res.end('{}');}const playerTag=decodeURIComponent(url.pathname.split('/').at(-1));return res.end(JSON.stringify({tag:playerTag,name:playerTag===tag?'Current Player':`Account ${tags.indexOf(playerTag)+1}`,townHallLevel:memberMode&&playerTag===tags[1]?18:16,trophies:5500,warStars:100,expLevel:250,donations:50,donationsReceived:40,currentLeagueGroupTag:group,currentLeagueSeasonId:currentSeason,...(warPreferenceMode?{warPreference:playerTag===tag?'in':'out'}:{}),...(rosterReadMode?{troops:[],spells:[],heroes:[]}:{}),leagueTier:{id:todoMode&&playerTag===tags[0]?105000036:tier,name:'Current League'},...((todoMode||roleMode)?{clan:{tag:group,name:'Reminder Clan'}}:{}),
+ if(url.pathname.startsWith('/v1/players/')){if((warPreferenceFailure||rosterProfileFailure)&&decodeURIComponent(url.pathname).endsWith(tags[1])){res.statusCode=503;return res.end('{}');}const playerTag=decodeURIComponent(url.pathname.split('/').at(-1));return res.end(JSON.stringify({tag:playerTag,name:playerTag===tag?'Current Player':`Account ${tags.indexOf(playerTag)+1}`,townHallLevel:memberMode&&playerTag===tags[1]?18:16,trophies:5500,warStars:100,expLevel:250,donations:50,donationsReceived:40,currentLeagueGroupTag:group,currentLeagueSeasonId:currentSeason,...(warPreferenceMode?{warPreference:playerTag===tag?'in':'out'}:{}),...(rosterReadMode?{troops:[],spells:[],heroes:[]}:{}),leagueTier:{id:todoMode&&playerTag===tags[0]?105000036:tier,name:'Current League'},...((todoMode||roleMode||modlinkMode)?{clan:{tag:group,name:'Reminder Clan'}}:{}),
  // Deliberately synthetic name input exercises the normal lookup renderer; this is not real player data.
  ...(betaInventory?{heroes:[{name:'P.E.K.K.A.',level:15}]}:{})}));}
  if(url.pathname===`/v1/leaguegroup/${encodeURIComponent(group)}/${currentSeason}`||decodeURIComponent(url.pathname)===`/v1/leaguegroup/${group}/${currentSeason}`){
@@ -155,10 +174,10 @@ try{
  ownsRecords=true;
  for(const playerTag of tags)await db.query("INSERT INTO player_links(tag,user_id,source) VALUES($1,$2,'discord')",[playerTag,actor]);
  const armies=(await db.query('SELECT share_code FROM army_compositions ORDER BY length(share_code),share_code LIMIT 30')).rows;
- if(armies.length<30)throw Error('Thirty existing local compositions required');
+ if(armies.length<30&&!helpMode&&!botInfoMode&&!fankitMode&&!graphMode&&!wireMode&&!warContractMode&&!modlinkMode&&!quickPanelMode)throw Error('Thirty existing local compositions required');
  for(const army of armies)await db.query('INSERT INTO user_saved_armies(user_id,share_code) VALUES($1,$2)',[actor,army.share_code]);
  for(const season of historySeasons)await db.query(`INSERT INTO ranked_league_group_members(season_id,group_tag,league_tier_id,player_tag,player_name,placement,league_trophies,attack_win_count,attack_loss_count,defense_win_count,defense_loss_count,town_hall,maximum_battle_count) VALUES($1,$2,$3,$4,'Historical Player',1,5000,8,1,4,5,16,10)`,[season,group,tier,tag]);
- const env={PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR,CLASHKING_PERSISTENT_LOCAL_API:'1',CLASHKING_LOCAL_DATABASE_URL:database,CLASHKING_LOCAL_API_PORT:String(port),CLASHKING_LOCAL_DISCORD_CLIENT_ID:app,CLASHKING_LOCAL_DISCORD_TEST_ORIGIN:`http://127.0.0.1:${providerPort}`,CLASHKING_LOCAL_DISCORD_CLIENT_SECRET:'local-only',CLASHKING_LOCAL_DISCORD_PUBLIC_KEY:publicHex,CLASHKING_LOCAL_ARCHIVE_BRIDGE:'0',CLASHKING_LOCAL_CLASH_PROXY_ORIGIN:`http://127.0.0.1:${providerPort}`,CLASHKING_LOCAL_STATIC_ASSETS_ROOT:join(assetsRepo,'assets/static_data'),CLASHKING_LOCAL_STORAGE_ROOT:join(directory,'storage'),...Object.fromEntries(Object.entries(keys).map(([key,value])=>[`CLASHKING_LOCAL_${key}`,value]))};
+ const env={PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR,CLASHKING_PERSISTENT_LOCAL_API:process.env.CLASHKING_DISPOSABLE_TIMESCALE==='1'?'0':'1',CLASHKING_DISPOSABLE_TIMESCALE:process.env.CLASHKING_DISPOSABLE_TIMESCALE,TEST_DATABASE_URL:database,CLASHKING_LOCAL_DATABASE_URL:database,CLASHKING_LOCAL_API_PORT:String(port),CLASHKING_LOCAL_DISCORD_CLIENT_ID:app,CLASHKING_LOCAL_DISCORD_TEST_ORIGIN:`http://127.0.0.1:${providerPort}`,CLASHKING_LOCAL_DISCORD_CLIENT_SECRET:'local-only',CLASHKING_LOCAL_DISCORD_PUBLIC_KEY:publicHex,CLASHKING_LOCAL_ARCHIVE_BRIDGE:'0',CLASHKING_LOCAL_CLASH_PROXY_ORIGIN:`http://127.0.0.1:${providerPort}`,CLASHKING_LOCAL_STATIC_ASSETS_ROOT:join(assetsRepo,'assets/static_data'),CLASHKING_LOCAL_STORAGE_ROOT:join(directory,'storage'),...Object.fromEntries(Object.entries(keys).map(([key,value])=>[`${process.env.CLASHKING_DISPOSABLE_TIMESCALE==='1'?'CLASHKING_E2E_':'CLASHKING_LOCAL_'}${key}`,value]))};
  api=spawn(process.execPath,['scripts/start-local-rewrite-api.mjs'],{cwd:apiRepo,env,stdio:['ignore','pipe','pipe']});api.stdout.on('data',data=>logs+=data);api.stderr.on('data',data=>logs+=data);
  // Health can become ready before static metadata is seeded. Army previews
  // exercise that metadata, so do not race the real launcher's second phase.
@@ -173,9 +192,16 @@ try{
  bot=new Miniflare(convertV4MiniflareOptions({host:'127.0.0.1',port:0,workers:[{name:'command-e2e',...bundle,compatibilityDate:'2026-08-22',compatibilityFlags:['nodejs_compat'],
  bindings:{APP_ENV:'dev',LOCAL_TEST_USER_ID:'',DASHBOARD_BASE_URL:'https://dash.clashk.ing',CLASHKING_API_BASE_URL:`http://127.0.0.1:${port}`,CLASHKING_API_TOKEN:keys.API_BOT_TOKEN,DISCORD_APPLICATION_ID:app,DISCORD_BOT_TOKEN:`${Buffer.from(app).toString('base64')}.local.token`,DISCORD_PUBLIC_KEY:publicHex},
  outboundService:async request=>{
+ try{
   const url=new URL(request.url);
   if(url.hostname==='cdn.discordapp.com'&&url.pathname==='/attachments/local/evidence.png')return new Response(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXZkAAAAASUVORK5CYII=','base64'),{headers:{'Content-Type':'image/png'}});
   if(url.hostname==='assets.clashk.ing'&&/^\/static_data\/(troops|spells|heroes|pets|equipment|buildings|league_tiers)\.json$/u.test(url.pathname))return new Response(readFileSync(join(assetsRepo,'assets',url.pathname)),{headers:{'Content-Type':'application/json'}});
+  if(fankitMode&&url.hostname==='assets.clashk.ing'&&url.pathname==='/manifest.json')return Response.json({version:2,assets:{units:[
+   {path:'assets/queen.png',display_name:'Archer Queen',sha:'a'.repeat(64)},
+   {path:'assets/queen_skin.png',display_name:'Archer Queen Skin',sha:'b'.repeat(64)},
+   {path:'../private.png',display_name:'Archer Queen Unsafe',sha:'c'.repeat(64)},
+  ]}});
+  if(fankitMode&&url.hostname==='assets.clashk.ing'&&url.pathname.startsWith('/assets/'))return new Response(fankitOversize?new Uint8Array(262145):readFileSync(join(botRepo,'worker/src/assets/pepe/sign.png')),{headers:{'Content-Type':'image/png'}});
   if(fankitMode&&url.hostname==='fankit.supercell.com'){
    if(fankitFailure)return Response.json({success:false},{status:503});
    fankitQueries.push(url.searchParams.get('q'));
@@ -188,6 +214,7 @@ try{
    return new Response(fankitOversize?new Uint8Array(262145):readFileSync(join(botRepo,'worker/src/assets/pepe/sign.png')),{headers:{'Content-Type':'image/png'}});
   }
   if(url.hostname==='discord.com'){
+   if(request.method==='GET'&&/\/applications\/\d+\/commands$/u.test(url.pathname))return Response.json([]);
    if(fankitMode&&request.method==='POST'&&url.pathname.endsWith('/guilds/999999999999996510/emojis')){fankitWrites.push(await request.json());return fankitEmojiFailure?Response.json({message:'Unavailable'},{status:503}):Response.json({id:'999999999999991234',name:fankitWrites.at(-1).name});}
    if(roleMode||quickPanelMode){
     if(url.pathname==='/api/v10/users/@me')return Response.json({id:app});
@@ -201,18 +228,25 @@ try{
     const change=new RegExp(`/guilds/${roleServer}/members/${actor}/roles/([0-9]+)$`).exec(url.pathname);
     if(change){if(request.method==='PUT')memberRoles.add(change[1]);else if(request.method==='DELETE')memberRoles.delete(change[1]);else throw Error('Unexpected role method');roleWrites.push({kind:request.method,role:change[1]});return new Response(null,{status:204});}
    }
+   if(quickPanelMode&&request.method==='GET'&&/^\/api\/v10\/users\/\d+$/u.test(url.pathname))return Response.json({id:url.pathname.split('/').at(-1),username:'Local panel member',avatar:null});
    if(request.method==='GET'&&url.pathname.endsWith('/emojis')){emojiInventoryRequests++;return Response.json({items:emojiItems});}
    if(request.method==='GET'&&url.pathname.includes('/channels/'))return Response.json({id:url.pathname.split('/').at(-1),guild_id:quickPanelMode&&url.pathname.endsWith('/999999999999996599')?'999999999999996512':'999999999999996510',type:0});
    if(request.method==='POST'&&url.pathname.endsWith('/messages')){if(reminderSendFails)return Response.json({message:'Missing permissions'},{status:403});sentReminders.push(await request.json());return Response.json({id:'999999999999996999'});}
+   if(dfxMode&&request.method==='PATCH'&&url.pathname.includes('/webhooks/')&&dfxFailure){
+    const status=dfxFailure;dfxFailure=0;
+    if(status===429){dfxRateResponses++;return Response.json({retry_after:0.01,global:false},{status,headers:{'retry-after':'0.01'}});}
+    return Response.json({code:50013,message:'Missing permissions'},{status});
+   }
+   if(request.method==='DELETE')return new Response(null,{status:204});
    const token=url.pathname.split('/')[5];let data;
    if(request.headers.get('content-type')?.startsWith('multipart/form-data')){
-    const form=await request.formData();data=JSON.parse(form.get('payload_json'));
+    const form=await request.formData();const payload=form.get('payload_json');data=JSON.parse(typeof payload==='string'?payload:await payload.text());
     const file=form.get('files[0]');if(!file)throw Error('Missing poster attachment');
     const bytes=Buffer.from(await file.arrayBuffer());
     const dimension=pepeMode?250:graphMode?1280:1600,height=pepeMode?250:graphMode?bytes.readUInt32BE(20):1100;
     if(bytes.subarray(0,8).toString('hex')!=='89504e470d0a1a0a'||bytes.readUInt32BE(16)!==dimension||bytes.readUInt32BE(20)!==height)throw Error('Invalid rendered PNG');
     if(graphMode&&height<330)throw Error("Graph PNG is too short");
-    if(graphMode){data.imageHeight=bytes.readUInt32BE(20);data.imageHash=createHash("sha256").update(bytes).digest("hex");await (await import("node:fs/promises")).writeFile(`/private/tmp/clashking-graph-${token}.png`,bytes);}
+    if(graphMode){data.imageHeight=bytes.readUInt32BE(20);data.imageHash=createHash("sha256").update(bytes).digest("hex");await (await import("node:fs/promises")).writeFile(join(directory,`clashking-graph-${token}.png`),bytes);}
     if(pepeMode){data.imageHash=createHash('sha256').update(bytes).digest('hex');data.imageName=file.name;}
     data.posterBytes=bytes.length;
    }else data=await request.json();replies.set(token,data);return Response.json({id:'999999999999996999'});
@@ -231,15 +265,26 @@ try{
   if(graphMode&&graphGap&&decodeURIComponent(url.pathname).includes(group+'/season-stats')&&url.searchParams.get('season')==='2024-12')return Response.json({message:'Unavailable'},{status:503});
   if(graphMode&&graphFailure&&decodeURIComponent(url.pathname).includes('#PYLQGRJJ/season-stats'))return Response.json({message:'Unavailable'},{status:503});
   if(todoMode&&legendFails&&url.pathname==='/v2/legends/days')return Response.json({message:'Temporarily unavailable'},{status:503});
-  if(url.hostname==='127.0.0.1'&&url.port===String(port))return fetch(request.url,{method:request.method,headers:Object.fromEntries(request.headers),body:['GET','HEAD'].includes(request.method)?undefined:await request.arrayBuffer()});
+  if(url.hostname==='127.0.0.1'&&url.port===String(port)){
+   const response=await fetch(request.url,{method:request.method,headers:Object.fromEntries(request.headers),body:['GET','HEAD'].includes(request.method)?undefined:await request.arrayBuffer()});
+   if(quickPanelMode&&url.pathname.endsWith('/member-panels')&&response.ok){const {Effect,Schema}=await import(require.resolve('effect'));const {BotMemberPanelsEndpoint}=await import(pathToFileURL(join(apiRepo,'packages/api-contracts/dist/index.js')).href);await Effect.runPromise(Schema.decodeUnknownEffect(BotMemberPanelsEndpoint.response)(await response.clone().json()));}return response;
+  }
   throw Error('External request blocked by local integration harness');
+ }catch(error){console.error('Loopback provider failed:',request.method,new URL(request.url).pathname.replace(/\/webhooks\/[^/]+\/[^/]+/,'/webhooks/:id/:token'),String(error));throw error;}
  }}]}));
  const origin=new URL('/interactions',String(await bot.ready)).href;
  async function interact(data,who=actor,permissions='0'){const token=String(counter++);const rawBody=JSON.stringify({id:token,application_id:app,guild_id:'999999999999996510',channel_id:'999999999999996511',member:{user:{id:who,username:'Local'},roles:[],permissions},version:1,token,...data});const timestamp=String(Math.floor(Date.now()/1000));const response=await fetch(origin,{method:'POST',headers:{'Content-Type':'application/json','X-Signature-Timestamp':timestamp,'X-Signature-Ed25519':sign(null,Buffer.from(timestamp+rawBody),privateKey).toString('hex')},body:rawBody});const initial=await response.json();if(pepeMode)pepeAcks.push(initial);if(warStatsMode)privacyAcks.push(initial);if(response.status!==200)throw Error(`Bot HTTP ${response.status}`);const result=[5,6].includes(initial.type)?await wait(()=>replies.get(token),'deferred reply'):initial.data;return result;}
  const command=(name,action,options=[])=>({type:2,data:{name,options:[{name:action,type:1,options}]}});
  const player={name:'player',type:3,value:tag};
  const text=value=>JSON.stringify(value);
- if(process.argv.includes('--reddit-only')){
+ if(wireMode){
+  const request=()=>interact(command('clan','search',[{name:'clan',type:3,value:group}]));
+  const normal=await request();
+  if(!text(normal).includes(group)||text(normal).includes('Service temporarily unavailable'))throw Error('Valid wire response rejected '+text(normal));
+  wireFault=true;const invalid=await request();
+  if(invalid.embeds?.[0]?.title!=='Service temporarily unavailable'||!text(invalid).includes('Reference:'))throw Error('Invalid wire success was accepted '+text(invalid));
+  console.log('PASS actual bot wire boundary: published schema validation, malformed 200 rejected, safe user recovery/reference');
+ }else if(process.argv.includes('--reddit-only')){
   for (const who of [actor,other]) {
    const result=await interact({type:3,data:{custom_id:'redditplayer_'+tag,component_type:2}},who);
    if(!(result.flags&64)||!text(result).includes('Current Player')||!result.components?.length)throw Error('Reddit profile must open private current profile for either viewer');
@@ -248,21 +293,21 @@ try{
  }else if(fankitMode){
   const run=query=>interact({type:2,data:{name:'fankit',options:[{name:'query',type:3,value:query}]}});
   const first=await run('archer & queen');
-  if(first.embeds?.[0]?.title!=='Archer'||!first.embeds[0].footer.text.startsWith('1/2')||fankitQueries.at(-1)!=='archer & queen')throw Error('Fan-kit query encoding/filter mismatch '+text(first));
-  const selector=first.components[0].components[0],controls=first.components[1].components;
-  if(selector.type!==3||selector.options.length!==2||!controls[0].url.startsWith('https://media.ffycdn.net/'))throw Error('Fan-kit controls invalid');
-  const second=await interact({type:3,data:{custom_id:selector.custom_id,component_type:3,values:['102']}},other);
-  if(second.embeds?.[0]?.title!=='Queen'||!second.components[0].components[0].options.find(item=>item.value==='102')?.default)throw Error('Public fan-kit selection failed');
-  const emoji=second.components[1].components[1].custom_id;
-  const denied=await interact({type:3,data:{custom_id:emoji,component_type:2}},other,'0');if(!text(denied).includes('Create Expressions')||fankitWrites.length)throw Error('Emoji permission bypass');
+  if(!text(first).includes('Archer Queen')||text(first).includes('Unsafe'))throw Error('Catalog filtering failed '+text(first));
+  const container=first.components.find(item=>item.type===17);
+  const emoji=container.components.find(item=>item.type===9).accessory.custom_id;
+  const denied=await interact({type:3,data:{custom_id:emoji,component_type:2}},other,'0');
+  if(!text(denied).includes('Create Expressions')||fankitWrites.length)throw Error('Emoji permission bypass');
   const created=await interact({type:3,data:{custom_id:emoji,component_type:2}},other,String(1n<<43n));
-  if(created.flags!==64||!text(created).includes('Emoji added')||fankitWrites.length!==1||!fankitWrites[0].image.startsWith('data:image/png;base64,'))throw Error('Emoji upload failed '+text(created));
-  fankitOversize=true;const big=await interact({type:3,data:{custom_id:emoji,component_type:2}},actor,'8');if(!text(big).includes('too large')||fankitWrites.length!==1)throw Error('Oversized emoji uploaded');fankitOversize=false;
-  const missing=await interact({type:3,data:{custom_id:emoji.replace(/:102$/,':103'),component_type:2}},actor,'8');if(!text(missing).includes('no longer available')||fankitWrites.length!==1)throw Error('Unverified asset uploaded');
-  fankitEmojiFailure=true;const failed=await interact({type:3,data:{custom_id:emoji,component_type:2}},actor,'8');if(!text(failed).includes('Could not add')||fankitWrites.length!==2)throw Error('Failed upload retried or hidden');fankitEmojiFailure=false;
-  const empty=await run('empty');if(!text(empty).includes('No fan-kit images'))throw Error('Fan-kit empty state missing');
-  fankitFailure=true;const upstream=await interact({type:3,data:{custom_id:selector.custom_id,component_type:3,values:['102']}},other);if(upstream.flags!==64||upstream.embeds||!text(upstream).includes('unavailable'))throw Error('Upstream failure overwrote results');
-  console.log(JSON.stringify({fankit:'passed',checks:['actual Worker integration','encoded search','untrusted URLs excluded','public persistent image selector','download URL','current clicker permission','canonical result verified before upload','emoji image bytes','256KiB streamed bound','no retry on uncertain creation','empty and failure states'],externalDiscordWrites:0}));
+  if(created.flags!==64||!text(created).includes('Emoji added')||fankitWrites.length!==1||!fankitWrites[0].image.startsWith('data:image/png;base64,'))throw Error('dfx emoji upload failed '+text(created));
+  fankitOversize=true;const big=await interact({type:3,data:{custom_id:emoji,component_type:2}},actor,'8');
+  if(!text(big).includes('too large')||fankitWrites.length!==1)throw Error('Oversized emoji uploaded');fankitOversize=false;
+  const missing=await interact({type:3,data:{custom_id:emoji.replace(/:[a-f0-9]{12}$/,':dddddddddddd'),component_type:2}},actor,'8');
+  if(!text(missing).includes('cannot be added')||fankitWrites.length!==1)throw Error('Unverified asset uploaded');
+  fankitEmojiFailure=true;const failed=await interact({type:3,data:{custom_id:emoji,component_type:2}},actor,'8');
+  if(!text(failed).includes('temporarily unavailable')||fankitWrites.length!==2)throw Error('Uncertain creation retried or hidden '+text(failed));
+  const empty=await run('empty');if(!text(empty).includes('No ClashKing assets'))throw Error('Empty state missing');
+  console.log('PASS signed fan-kit interactions: canonical catalog, dfx emoji upload, clicker permissions, bounded images and no retry after uncertain creation');
  }else if(pepeMode){
   const run=(value,hidden)=>interact({type:2,data:{name:'pepe',options:[{name:'sign_text',type:3,value},...(hidden?[{name:'hidden',type:3,value:hidden}]:[])]}});
   const privateImage=await run('Hello clan');
@@ -704,8 +749,34 @@ try{
     await db.query('INSERT INTO discord_cache.gateway_shards(application_id,shard_id,shard_count,generation,healthy,heartbeat_at) VALUES($1,0,1,$2,true,now())',[app,generation]);
     await db.query('INSERT INTO discord_cache.guilds(id,data,application_id,shard_id,generation,available,metadata_complete,members_complete) VALUES($1,$2,$3,0,$4,true,true,true)',[server,JSON.stringify({owner_id:other}),app,generation]);
     await db.query('INSERT INTO discord_cache.members(guild_id,user_id,data) VALUES($1,$2,$3)',[server,actor,JSON.stringify({user:{id:actor},roles:[]})]);
-    const removed=await interact({type:2,data:{name:'buttons'}},actor,'32');if(!text(removed).includes('/dashboard')||sentReminders.length)throw Error('Removed panel setup command still posts');
-    // Existing member controls remain valid without exposing a setup slash command.
+    if(!text(await interact({type:2,data:{name:'buttons'}},actor,'32')).includes('Panels manage permission'))throw Error('Interaction permission bit bypassed canonical panel authorization');
+    const panelRole='999999999999996595';
+    await db.query('INSERT INTO discord_cache.roles(guild_id,id,data) VALUES($1,$2,$3)',[server,panelRole,{id:panelRole,name:'Panel team',permissions:'0'}]);
+    await db.query("UPDATE discord_cache.members SET data=jsonb_set(data,'{roles}',$3::jsonb) WHERE guild_id=$1 AND user_id=$2",[server,actor,JSON.stringify([panelRole])]);
+    await db.query("INSERT INTO dashboard_role_grants(server_id,role_id,section,access_level) VALUES($1,$2,'panels','view')",[server,panelRole]);
+    if(!text(await interact({type:2,data:{name:'buttons'}})).includes('Panels manage permission'))throw Error('View-only panel actor allowed');
+    await db.query("UPDATE dashboard_role_grants SET access_level='manage' WHERE server_id=$1 AND role_id=$2",[server,panelRole]);
+    const select=async(options=[])=>{const response=await interact({type:2,data:{name:'buttons',options}});const menu=response.components?.[0]?.components?.[0];if(menu?.type!==3||menu.max_values!==4||menu.options.length!==5||menu.custom_id.length>100)throw Error('Legacy panel chooser missing '+text(response));return menu.custom_id;};
+    const finish=(id,values,who=actor)=>interact({type:3,data:{custom_id:id,component_type:3,values}},who);
+    const id=await select([{name:'button_color',type:3,value:'Green'}]);
+    if(!text(await finish(id,['Link Button'],other)).includes('Only the panel creator'))throw Error('Another user could finish private builder');
+    if(!text(await finish(id,['Link Button','Link Button'])).includes('different buttons'))throw Error('Duplicate panel button allowed');
+    if(!text(await finish(id.replace(/:[^:]+$/u,':1'),['Link Button'])).includes('expired'))throw Error('Expired selection accepted');
+    const posted=await finish(id,['Link Button','Refresh Button','To-Do Button','Roster Button']);
+    if(!text(posted).includes('View message')||sentReminders.length!==1)throw Error('Panel did not post '+text(posted));
+    const panel=sentReminders[0];
+    if(panel.components[0].components.some(button=>button.style!==3)||panel.components[0].components[1].emoji.name!=='refresh'||panel.components[0].components[1].label!=='Refresh Roles'||panel.embeds[0].description!=='Use the buttons below to view info about your accounts.'||panel.embeds[0].thumbnail?.url!==`https://cdn.discordapp.com/icons/${server}/local-icon.png`||panel.allowed_mentions.parse.length)throw Error('Legacy panel render/emoji/mention policy changed '+text(panel));
+    await db.query("INSERT INTO server_custom_embeds(server_id,name,data) VALUES($1,'Member welcome',$2)",[server,{content:'@everyone hello',embeds:[{title:'Saved welcome'}],allowed_mentions:{parse:['everyone']}}]);
+    const auto=await interact({type:4,data:{name:'buttons',options:[{name:'embed',type:3,value:'welcome',focused:true}]}});
+    if(auto.choices?.length!==1||auto.choices[0].name!=='Member welcome')throw Error('Saved embed autocomplete missing');
+    const welcome=await select([{name:'embed',type:3,value:auto.choices[0].value},{name:'button_color',type:3,value:'Red'},{name:'on_welcome_channel',type:7,value:'999999999999996511'}]);
+    const preview=await finish(welcome,['Link Button','Link Help Button']);
+    const saved=(await db.query('SELECT embed_name,button_color,welcome_channel_id FROM server_welcome_panels WHERE server_id=$1',[server])).rows[0];
+    if(saved.embed_name!=='Member welcome'||saved.button_color!=='Red'||saved.welcome_channel_id!=='999999999999996511'||preview.embeds?.[0]?.title!=='Saved welcome'||preview.components?.[0]?.components?.[0]?.style!==4||preview.allowed_mentions.parse.length||sentReminders.length!==1)throw Error('Welcome config/preview failed '+text(preview));
+    const foreign=await select([{name:'on_welcome_channel',type:7,value:'999999999999996599'}]);if(!text(await finish(foreign,['Link Button'])).includes('this server'))throw Error('Foreign welcome destination allowed');
+    const revoked=await select();await db.query("UPDATE dashboard_role_grants SET access_level='view' WHERE server_id=$1 AND role_id=$2",[server,panelRole]);
+    if(!text(await finish(revoked,['Link Button'])).includes('Panels manage permission')||sentReminders.length!==1)throw Error('Panel permission not rechecked at selection');
+    // Existing member controls keep their clicker identity and privacy.
     const click=async(action,who=actor,legacy=false)=>interact({type:3,data:{component_type:2,custom_id:legacy?action:`ck:quick:${server}:${action}`}},who);
     const link=await click('link');if(link.custom_id!=='ck:link:submit')throw Error('Panel link did not open existing modal');
     const help=await click('help');if(help.flags!==64||!help.embeds?.length)throw Error('Panel help not private');
@@ -713,11 +784,13 @@ try{
     const stranger=await click('rosters',other);if(text(stranger).includes('Stored member'))throw Error('Panel reused creator identity');
     await db.query('UPDATE player_links SET hidden=true,is_verified=true WHERE tag=$1',[tags[1]]);if(text(await click('rosters')).includes('Stored member'))throw Error('Hidden link exposed');await db.query('UPDATE player_links SET hidden=false,is_verified=false WHERE tag=$1',[tags[1]]);
     if(!text(await click('MyRosters',actor,true)).includes('Visible roster'))throw Error('Legacy roster button broken');
-    const refresh=await click('refresh');if(refresh.flags!==64||!text(refresh).includes('refreshes completed'))throw Error('Panel refresh failed '+text(refresh));
-    const todo=await click('todo');if(todo.flags!==64||!todo.embeds?.length)throw Error('Panel to-do failed '+text(todo));
+    const refresh=await click('refresh');if(refresh.flags!==64||!text(refresh).includes('Refresh Complete')||refresh.components?.[0]?.components?.at(-1)?.custom_id!==`ck:quick:${server}:refresh`)throw Error('Private member refresh failed '+text(refresh));
+    if((await db.query('SELECT 1 FROM role_refresh_requests WHERE server_id=$1',[server])).rowCount)throw Error('Private panel response was stored as a durable public message');
+    const todo=await click('todo');if(todo.flags!==64||!todo.embeds?.length||text(todo).includes('temporarily unavailable')||text(todo).includes('Something went wrong'))throw Error('Panel to-do failed '+text(todo));
     const cross=await interact({type:3,data:{component_type:2,custom_id:`ck:quick:${elsewhere}:rosters`}});if(!text(cross).includes('another server'))throw Error('Foreign panel accepted');
-    console.log(JSON.stringify({quickPanel:'passed',checks:['setup command removed','existing link modal','private help/tasks/refresh','clicker identity','own roster scope','hidden links excluded','legacy IDs','cross-server rejection'],externalDiscordWrites:0,localPanelPosts:sentReminders.length}));
+    console.log(JSON.stringify({quickPanel:'passed',checks:['legacy private button chooser','canonical Panels permission and live revocation','saved embed autocomplete','four styles and authentic refresh emoji','current channel publication','welcome persistence and preview','foreign destination/owner/expiry denial','existing link modal','private help/tasks/refresh through the actual authorized manual engine','clicker identity','own roster scope','hidden links excluded','legacy IDs','cross-server rejection'],externalDiscordWrites:0,localPanelPosts:sentReminders.length}));
    }
+   if(!quickPanelMode){
    const list=await interact(command('roster','list'),actor,'32');if(!text(list).includes('Visible roster')||text(list).includes('Other server secret'))throw Error('Roster list scope failed: '+text(list));
    const selection=await interact({type:3,data:{custom_id:'ck:roster:select',component_type:3,values:[created.roster_id]}},actor,'32');if(!text(selection).includes('Stored member'))throw Error('Roster selection failed');
    const view=await interact(command('roster','view',[{name:'roster',type:3,value:created.roster_id}]),actor,'32');if(!text(view).includes('Stored member'))throw Error('Roster view failed');
@@ -776,7 +849,43 @@ try{
    await call('DELETE',`/v2/roster/${copy.id}?server_id=${server}`);
    if((await db.query('SELECT 1 FROM rosters WHERE id=$1',[copy.id])).rowCount)throw Error('Delete failed');
    console.log(JSON.stringify({rosterReads:'passed',checks:['setup commands rejected','canonical API-created rosters','server-scoped list and selection','direct view','player and self search','search refresh','failed refresh preserves profile','stored profile update','cooldown reuse','label CRUD/display','foreign label rejected','in-use label protected','atomic move','foreign server move rejected','copy preserves labels','remove/clear/delete'],externalDiscordWrites:0}));
+   }
   }finally{if(quickPanelMode){await db.query('DELETE FROM discord_cache.members WHERE guild_id=$1',[server]);await db.query('DELETE FROM discord_cache.guilds WHERE id=$1',[server]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);}await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,elsewhere]]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);}
+ }else if(modlinkMode){
+  const server='999999999999996510',generation=randomBytes(16).toString('hex'),role='999999999999996599',playerTag=tags[3];
+  const run=(action,who=other)=>interact(command('modlink',action,[{name:'player',type:3,value:playerTag},...(action==='add'?[{name:'discord_user',type:6,value:actor}]:[])]),who);
+  try {
+   await db.query("INSERT INTO servers(id,name) VALUES($1,'Modlink fixture')",[server]);
+   await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received,members) VALUES($1,'Link Clan',true,0,4,'',0,0,$2)",[group,JSON.stringify(tags.slice(0,4).map((tag,i)=>({tag,name:'Family Player '+i,town_hall:18})))]);
+   await db.query('INSERT INTO server_clans(server_id,tag) VALUES($1,$2)',[server,group]);
+   await db.query('INSERT INTO discord_cache.gateway_shards(application_id,shard_id,shard_count,generation,healthy,heartbeat_at) VALUES($1,0,1,$2,true,now())',[app,generation]);
+   await db.query('INSERT INTO discord_cache.guilds(id,data,application_id,shard_id,generation,available,metadata_complete,members_complete) VALUES($1,$2,$3,0,$4,true,true,true)',[server,JSON.stringify({owner_id:actor}),app,generation]);
+   for(const id of [actor,other])await db.query('INSERT INTO discord_cache.members(guild_id,user_id,data) VALUES($1,$2,$3)',[server,id,JSON.stringify({user:{id,username:'Link member'},roles:id===other?[role]:[]})]);
+   await db.query('INSERT INTO discord_cache.roles(guild_id,id,data) VALUES($1,$2,$3)',[server,role,JSON.stringify({id:role,name:'Links team',permissions:'0'})]);
+   await db.query("INSERT INTO dashboard_role_grants(server_id,role_id,section,access_level) VALUES($1,$2,'links','view')",[server,role]);
+   await db.query('DELETE FROM player_links WHERE tag=$1',[playerTag]);
+   const auto=await interact({type:4,data:{name:'modlink',options:[{name:'add',type:1,options:[{name:'player',type:3,value:'Family',focused:true}]}]}});
+   if(auto.choices?.length!==4||!auto.choices.every(x=>x.name.startsWith('¹⁸ ')&&!x.name.includes('Link Clan')))throw Error('Family autocomplete/TH formatting failed '+text(auto));
+   if(!text(await run('add')).includes('Dashboard Links manage permission'))throw Error('View-only actor allowed');
+   await db.query("UPDATE dashboard_role_grants SET access_level='manage' WHERE server_id=$1 AND role_id=$2",[server,role]);
+   if(!text(await run('add')).includes('Verify this family clan'))throw Error('Unverified clan accepted');
+   await db.query("INSERT INTO server_clan_verifications(server_id,clan_tag,challenge_id,marker,marker_index,requested_by,state,check_after,next_check_at,expires_at,verified_at) VALUES($1,$2,'11111111-1111-4111-8111-111111111111','local-proof',0,$3,'verified',now()+interval '1 second',now()+interval '1 second',now()+interval '1 hour',now())",[server,group,actor]);
+   const added=await run('add');if(!(added.flags&64)||added.allowed_mentions?.parse?.length||!text(added).includes('This link is unverified'))throw Error('Add result incorrect '+text(added));
+   const link=(await db.query('SELECT user_id,is_verified FROM player_links WHERE tag=$1',[playerTag])).rows[0];if(link.user_id!==actor||link.is_verified)throw Error('Wrong SQL link');
+   await db.query('UPDATE player_links SET is_verified=true WHERE tag=$1',[playerTag]);
+   if(!text(await run('remove')).includes('only be changed by their owner'))throw Error('Verified owner bypass');
+   await db.query('UPDATE player_links SET is_verified=false WHERE tag=$1',[playerTag]);
+   if(!text(await run('remove')).includes('Removed the unverified link')||(await db.query('SELECT 1 FROM player_links WHERE tag=$1',[playerTag])).rowCount)throw Error('Remove failed');
+   await db.query('DELETE FROM server_clans WHERE server_id=$1',[server]);
+   if(!text(await run('add')).includes('family clan linked to this server'))throw Error('Non-family accepted');
+   await db.query('INSERT INTO server_clans(server_id,tag) VALUES($1,$2)',[server,group]);
+   await db.query('DELETE FROM dashboard_role_grants WHERE server_id=$1',[server]);
+   if(!text(await run('add')).includes('Dashboard Links manage permission'))throw Error('Revoked actor allowed');
+   console.log(JSON.stringify({modlink:'passed',checks:['signed actual Bot interaction -> API -> SQL','family autocomplete with superscript TH','delegated Links manage without Discord manager bit','view-only denial','verified clan required','verified owners protected','unverified add/remove','private no-ping replies','non-family denial','live permission revocation'],externalDiscordWrites:0}));
+  } finally {
+   await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);
+   await db.query('DELETE FROM discord_cache.members WHERE guild_id=$1',[server]);await db.query('DELETE FROM discord_cache.roles WHERE guild_id=$1',[server]);await db.query('DELETE FROM discord_cache.guilds WHERE id=$1',[server]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);
+  }
  }else if(linksMode){
   const server='999999999999996510',generation=randomBytes(16).toString('hex'),outside='999999999999996588',hiddenOwner='999999999999996589';
   const playerTags=tags.slice(0,4),names=['In Server','Outside Server','Hidden Player','Unlinked Player'];
@@ -812,27 +921,36 @@ try{
  }else if(helpMode){
   const list=await interact({type:2,data:{name:'help'}});
   if(!text(list).includes('/clan')||!text(list).includes('/link')||!text(list).includes('/help'))throw Error('Help missing current command roots');
-  const detail=await interact({type:2,data:{name:'help',options:[{name:'command',type:3,value:'clan war-preference'}]}});
-  if(!text(detail).includes('Required')||!text(detail).includes('townhall')||!text(detail).includes('Last preference change'))throw Error('Help detail missing real options');
+  const detail=await interact({type:2,data:{name:'help',options:[{name:'command',type:3,value:'clan search'}]}});
+  if(!text(detail).includes('Overview style')||!text(detail).includes('clan'))throw Error('Help detail missing real options '+text(detail));
   const refresh=detail.components.flatMap(row=>row.components).find(item=>item.custom_id?.startsWith("ck:help:refresh:")).custom_id;
-  if(!text(await interact({type:3,data:{custom_id:refresh,component_type:2}},other)).includes('/clan war-preference'))throw Error('Help refresh lost command');
+  if(!text(await interact({type:3,data:{custom_id:refresh,component_type:2}},other)).includes('/clan search'))throw Error('Help refresh lost command');
   const root=await interact({type:2,data:{name:'help',options:[{name:'command',type:3,value:'clan'}]}});
-  if(!text(root).includes('/clan summary')||!text(root).includes('/clan war-preference'))throw Error('Help group missing subcommands');
+  if(!text(root).includes('/clan summary')||!text(root).includes('/clan search'))throw Error('Help group missing subcommands');
   if(text(root).includes('member-warning'))throw Error('Removed warning command remains registered');
   const retired=await interact(command('clan','member-warning',[{name:'clan',type:3,value:group}]));
   if(!text(retired).includes('no longer available'))throw Error('Cached warning command fell through to another report');
   const removed=await fetch(`http://127.0.0.1:${port}/v2/server/999999999999996510/clan/${encodeURIComponent(group)}/member-warning`,{headers:{authorization:`Bearer ${keys.API_BOT_TOKEN}`}});
   if(removed.status!==404)throw Error('Removed warning endpoint remains active');
-  for(const name of ['autorefresh','roles','giveaway','buttons']) {
+  for(const name of ['autorefresh','roles','giveaway']) {
    const response=await interact({type:2,data:{name}});if(response.embeds?.length)throw Error('Removed setup command remains active: '+name);
   }
   for(const [name,action]of [['roster','create'],['roster','settings'],['roster','post'],['ticket','panel-post'],['clan','war-events']]){
    const response=await interact(command(name,action,[]),actor,'32');if(response.embeds?.some(embed=>embed.title?.includes('Created')))throw Error('Retired setup action succeeded');
   }
-  const complete=await interact({type:4,data:{name:'help',options:[{name:'command',type:3,value:'war',focused:true}]}});
-  if(!complete.choices?.some(choice=>choice.value==='clan war-preference'))throw Error('Help autocomplete missing leaf');
+  const complete=await interact({type:4,data:{name:'help',options:[{name:'command',type:3,value:'clan search',focused:true}]}});
+  if(!complete.choices?.some(choice=>choice.value==='clan search'))throw Error('Help autocomplete missing leaf');
   const bad=await interact({type:2,data:{name:'help',options:[{name:'command',type:3,value:'not-real'}]}});
   if(!text(bad).includes('Choose a current command'))throw Error('Unknown help command accepted');
+  if(dfxMode){
+   dfxFailure=429;
+   const limited=await interact({type:2,data:{name:'help'}});
+   if(dfxRateResponses!==1||!text(limited).includes('/clan'))throw Error('dfx did not recover from rate limiting');
+   dfxFailure=403;
+   const denied=await interact({type:2,data:{name:'help'}});
+   if(!text(denied).includes('Bot permission needed'))throw Error('dfx permission failure lost its classification '+text(denied));
+   console.log('PASS dfx: native 429 retry and provider permission-error reporting through signed interactions');
+  }
   console.log(JSON.stringify({help:'passed',checks:['current registry roots','generated required/options/choices','group children','autocomplete','public refresh retains selection','unknown command rejected'],externalDiscordWrites:0}));
  }else if(warPreferenceMode){
   const ids=[],selected=[tag,tags[1]],key='test-war-preference';
@@ -1148,6 +1266,26 @@ try{
    if(!text(degraded).includes('Legend attacks unavailable')||!text(degraded).includes('raid attacks left')||!text(degraded).includes('1200/2000 observed points'))throw Error('Legend failure erased other tasks');
    console.log(JSON.stringify({todo:'passed',checks:['calendar season points exclude earlier month','missing observations stay unknown','daily Legend vs weekly Ranked','explicit season target','capital donation age','goal survives pagination','Legend failure preserves other tasks'],externalDiscordWrites:0}));
   }finally{await db.query('DELETE FROM player_stat_changes WHERE player_tag=ANY($1::text[])',[tags]);}
+ }else if(warContractMode){
+  const search=()=>interact(command('war','search',[{name:'clan',type:3,value:group}]));
+  const regular=await search();if(!text(regular).includes('Reminder Clan')||!text(regular).includes('Other Clan')||!text(regular).includes('2/4'))throw Error('Regular war unavailable '+text(regular));
+  if((await db.query('SELECT 1 FROM war_schedule WHERE source_clan_tag=$1 OR opponent_tag=$1',[group])).rowCount)throw Error('Synthetic war contract pointer already exists');
+  try{
+   await db.query("INSERT INTO war_schedule(schedule_key,source_clan_tag,opponent_tag,prep_time,end_time,next_run_at,war_type) VALUES('test-war-contract',$1,'#PYLQGRJJ',$2,$3,now(),'random')",[group,fixturePrep,fixtureEnd]);
+   privateWar=true;
+   const discovered=await search();if(!text(discovered).includes('Reminder Clan')||!text(discovered).includes('Other Clan'))throw Error('Exact public opponent discovery failed '+text(discovered));
+   opponentNextWar=true;
+   const stale=await search();if(!text(stale).includes('war log is private'))throw Error('Stale opponent war accepted '+text(stale));
+   opponentWarError={status:403,body:{reason:'accessDenied',message:'This clan has a private war log'}};
+   const privateOpponent=await search();if(!text(privateOpponent).includes('war log is private')||text(privateOpponent).includes('Access unavailable'))throw Error('Confirmed private opponent blocked fallback '+text(privateOpponent));
+   opponentWarError={status:403,body:{reason:'accessDenied.invalidIp'}};
+   const denied=await search();if(!text(denied).includes('Access unavailable'))throw Error('Opponent credential failure became a missing war '+text(denied));
+   opponentWarError={status:503,body:{reason:'upstreamUnavailable'}};
+   const outage=await search();if(!text(outage).includes('Service temporarily unavailable'))throw Error('Opponent outage became a missing war '+text(outage));
+  }finally{opponentWarError=undefined;opponentNextWar=false;await db.query("DELETE FROM war_schedule WHERE schedule_key='test-war-contract'");}
+  reminderCwl=true;
+  const cwl=await search();if(!text(cwl).includes('CWL')||!text(cwl).includes('1/2'))throw Error('Private regular log blocked available CWL '+text(cwl));
+  console.log('PASS signed war contract: exact public opponent discovery, stale pairing rejected, confirmed private opponent skipped, credential/outage failures preserved, CWL despite private regular log');
  }else if(process.argv.includes('--wars-only')){
   const clan={name:'clan',type:3,value:group};
   const search=(name,opts=[])=>interact(command(name,'search',[clan,...opts]));

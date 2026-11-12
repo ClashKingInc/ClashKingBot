@@ -1,3 +1,4 @@
+import { editOriginalInteractionResponse } from "../discord/message-actions";
 import { sendInteractionError } from "./errors";
 import { actionRow, legacyMessage } from "../discord/components";
 import { InteractionResponseType, } from "../discord/types";
@@ -84,7 +85,7 @@ export async function dispatchClanLinks(ctx: CommandContext, waitUntil?: (promis
   } else if (value) tag = value;
   const pending = clanLinkList(ctx, tag, page);
   if (!waitUntil) { const response = await pending; return { ...response, type: InteractionResponseType.UpdateMessage }; }
-  waitUntil(pending.then(response => ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token, response.data ?? {}))
+  waitUntil(pending.then(response => editOriginalInteractionResponse(ctx.services.discordRest,ctx.interaction.token,response.data ?? {}))
     .catch((error) => sendInteractionError(ctx,error)).then(() => undefined));
   return { type: InteractionResponseType.DeferredUpdateMessage };
 }

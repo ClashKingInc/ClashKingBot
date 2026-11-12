@@ -26,6 +26,8 @@ jobs:
       - run: npm run check
       - name: Verify contextual autocomplete through the local Worker
         run: node ../tooling/e2e/contextual-autocomplete.mjs
+      - name: Verify modal acknowledgement deadlines through the local Worker
+        run: node ../tooling/e2e/modal-deadlines.mjs
       - name: Verify mobile table messages through the local Worker
         run: node ../tooling/e2e/mobile-table-width.mjs
 
@@ -43,13 +45,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ClashKingInc/ClashKingAPI
-          ref: 8260e9cc15760c7764c845f32edca17f28819ad9
+          ref: 249f08a13a5e31bf9e1beb1bd85136685a8e665d
           path: .ci-api
           persist-credentials: false
       - uses: actions/checkout@v4
         with:
           repository: ClashKingInc/DevKit
-          ref: eedc5e718bbe735668d68f1a9db01a727e46e814
+          ref: 71c813edc9cba9e228e8c71937a75b5d6b5d3425
           path: .ci-schema
           persist-credentials: false
       - uses: actions/checkout@v4
@@ -67,3 +69,56 @@ jobs:
           CLASHKING_E2E_API_REPO: ${{ github.workspace }}/.ci-api
           CLASHKING_E2E_STATIC_ASSETS_ROOT: ${{ github.workspace }}/.ci-assets/assets/static_data
         run: bash .ci-schema/scripts/with-test-timescale.sh --profile retained-api -- node tooling/e2e/durable-refresh.mjs
+
+  discord-contract-e2e:
+    name: dfx and Clash wire contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+      - uses: actions/checkout@v4
+        with:
+          repository: ClashKingInc/ClashKingAPI
+          ref: 249f08a13a5e31bf9e1beb1bd85136685a8e665d
+          path: .ci-api
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: ClashKingInc/DevKit
+          ref: 71c813edc9cba9e228e8c71937a75b5d6b5d3425
+          path: .ci-schema
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: ClashKingInc/ClashKingAssets
+          ref: 9496a587eee1be87f15324e524df7f615ef9c878
+          path: .ci-assets
+          persist-credentials: false
+      - run: npm ci --ignore-scripts --prefix worker
+      - run: npm ci --ignore-scripts --prefix .ci-api
+      - run: npm run build --prefix .ci-api
+      - run: go install github.com/pressly/goose/v3/cmd/goose@v3.26.0
+      - uses: actions/checkout@v4
+        with:
+          repository: ClashKingInc/ClashKingTracking
+          ref: a8e0e63893cf88d9fbee16790432977da4d7d5f4
+          path: .ci-tracking
+          persist-credentials: false
+      - name: Verify signed interactions and native SDK error/upload paths
+        env:
+          CLASHKING_E2E_API_REPO: ${{ github.workspace }}/.ci-api
+          CLASHKING_E2E_ASSETS_REPO: ${{ github.workspace }}/.ci-assets
+          CLASHKING_E2E_STATIC_ASSETS_ROOT: ${{ github.workspace }}/.ci-assets/assets/static_data
+          CLASHKING_E2E_TRACKING_REPO: ${{ github.workspace }}/.ci-tracking
+        run: |
+          for mode in --graph-month-only --dfx-only --contract-wire-only --fankit-only --war-contract-only --quick-panel-only --modlink-only; do
+            bash .ci-schema/scripts/with-test-integration.sh --profile retained-api -- node tooling/e2e/command-parity.mjs "$mode"
+          done
+          bash .ci-schema/scripts/with-test-integration.sh --profile retained-api -- node tooling/e2e/farming-autoboard-api.mjs --donation-logs-only
+          bash .ci-schema/scripts/with-test-integration.sh --profile retained-api -- node tooling/e2e/discord-delivery.mjs

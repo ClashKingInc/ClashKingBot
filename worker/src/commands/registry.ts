@@ -1,3 +1,5 @@
+import { buttonsCommand, dispatchButtons } from "./member-panel-create";
+import { editOriginalInteractionResponse, createInteractionFollowup } from "../discord/message-actions";
 import { interactionErrorReply, sendInteractionError } from "./errors";
 import { dispatchCwlSearch } from "./cwl-search";
 import { dispatchLegendStats } from "./legend-global";
@@ -29,6 +31,7 @@ import { dispatchRoster, rosterCommand } from "./roster";
 import { refreshCommand, dispatchRefresh } from "./refresh";
 import { remindersCommand } from "./reminders";
 import { dashboardCommand } from "./dashboard";
+import { modlinkCommand } from "./modlink";
 import { ticketCommand } from "./ticket";
 import { dispatchWarPanel } from "./war-panel";
 import { playerCommand } from "./player";
@@ -44,8 +47,9 @@ import { dispatchGamePage } from "./game-pages";
 import type { Command, CommandContext, CommandServices, ComponentHandler } from "./types";
 
 // Setup and automation live in the dashboard. Keep only member-facing and
-// informational slash commands here; persistent message handlers remain below.
-const commands: readonly Command[] = [fankitCommand,memeCommand,botInfoCommand,graphCommand,roleUsersCommand,helpCommand,baseCommand, linkCommand, rosterCommand, refreshCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand, familyCommand, moderationCommand, warCommand, cwlCommand];
+// informational slash commands here. /buttons is the explicit member-panel
+// creation exception; persistent message handlers remain below.
+const commands: readonly Command[] = [buttonsCommand,fankitCommand,memeCommand,botInfoCommand,graphCommand,roleUsersCommand,helpCommand,baseCommand, linkCommand, modlinkCommand, rosterCommand, refreshCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand, familyCommand, moderationCommand, warCommand, cwlCommand];
 const commandByName = new Map(commands.map((command) => [command.definition.name, command]));
 // Retain cached legacy invocations without registering a separate slash root.
 commandByName.set("unlink", unlinkCommand);
@@ -103,7 +107,7 @@ async function executeCommand(
   if (!command) {
     // Cached setup definitions can outlive registration; guide users without
     // retaining a hidden write path through an old Discord command.
-    if (name && ["autorefresh", "roles", "giveaway", "buttons"].includes(name)) {
+    if (name && ["autorefresh", "roles", "giveaway"].includes(name)) {
       return { type: InteractionResponseType.ChannelMessageWithSource,
         data: { content: "Server setup is managed in /setup.", flags: MessageFlags.Ephemeral } };
     }
@@ -119,10 +123,10 @@ async function executeCommand(
       // Discord fixes visibility at acknowledgement time. A private result
       // after a public defer needs its own follow-up, not an ignored flag edit.
       if(!ephemeral&&typeof response.data?.flags==="number"&&(response.data.flags&MessageFlags.Ephemeral)){
-        await context.services.discordRest.editOriginalInteractionResponse(context.interaction.token,{content:"This result is private.",embeds:[],components:[]});
-        await context.services.discordRest.createInteractionFollowup(context.interaction.token,response.data??{});
-        await context.services.discordRest.deleteOriginalInteractionResponse(context.interaction.token);
-      }else await context.services.discordRest.editOriginalInteractionResponse(context.interaction.token, response.data ?? {});
+        await editOriginalInteractionResponse(context.services.discordRest,context.interaction.token,{content:"This result is private.",embeds:[],components:[]});
+        await createInteractionFollowup(context.services.discordRest,context.interaction.token,response.data??{});
+        await context.services.discordRest.deleteOriginalWebhookMessage(context.services.discordRest.applicationId,context.interaction.token);
+      }else await editOriginalInteractionResponse(context.services.discordRest,context.interaction.token,response.data ?? {});
     },
   ).catch((error: unknown) => {
     // The first follow-up after a defer can resolve the original response.
@@ -151,6 +155,7 @@ async function executePersistentHandler(
     };
     return waitUntil ? deferPersistentHandler(context, handler, [], waitUntil) : handler(context, []);
   }
+  if(customId.startsWith("ck:panel:"))return dispatchButtons(context,waitUntil);
   if(customId.startsWith("ck:cwl:"))return dispatchCwlSearch(context,waitUntil);
   if(customId.startsWith("ck:legendstats:"))return dispatchLegendStats(context,waitUntil);
   if(customId.startsWith("ck:clans:"))return dispatchClanControl(context,waitUntil);
@@ -223,7 +228,7 @@ function deferPersistentHandler(
 async function completeDeferredInteraction(context: CommandContext, pending: Promise<DiscordInteractionResponse>): Promise<void> {
   try {
     const response = await pending;
-    await context.services.discordRest.editOriginalInteractionResponse(context.interaction.token, response.data ?? {});
+    await editOriginalInteractionResponse(context.services.discordRest,context.interaction.token,response.data ?? {});
   } catch (error) {
     await sendInteractionError(context,error,true);
   }

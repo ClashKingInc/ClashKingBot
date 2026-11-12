@@ -1,3 +1,5 @@
+import { Effect } from 'effect';
+import { createInteractionFollowup, editOriginalInteractionResponse } from "../discord/message-actions";
 import { interactionErrorReply } from "./errors";
 import { ApplicationEmojis } from "../discord/emojis";
 import { actionRow, legacyMessage, type ButtonComponent } from "../discord/components";
@@ -174,7 +176,7 @@ async function joinModal(ctx: CommandContext, id: string, page?: number, removin
   // Modal responses cannot be deferred: cap this one read below Discord's acknowledgement deadline.
   const [roster, result, emojis] = await Promise.all([load(ctx, id, true), ctx.services.api.get<{ items: SignupAccount[]; remainingSlots?: number | null }>(
     endpoint(ctx, id) + "/accounts", { discordUserId: invokingUserId(ctx) }, AbortSignal.timeout(1500)),
-    ctx.services.discordRest.listApplicationEmojis(AbortSignal.timeout(1500))]);
+    ctx.services.discordRest.run(api=>api.listApplicationEmojis(ctx.services.discordRest.applicationId).pipe(Effect.timeout("1500 millis"))).then(result=>result.items).catch(()=>[])]);
   const accounts = result.items.filter(a => removing ? a.signedUp : !a.signedUp && (!roster.requireVerified || a.isVerified));
   if (!accounts.length) return interactionErrorReply(new CommandInputError(t(ctx,"roster.empty")),ctx.interaction);
   const action = removing ? "leave" : "join";
@@ -283,10 +285,10 @@ export async function dispatchRoster(ctx: CommandContext, waitUntil?: (promise: 
   });
   if (action === "refresh" && waitUntil) {
     waitUntil(run().then(response => response.type === InteractionResponseType.DeferredUpdateMessage
-      ? undefined : ctx.services.discordRest.createInteractionFollowup(ctx.interaction.token, response.data ?? {})));
+      ? undefined : createInteractionFollowup(ctx.services.discordRest,ctx.interaction.token,response.data ?? {})));
     return { type: InteractionResponseType.DeferredUpdateMessage };
   }
   if (!waitUntil || ["join", "leave", "join-page", "leave-page"].includes(action ?? "")) return run();
-  waitUntil(run().then(response => ctx.services.discordRest.editOriginalInteractionResponse(ctx.interaction.token, response.data ?? {})));
+  waitUntil(run().then(response => editOriginalInteractionResponse(ctx.services.discordRest,ctx.interaction.token,response.data ?? {})));
   return { type: InteractionResponseType.DeferredChannelMessageWithSource, data: { flags: 64 } };
 }

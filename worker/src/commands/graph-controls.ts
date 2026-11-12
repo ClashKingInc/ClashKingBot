@@ -1,3 +1,4 @@
+import { editOriginalInteractionResponse } from "../discord/message-actions";
 import { sendInteractionError } from "./errors";
 import {
   actionRow,
@@ -256,10 +257,7 @@ export async function dispatchGraphControl(
   waitUntil(
     run()
       .then((response) =>
-        ctx.services.discordRest.editOriginalInteractionResponse(
-          ctx.interaction.token,
-          response.data ?? {},
-        ),
+        editOriginalInteractionResponse(ctx.services.discordRest,ctx.interaction.token,response.data ?? {}),
       )
       .catch((error) =>
         sendInteractionError(ctx,error),
