@@ -58,6 +58,7 @@ const rosterReadMode=process.argv.includes("--roster-commands-only")||quickPanel
 const dfxMode=process.argv.includes("--dfx-only");let dfxFailure=0,dfxRateResponses=0;
 const wireMode=process.argv.includes('--contract-wire-only');let wireFault=false;
 const helpMode=process.argv.includes("--help-only")||dfxMode;
+const modlinkMode=process.argv.includes("--modlink-only");
 const linksMode=process.argv.includes("--links-only");
 const warPreferenceMode=process.argv.includes("--war-preference-only");let warPreferenceFailure=false;
 const activityMode=process.argv.includes("--activity-only");
@@ -143,9 +144,10 @@ const provider=createServer(async(req,res)=>{
  if(p==='/v1/clanwarleagues/wars/#PYLQGRJQ')return res.end(JSON.stringify({...warBody,attacksPerMember:undefined,clan:opponent,opponent:{...own,members:own.members.map(member=>({...member,attacks:member.attacks.slice(0,1)}))}}));
  if(p==='/v1/clans/#PYLQGRJJ')return res.end(JSON.stringify({tag:opponent.tag,name:opponent.name,warLeague:{id:48000019,name:'Champion League I'},memberList:[]}));
  if(roleMode&&p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Role Clan',description:'',clanLevel:10,members:1,isWarLogPublic:true,warWins:1,warWinStreak:0,clanPoints:1000,badgeUrls:{},memberList:[{tag,name:'Current Player',townHallLevel:16,donations:0,donationsReceived:0}]}));
+ if(modlinkMode&&p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Link Clan',clanLevel:18,badgeUrls:{},memberList:tags.slice(0,4).map((tag,i)=>({tag,name:'Family Player '+i,townHallLevel:18}))}));
  if(p===`/v1/clans/${group}`)return res.end(JSON.stringify({tag:group,name:'Reminder Clan',description:verificationDescription,warLeague:{id:48000019,name:'Champion League I'},memberList:[{tag,name:'Missing Player',townHallLevel:16},{tag:tags[1],name:'Finished Player',townHallLevel:16}]}));
  if(p===`/v1/clans/${group}/capitalraidseasons`)return res.end(JSON.stringify({items:reminderRaidActive?[{state:'ongoing',endTime,members:[{tag:tags[1],attacks:6,attackLimit:5,bonusAttackLimit:1}]}]:[]}));
- if(url.pathname.startsWith('/v1/players/')){if((warPreferenceFailure||rosterProfileFailure)&&decodeURIComponent(url.pathname).endsWith(tags[1])){res.statusCode=503;return res.end('{}');}const playerTag=decodeURIComponent(url.pathname.split('/').at(-1));return res.end(JSON.stringify({tag:playerTag,name:playerTag===tag?'Current Player':`Account ${tags.indexOf(playerTag)+1}`,townHallLevel:memberMode&&playerTag===tags[1]?18:16,trophies:5500,warStars:100,expLevel:250,donations:50,donationsReceived:40,currentLeagueGroupTag:group,currentLeagueSeasonId:currentSeason,...(warPreferenceMode?{warPreference:playerTag===tag?'in':'out'}:{}),...(rosterReadMode?{troops:[],spells:[],heroes:[]}:{}),leagueTier:{id:todoMode&&playerTag===tags[0]?105000036:tier,name:'Current League'},...((todoMode||roleMode)?{clan:{tag:group,name:'Reminder Clan'}}:{}),
+ if(url.pathname.startsWith('/v1/players/')){if((warPreferenceFailure||rosterProfileFailure)&&decodeURIComponent(url.pathname).endsWith(tags[1])){res.statusCode=503;return res.end('{}');}const playerTag=decodeURIComponent(url.pathname.split('/').at(-1));return res.end(JSON.stringify({tag:playerTag,name:playerTag===tag?'Current Player':`Account ${tags.indexOf(playerTag)+1}`,townHallLevel:memberMode&&playerTag===tags[1]?18:16,trophies:5500,warStars:100,expLevel:250,donations:50,donationsReceived:40,currentLeagueGroupTag:group,currentLeagueSeasonId:currentSeason,...(warPreferenceMode?{warPreference:playerTag===tag?'in':'out'}:{}),...(rosterReadMode?{troops:[],spells:[],heroes:[]}:{}),leagueTier:{id:todoMode&&playerTag===tags[0]?105000036:tier,name:'Current League'},...((todoMode||roleMode||modlinkMode)?{clan:{tag:group,name:'Reminder Clan'}}:{}),
  // Deliberately synthetic name input exercises the normal lookup renderer; this is not real player data.
  ...(betaInventory?{heroes:[{name:'P.E.K.K.A.',level:15}]}:{})}));}
  if(url.pathname===`/v1/leaguegroup/${encodeURIComponent(group)}/${currentSeason}`||decodeURIComponent(url.pathname)===`/v1/leaguegroup/${group}/${currentSeason}`){
@@ -168,7 +170,7 @@ try{
  ownsRecords=true;
  for(const playerTag of tags)await db.query("INSERT INTO player_links(tag,user_id,source) VALUES($1,$2,'discord')",[playerTag,actor]);
  const armies=(await db.query('SELECT share_code FROM army_compositions ORDER BY length(share_code),share_code LIMIT 30')).rows;
- if(armies.length<30&&!helpMode&&!botInfoMode&&!fankitMode&&!graphMode&&!wireMode&&!warContractMode)throw Error('Thirty existing local compositions required');
+ if(armies.length<30&&!helpMode&&!botInfoMode&&!fankitMode&&!graphMode&&!wireMode&&!warContractMode&&!modlinkMode)throw Error('Thirty existing local compositions required');
  for(const army of armies)await db.query('INSERT INTO user_saved_armies(user_id,share_code) VALUES($1,$2)',[actor,army.share_code]);
  for(const season of historySeasons)await db.query(`INSERT INTO ranked_league_group_members(season_id,group_tag,league_tier_id,player_tag,player_name,placement,league_trophies,attack_win_count,attack_loss_count,defense_win_count,defense_loss_count,town_hall,maximum_battle_count) VALUES($1,$2,$3,$4,'Historical Player',1,5000,8,1,4,5,16,10)`,[season,group,tier,tag]);
  const env={PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR,CLASHKING_PERSISTENT_LOCAL_API:process.env.CLASHKING_DISPOSABLE_TIMESCALE==='1'?'0':'1',CLASHKING_DISPOSABLE_TIMESCALE:process.env.CLASHKING_DISPOSABLE_TIMESCALE,TEST_DATABASE_URL:database,CLASHKING_LOCAL_DATABASE_URL:database,CLASHKING_LOCAL_API_PORT:String(port),CLASHKING_LOCAL_DISCORD_CLIENT_ID:app,CLASHKING_LOCAL_DISCORD_TEST_ORIGIN:`http://127.0.0.1:${providerPort}`,CLASHKING_LOCAL_DISCORD_CLIENT_SECRET:'local-only',CLASHKING_LOCAL_DISCORD_PUBLIC_KEY:publicHex,CLASHKING_LOCAL_ARCHIVE_BRIDGE:'0',CLASHKING_LOCAL_CLASH_PROXY_ORIGIN:`http://127.0.0.1:${providerPort}`,CLASHKING_LOCAL_STATIC_ASSETS_ROOT:join(assetsRepo,'assets/static_data'),CLASHKING_LOCAL_STORAGE_ROOT:join(directory,'storage'),...Object.fromEntries(Object.entries(keys).map(([key,value])=>[`${process.env.CLASHKING_DISPOSABLE_TIMESCALE==='1'?'CLASHKING_E2E_':'CLASHKING_LOCAL_'}${key}`,value]))};
@@ -811,6 +813,41 @@ try{
    if((await db.query('SELECT 1 FROM rosters WHERE id=$1',[copy.id])).rowCount)throw Error('Delete failed');
    console.log(JSON.stringify({rosterReads:'passed',checks:['setup commands rejected','canonical API-created rosters','server-scoped list and selection','direct view','player and self search','search refresh','failed refresh preserves profile','stored profile update','cooldown reuse','label CRUD/display','foreign label rejected','in-use label protected','atomic move','foreign server move rejected','copy preserves labels','remove/clear/delete'],externalDiscordWrites:0}));
   }finally{if(quickPanelMode){await db.query('DELETE FROM discord_cache.members WHERE guild_id=$1',[server]);await db.query('DELETE FROM discord_cache.guilds WHERE id=$1',[server]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);}await db.query('DELETE FROM servers WHERE id=ANY($1::text[])',[[server,elsewhere]]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);}
+ }else if(modlinkMode){
+  const server='999999999999996510',generation=randomBytes(16).toString('hex'),role='999999999999996599',playerTag=tags[3];
+  const run=(action,who=other)=>interact(command('modlink',action,[{name:'player',type:3,value:playerTag},...(action==='add'?[{name:'discord_user',type:6,value:actor}]:[])]),who);
+  try {
+   await db.query("INSERT INTO servers(id,name) VALUES($1,'Modlink fixture')",[server]);
+   await db.query("INSERT INTO basic_clan(tag,name,public_war_log,war_wins,member_count,badge_token,troops_donated,troops_received,members) VALUES($1,'Link Clan',true,0,4,'',0,0,$2)",[group,JSON.stringify(tags.slice(0,4).map((tag,i)=>({tag,name:'Family Player '+i,town_hall:18})))]);
+   await db.query('INSERT INTO server_clans(server_id,tag) VALUES($1,$2)',[server,group]);
+   await db.query('INSERT INTO discord_cache.gateway_shards(application_id,shard_id,shard_count,generation,healthy,heartbeat_at) VALUES($1,0,1,$2,true,now())',[app,generation]);
+   await db.query('INSERT INTO discord_cache.guilds(id,data,application_id,shard_id,generation,available,metadata_complete,members_complete) VALUES($1,$2,$3,0,$4,true,true,true)',[server,JSON.stringify({owner_id:actor}),app,generation]);
+   for(const id of [actor,other])await db.query('INSERT INTO discord_cache.members(guild_id,user_id,data) VALUES($1,$2,$3)',[server,id,JSON.stringify({user:{id,username:'Link member'},roles:id===other?[role]:[]})]);
+   await db.query('INSERT INTO discord_cache.roles(guild_id,id,data) VALUES($1,$2,$3)',[server,role,JSON.stringify({id:role,name:'Links team',permissions:'0'})]);
+   await db.query("INSERT INTO dashboard_role_grants(server_id,role_id,section,access_level) VALUES($1,$2,'links','view')",[server,role]);
+   await db.query('DELETE FROM player_links WHERE tag=$1',[playerTag]);
+   const auto=await interact({type:4,data:{name:'modlink',options:[{name:'add',type:1,options:[{name:'player',type:3,value:'Family',focused:true}]}]}});
+   if(auto.choices?.length!==4||!auto.choices.every(x=>x.name.startsWith('¹⁸ ')&&!x.name.includes('Link Clan')))throw Error('Family autocomplete/TH formatting failed '+text(auto));
+   if(!text(await run('add')).includes('Dashboard Links manage permission'))throw Error('View-only actor allowed');
+   await db.query("UPDATE dashboard_role_grants SET access_level='manage' WHERE server_id=$1 AND role_id=$2",[server,role]);
+   if(!text(await run('add')).includes('Verify this family clan'))throw Error('Unverified clan accepted');
+   await db.query("INSERT INTO server_clan_verifications(server_id,clan_tag,challenge_id,marker,marker_index,requested_by,state,check_after,next_check_at,expires_at,verified_at) VALUES($1,$2,'11111111-1111-4111-8111-111111111111','local-proof',0,$3,'verified',now()+interval '1 second',now()+interval '1 second',now()+interval '1 hour',now())",[server,group,actor]);
+   const added=await run('add');if(!(added.flags&64)||added.allowed_mentions?.parse?.length||!text(added).includes('This link is unverified'))throw Error('Add result incorrect '+text(added));
+   const link=(await db.query('SELECT user_id,is_verified FROM player_links WHERE tag=$1',[playerTag])).rows[0];if(link.user_id!==actor||link.is_verified)throw Error('Wrong SQL link');
+   await db.query('UPDATE player_links SET is_verified=true WHERE tag=$1',[playerTag]);
+   if(!text(await run('remove')).includes('only be changed by their owner'))throw Error('Verified owner bypass');
+   await db.query('UPDATE player_links SET is_verified=false WHERE tag=$1',[playerTag]);
+   if(!text(await run('remove')).includes('Removed the unverified link')||(await db.query('SELECT 1 FROM player_links WHERE tag=$1',[playerTag])).rowCount)throw Error('Remove failed');
+   await db.query('DELETE FROM server_clans WHERE server_id=$1',[server]);
+   if(!text(await run('add')).includes('family clan linked to this server'))throw Error('Non-family accepted');
+   await db.query('INSERT INTO server_clans(server_id,tag) VALUES($1,$2)',[server,group]);
+   await db.query('DELETE FROM dashboard_role_grants WHERE server_id=$1',[server]);
+   if(!text(await run('add')).includes('Dashboard Links manage permission'))throw Error('Revoked actor allowed');
+   console.log(JSON.stringify({modlink:'passed',checks:['signed actual Bot interaction -> API -> SQL','family autocomplete with superscript TH','delegated Links manage without Discord manager bit','view-only denial','verified clan required','verified owners protected','unverified add/remove','private no-ping replies','non-family denial','live permission revocation'],externalDiscordWrites:0}));
+  } finally {
+   await db.query('DELETE FROM servers WHERE id=$1',[server]);await db.query('DELETE FROM basic_clan WHERE tag=$1',[group]);
+   await db.query('DELETE FROM discord_cache.members WHERE guild_id=$1',[server]);await db.query('DELETE FROM discord_cache.roles WHERE guild_id=$1',[server]);await db.query('DELETE FROM discord_cache.guilds WHERE id=$1',[server]);await db.query('DELETE FROM discord_cache.gateway_shards WHERE application_id=$1',[app]);
+  }
  }else if(linksMode){
   const server='999999999999996510',generation=randomBytes(16).toString('hex'),outside='999999999999996588',hiddenOwner='999999999999996589';
   const playerTags=tags.slice(0,4),names=['In Server','Outside Server','Hidden Player','Unlinked Player'];

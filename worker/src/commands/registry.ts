@@ -30,6 +30,7 @@ import { dispatchRoster, rosterCommand } from "./roster";
 import { refreshCommand, dispatchRefresh } from "./refresh";
 import { remindersCommand } from "./reminders";
 import { dashboardCommand } from "./dashboard";
+import { modlinkCommand } from "./modlink";
 import { ticketCommand } from "./ticket";
 import { dispatchWarPanel } from "./war-panel";
 import { playerCommand } from "./player";
@@ -46,7 +47,7 @@ import type { Command, CommandContext, CommandServices, ComponentHandler } from 
 
 // Setup and automation live in the dashboard. Keep only member-facing and
 // informational slash commands here; persistent message handlers remain below.
-const commands: readonly Command[] = [fankitCommand,memeCommand,botInfoCommand,graphCommand,roleUsersCommand,helpCommand,baseCommand, linkCommand, rosterCommand, refreshCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand, familyCommand, moderationCommand, warCommand, cwlCommand];
+const commands: readonly Command[] = [fankitCommand,memeCommand,botInfoCommand,graphCommand,roleUsersCommand,helpCommand,baseCommand, linkCommand, modlinkCommand, rosterCommand, refreshCommand, remindersCommand, dashboardCommand, ticketCommand, playerCommand, rankedCommand, legendsCommand, leaderboardCommand, armyCommand, clanCommand, familyCommand, moderationCommand, warCommand, cwlCommand];
 const commandByName = new Map(commands.map((command) => [command.definition.name, command]));
 // Retain cached legacy invocations without registering a separate slash root.
 commandByName.set("unlink", unlinkCommand);
