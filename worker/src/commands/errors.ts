@@ -37,6 +37,15 @@ function explain(error:unknown,interaction:DiscordInteraction):Explanation{
     // Only known domain failures become user-facing instructions. Never echo
     // arbitrary provider messages, SQL errors, request bodies, or credentials.
     let message:string|undefined;try{message=JSON.parse(error.body).message;}catch{}
+    // Ticket size failures leave no usable modal retry control. Explain the
+    // correct actor/action without echoing untrusted API/provider messages.
+    const ticketMessages:Record<string,Explanation>={
+      'Ticket answers exceed the durable snapshot limit':{title:'Answers too long',description:'Start the application again from the ticket panel and use shorter answers. Your application was not submitted.'},
+      'Ticket questionnaire exceeds the durable answer limit':{title:'Ticket panel needs attention',description:'This ticket panel has too many questions. Ask a server administrator to reduce them in the dashboard, then start again from the panel.'},
+      'Ticket configuration exceeds the runtime snapshot limit':{title:'Ticket panel needs attention',description:'This ticket panel has too much configuration content. Ask a server administrator to simplify it in the dashboard, then start again from the panel.'},
+      'Ticket form replay journal is full':{title:'Restart the application',description:'This application has reached its form-session limit. Start again from the ticket panel. Your application was not submitted.'},
+    };
+    if((error.path?.includes('/runtime/tickets/')||error.path?.includes('/runtime/ticket-operations/'))&&message&&Object.hasOwn(ticketMessages,message))return ticketMessages[message]!;
     const rosterMessages:Record<string,Explanation>={
       'Roster maximum signups would be exceeded':{title:'Roster is full',description:'There is not enough space for these accounts. Choose fewer accounts or another roster.'},
       'Roster account limit per Discord user would be exceeded':{title:'Account limit reached',description:'You have reached this roster’s per-person account limit. Remove an account before adding another.'},

@@ -15,7 +15,7 @@ const commandId = '999999999999996599';
 const { publicKey, privateKey } = generateKeyPairSync('ed25519');
 const publicHex = publicKey.export({ type: 'spki', format: 'der' }).subarray(-32).toString('hex');
 const calls = [], webhooks = [];
-let linked = false, rejectToken = false;
+let linked = false, rejectToken = false, ticketFailure;
 const provider = createServer(async (request, response) => {
   try {
     let raw = ''; for await (const chunk of request) raw += chunk;
@@ -23,6 +23,7 @@ const provider = createServer(async (request, response) => {
     const path = new URL(request.url, 'http://fixture').pathname;
     calls.push({ method: request.method, path, body });
     const json = (value, status = 200) => { response.writeHead(status, { 'Content-Type': 'application/json' }); response.end(JSON.stringify(value)); };
+    if (ticketFailure && path === ticketFailure.path) return json({ code: 'conflict', message: ticketFailure.message }, 409);
     if (path === '/v2/bot/server-activity') return json({ accepted: true });
     if (path === `/v2/links/${actor}` && request.method === 'GET') return json({ items: linked ? [{ player_tag: '#PYLQ', is_verified: true }] : [] });
     if (path === `/v2/links/${actor}` && request.method === 'POST') {
@@ -92,5 +93,26 @@ try {
   const resume = await interact({ type: 3, data: { custom_id: `ck:ticket:resume:${preparation}`, component_type: 2 } });
   assert.equal(resume.initial.type, 9); assert.equal(resume.initial.data.title, 'Application');
   assert.equal(calls.filter((call) => call.method === 'POST' && call.path === `/v2/links/${actor}`).length, 2);
-  console.log('PASS actual Bot Worker HTTP: signed empty link list, private embed + registered mention + public cleanup, ticket link modal, invalid-token retry, verified link, continuation modal. Boundary providers are local fixtures; no external writes.');
+  const failures = [
+    ['Ticket answers exceed the durable snapshot limit', 'Answers too long', 'use shorter answers', true],
+    ['Ticket questionnaire exceeds the durable answer limit', 'Ticket panel needs attention', 'reduce them in the dashboard', false],
+    ['Ticket configuration exceeds the runtime snapshot limit', 'Ticket panel needs attention', 'simplify it in the dashboard', false],
+    ['Ticket form replay journal is full', 'Restart the application', 'Start again from the ticket panel', true],
+  ];
+  for (const [message, title, instruction, advancing] of failures) {
+    ticketFailure = { path: advancing ? `/v2/runtime/ticket-operations/${preparation}/advance` : '/v2/runtime/tickets/open/prepare', message };
+    const result = await interact(advancing
+      ? { type: 5, data: { custom_id: `ck:ticket:answers:${preparation}:0`, components: [] } }
+      : { type: 3, data: { custom_id: `ck:ticket:open:${panel}:${button}`, component_type: 2 }, message: { id: '999999999999996512' } });
+    assert.equal(result.initial.type, 4);
+    assert.equal(result.initial.data.flags, 64);
+    assert.equal(result.initial.data.embeds[0].title, title);
+    assert(result.initial.data.embeds[0].description.includes(instruction));
+    if (advancing) assert(result.initial.data.embeds[0].description.includes('Your application was not submitted.'));
+  }
+  ticketFailure = { path: '/v2/runtime/tickets/open/prepare', message: 'Untrusted provider detail: do not expose' };
+  const unknown = await interact({ type: 3, data: { custom_id: `ck:ticket:open:${panel}:${button}`, component_type: 2 }, message: { id: '999999999999996512' } });
+  assert.equal(unknown.initial.data.embeds[0].title, 'This item changed');
+  assert(!JSON.stringify(unknown.initial).includes('Untrusted provider detail'));
+  console.log('PASS actual Bot Worker HTTP: signed empty link list, private embed + registered mention + public cleanup, ticket link modal, invalid-token retry, verified link, continuation modal, actionable known ticket size errors and unknown-error redaction. Boundary providers are local fixtures; no external writes.');
 } finally { await worker?.dispose(); await new Promise((resolve) => provider.close(resolve)); }
