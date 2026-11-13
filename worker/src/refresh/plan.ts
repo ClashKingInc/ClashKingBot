@@ -15,7 +15,7 @@ export interface RefreshData {
   skippedAccountTags?: string[];
   mainTag?: string | null;
   settings: { change_nickname: boolean; auto_eval_nickname: boolean; flair_non_family: boolean;
-    nickname_rule: string; non_family_nickname_rule: string; autoeval_enabled: boolean };
+    nickname_rule: string; non_family_nickname_rule: string; autoeval_enabled: boolean; lab_tenure_roles_enabled?: boolean };
 }
 export function ruleCategory(rule: RefreshRule): RefreshCategory | undefined {
   if (rule.type === "clan_role") return rule.option === "member" ? "clan" : "leadership";
@@ -35,7 +35,8 @@ export function planRefresh(data: RefreshData, currentRoles: readonly string[], 
   const familyTags = new Set(data.clans.map(clan => clan.tag));
   const family = data.accounts.some(player => player.clan && familyTags.has(player.clan.tag));
   const joined=new Date(discord.joinedAt??""),now=new Date();
-  const eligibleTenure=data.rules.filter(rule=>ruleCategory(rule)==="tenure"&&Number.isFinite(+joined)).filter(rule=>{
+  const tenureEnabled = data.settings.lab_tenure_roles_enabled === true;
+  const eligibleTenure=data.rules.filter(rule=>tenureEnabled&&ruleCategory(rule)==="tenure"&&Number.isFinite(+joined)).filter(rule=>{
     const threshold=Number(rule.option),end=new Date(Date.UTC(joined.getUTCFullYear(),joined.getUTCMonth()+threshold+1,0));
     const anniversary=new Date(Date.UTC(end.getUTCFullYear(),end.getUTCMonth(),Math.min(joined.getUTCDate(),end.getUTCDate()),joined.getUTCHours(),joined.getUTCMinutes(),joined.getUTCSeconds(),joined.getUTCMilliseconds()));
     return anniversary<=now;
@@ -49,7 +50,7 @@ export function planRefresh(data: RefreshData, currentRoles: readonly string[], 
     const category = ruleCategory(rule);
     // Only numeric status rules are Discord tenure milestones. Unknown status
     // and achievement rules remain unmanaged. Missing join dates cannot revoke tenure.
-    if(category==="tenure"&&!Number.isFinite(+joined))continue;
+    if(category==="tenure"&&(!tenureEnabled||!Number.isFinite(+joined)))continue;
     if (!category) continue;
     if (categories.includes(category)) managed.add(rule.role_id);
     let earned = false;
@@ -83,7 +84,9 @@ export function planRefresh(data: RefreshData, currentRoles: readonly string[], 
   }
   const current = new Set(currentRoles);
   const add = [...managed].filter(role => desired.has(role) && !current.has(role));
-  const unknownTenure=new Set(!Number.isFinite(+joined)?data.rules.filter(rule=>ruleCategory(rule)==="tenure").map(rule=>rule.role_id):[]);
+  // A disabled experiment and an unknown join date must preserve existing
+  // tenure roles, even when the same role is managed by another category.
+  const unknownTenure=new Set(!tenureEnabled||!Number.isFinite(+joined)?data.rules.filter(rule=>ruleCategory(rule)==="tenure").map(rule=>rule.role_id):[]);
   const remove = [...managed].filter(role => !desired.has(role) && current.has(role) && !unknownTenure.has(role));
   const main = data.accounts.find(player => player.tag === data.mainTag)
     ?? [...data.accounts].sort((a, b) => Number(familyTags.has(b.clan?.tag ?? "")) - Number(familyTags.has(a.clan?.tag ?? ""))
