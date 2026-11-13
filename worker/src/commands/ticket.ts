@@ -156,16 +156,16 @@ function ticketReply(result: typeof reply.Type, interaction:DiscordInteraction, 
     }
     return result.state === "failed" ? interactionErrorReply(new CommandInputError("Ticket panel couldn’t be posted. Ask a server administrator to check the bot’s channel permissions."),interaction) : privateMessage("Posting your ticket panel…");
   }
-  if (result.state === "completed") {
-    const stored = "result" in result ? result.result : undefined;
+  const stored = "result" in result ? result.result : undefined;
     const channelId = "channelId" in result && typeof result.channelId === "string" ? result.channelId
       : typeof stored === "object" && stored !== null && "channelId" in stored && typeof stored.channelId === "string"
         ? stored.channelId : undefined;
+  if (result.state === "completed") {
     return privateMessage(channelId && /^\d{1,20}$/u.test(channelId)
       ? `Your ticket is ready: [Open ticket](https://discord.com/channels/${guild}/${channelId}).` : "Ticket updated.");
   }
-  if (result.state === "failed" && "result" in result && typeof result.result === "object" && result.result !== null && "channelId" in result.result && typeof result.result.channelId === "string" && /^\d{1,20}$/u.test(result.result.channelId)) {
-    return privateMessage(`Your ticket is open: [Open ticket](https://discord.com/channels/${guild}/${result.result.channelId}). Some setup steps failed; please let server staff know.`);
+  if (result.state === "failed" && channelId && /^\d{1,20}$/u.test(channelId)) {
+    return privateMessage(`Your ticket is open: [Open ticket](https://discord.com/channels/${guild}/${channelId}). Some setup steps failed; please let server staff know.`);
   }
   return result.state === "failed" ? interactionErrorReply(new CommandInputError("This ticket action failed. Contact your server staff."),interaction) : privateMessage("Processing your ticket…");
 }
