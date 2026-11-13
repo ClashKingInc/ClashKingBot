@@ -7,6 +7,7 @@ import { copyFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 import { bundleWorker } from './bundle-worker.mjs';
 
 assert.equal(process.env.CLASHKING_DISPOSABLE_TIMESCALE, '1');
@@ -88,6 +89,16 @@ try{
   await wait(async()=>{try{return (await fetch(origin+'/v2/health')).ok&&logs.includes('local_static_assets_seeded');}catch{return false;}},'API readiness');
   const managerToken=await token(manager),viewerToken=await token(viewer),rolesToken=await token(rolesOnly);
   const settingsPath=`/v2/server/${guild}/settings`, rulesPath=`/v2/server/${guild}/server-roles`;
+  if(process.env.CLASHKING_E2E_DASHBOARD_REPO){
+    const dashboard=resolve(process.env.CLASHKING_E2E_DASHBOARD_REPO),output=join(tmpdir(),`ck-lab-client-${randomUUID()}.mjs`);
+    await require('esbuild').build({entryPoints:[join(dashboard,'lib/api/clients/server-client.ts')],outfile:output,bundle:true,platform:'node',format:'esm',alias:{'@':dashboard},define:{'import.meta.env':JSON.stringify({DEV:true,VITE_CLASHKING_API_ORIGIN:origin})},logLevel:'silent'});
+    const {ServerClient}=await import(pathToFileURL(output).href), client=new ServerClient({baseUrl:origin,accessToken:managerToken});
+    const initial=await client.getSettings(guild);assert.equal(initial.data?.lab_tenure_roles_enabled,false,JSON.stringify(initial));
+    assert(!(await client.updateSettings(guild,{lab_tenure_roles_enabled:true})).error,'Dashboard client enables Lab');
+    assert.equal((await client.getSettings(guild)).data?.lab_tenure_roles_enabled,true,'Dashboard client decodes saved choice');
+    assert(!(await client.updateSettings(guild,{lab_tenure_roles_enabled:false})).error,'Dashboard client disables Lab');
+    client.setAccessToken(viewerToken);assert.equal((await client.updateSettings(guild,{lab_tenure_roles_enabled:true})).status,403,'Dashboard view-only cannot enable Lab');
+  }
   assert.equal((await call(settingsPath,{credential:managerToken})).lab_tenure_roles_enabled,false,'new servers default off');
   const toggle=(credential,value,status=200)=>call(settingsPath,{method:'PATCH',credential,body:{lab_tenure_roles_enabled:value},status});
   const create=(credential,status=201)=>call(rulesPath,{method:'POST',credential,body:{type:'status',option:'12',role_id:tenureRole},status});
