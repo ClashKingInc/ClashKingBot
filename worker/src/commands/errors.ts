@@ -27,11 +27,25 @@ function explain(error:unknown,interaction:DiscordInteraction):Explanation{
     if(error.outcome.kind==='maintenance')return {title:'Clash of Clans maintenance',description:'Game data is temporarily unavailable. Please try again after maintenance ends.'};
     if(error.outcome.kind==='privateWarLog'||reason==='privateWarLog')return {title:'Private war log',description:'This clan’s war log is private. Ask a clan leader to make it public in Clash of Clans.'};
     if(reason==='linked_account')return {title:'Link an account first',description:'Use /link add to link and verify your account, then try again.'};
+    if(reason==='ticket_metadata')return {title:'Player details unavailable',description:'We could not check your linked player’s requirements yet. Try again shortly.'};
+    if(reason==='ticket_requirements'){
+      let message:string|undefined;try{message=JSON.parse(error.body).message;}catch{}
+      return {title:'Ticket requirements not met',description:message&&/^This ticket requires a linked account at Town Hall \d{1,2} or higher(?: with at least \d+(?:\.\d+)?% hero progress)?\.$/u.test(message)?message:'None of your linked accounts meets this ticket’s Town Hall and hero requirements.'};
+    }
     if(reason==='wrong_message')return {title:'This control is no longer available',description:'Run the command again or open the current panel.'};
     if(reason==='roles')return {title:'Permission needed',description:'Your server roles do not allow this action. Ask a server administrator to check your access.'};
     // Only known domain failures become user-facing instructions. Never echo
     // arbitrary provider messages, SQL errors, request bodies, or credentials.
     let message:string|undefined;try{message=JSON.parse(error.body).message;}catch{}
+    // Ticket size failures leave no usable modal retry control. Explain the
+    // correct actor/action without echoing untrusted API/provider messages.
+    const ticketMessages:Record<string,Explanation>={
+      'Ticket answers exceed the durable snapshot limit':{title:'Answers too long',description:'Start the application again from the ticket panel and use shorter answers. Your application was not submitted.'},
+      'Ticket questionnaire exceeds the durable answer limit':{title:'Ticket panel needs attention',description:'This ticket panel has too many questions. Ask a server administrator to reduce them in the dashboard, then start again from the panel.'},
+      'Ticket configuration exceeds the runtime snapshot limit':{title:'Ticket panel needs attention',description:'This ticket panel has too much configuration content. Ask a server administrator to simplify it in the dashboard, then start again from the panel.'},
+      'Ticket form replay journal is full':{title:'Restart the application',description:'This application has reached its form-session limit. Start again from the ticket panel. Your application was not submitted.'},
+    };
+    if((error.path?.includes('/runtime/tickets/')||error.path?.includes('/runtime/ticket-operations/'))&&message&&Object.hasOwn(ticketMessages,message))return ticketMessages[message]!;
     const rosterMessages:Record<string,Explanation>={
       'Roster maximum signups would be exceeded':{title:'Roster is full',description:'There is not enough space for these accounts. Choose fewer accounts or another roster.'},
       'Roster account limit per Discord user would be exceeded':{title:'Account limit reached',description:'You have reached this roster’s per-person account limit. Remove an account before adding another.'},
@@ -39,6 +53,7 @@ function explain(error:unknown,interaction:DiscordInteraction):Explanation{
       'No linked accounts are available to add to this roster':{title:'No eligible accounts',description:'Your linked accounts are already signed up or do not meet this roster’s requirements.'},
       'Roster form expired, completed, or its board was archived':{title:'Roster form expired',description:'Open the current roster board and start again.'},
     };
+    if(error.path?.includes('/tickets/')&&['Ticket button configuration is invalid','Ticket settings require review','Ticket application form is invalid'].includes(message??''))return {title:'Ticket panel needs attention',description:'This ticket panel has invalid settings. Ask a server administrator to review it in the dashboard.'};
     if(error.path?.includes('/tickets/')&&message==='Ticket not found in this channel')return {title:'Not a ticket channel',description:'Use this command inside the ticket channel you want to update.'};
     if(error.path?.includes('/tickets/')&&message==='This member already has access to this ticket')return {title:'Already in this ticket',description:'This member already has access. No changes were made.'};
     if(error.path?.includes('roster')&&message&&Object.hasOwn(rosterMessages,message))return rosterMessages[message]!;

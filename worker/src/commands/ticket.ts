@@ -111,7 +111,8 @@ export function ticketPath(interaction: DiscordInteraction): string | undefined 
   if (interaction.type === InteractionType.MessageComponent && /^.{1,75}_(?:0|\d{10})$/u.test(id)) return `${base}/tickets/open/prepare`;
   if (new RegExp(`^ck:ticket:open:${uuid}:${uuid}$`, "iu").test(id)) return `${base}/tickets/open/prepare`;
   if (new RegExp(`^ck:ticket:menu:${uuid}:[0-9a-z-]+$`, "iu").test(id)) return `${base}/tickets/open/prepare`;
-  if (new RegExp(`^ck:ticket:(accounts-view|account-view|link|link-submit):${uuid}$`, "iu").test(id)) return `${base}/tickets/accounts`;
+  if (new RegExp(`^ck:ticket:resume:${uuid}$`, "iu").test(id)) return `${base}/tickets/resume`;
+  if (new RegExp(`^ck:ticket:(accounts-view|account-view):${uuid}$`, "iu").test(id)) return `${base}/tickets/accounts`;
   if (new RegExp(`^ck:ticket:(close|delete|assign|approve):${uuid}$`, "iu").test(id)) return `${base}/tickets/actions`;
   const advance = new RegExp(`^ck:ticket:(accounts|select|continue|answers):(${uuid})(?::[0-9]+)?$`, "iu").exec(id);
   if (advance) return `${base}/ticket-operations/${advance[2]}/advance`;
@@ -146,7 +147,7 @@ function ticketReply(result: typeof reply.Type, interaction:DiscordInteraction, 
   }
   // The existing /link flow owns account verification and role evaluation.
   // Do not show the archived ticket-link modal, whose submission is disabled.
-  if ("link" in result) return privateMessage(`${result.content}\nUse /link to link your account, then click the panel button again.`);
+  if ("link" in result) return privateMessage(result.content, button(result.link.customId.replace("ck:ticket:link:", "ck:link:start:ticket:"), result.link.label));
   if ("select" in result) return privateMessage(result.content, selectComponents(result.select));
   if ("content" in result) return privateMessage(result.content);
   if ("effectId" in result) {
