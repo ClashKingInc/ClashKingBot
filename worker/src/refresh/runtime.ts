@@ -45,8 +45,8 @@ async function processMemberRefresh(services: CommandServices, job: RefreshJob|M
   const data = await services.api.get<RefreshData>(`/v2/bot/role-refresh/${job.server_id}/data`, { userId: job.user_id });
   if (!manual && !job.request_id && !data.settings.autoeval_enabled && !job.categories.every(category=>["tenure","roster"].includes(category))) return { skipped: "Automatic refresh disabled", add: [], remove: [], blocked: [] };
   data.retiredRosterRoleIds=manual?[]:job.roster_role_ids??[];
-  // Tenure work is paused; existing tenure grants remain unmanaged.
-  const plan = planRefresh(data, member.roles, job.categories.filter(category => category !== "tenure"), {
+  const tenureEnabled = data.settings.lab_tenure_roles_enabled === true;
+  const plan = planRefresh(data, member.roles, tenureEnabled ? job.categories : job.categories.filter(category => category !== "tenure"), {
     username: member.user?.global_name ?? member.user?.username ?? "",
     joinedAt: member.joined_at,
     displayName: member.nick ?? member.user?.global_name ?? member.user?.username ?? "",
@@ -75,6 +75,7 @@ async function processMemberRefresh(services: CommandServices, job: RefreshJob|M
     if (!manual) {
     const valid = await services.api.post<{ valid: boolean }>("/v2/bot/role-refresh/validate", {
       id: job.id, token: job.token, accountTags: [...data.accounts.map(account => account.tag),...(data.skippedAccountTags??[])], rosterFingerprint: data.roster?.fingerprint,
+      tenureRolesEnabled: tenureEnabled,
       ...(gameAutomatic ? {automaticRoleTreatment: treatment, automaticBlacklistRoles: job.auto_role_blacklist_ids ?? []} : {}),
     });
     if (!valid.valid) throw new Error("Refresh inputs changed; retry with current accounts");
@@ -97,7 +98,7 @@ async function processMemberRefresh(services: CommandServices, job: RefreshJob|M
 
 export async function drainRefreshJobs(services: CommandServices, requestId?: string, serverId?: string) {
   const { jobs } = await services.api.post<{ jobs: RefreshJob[] }>("/v2/bot/role-refresh/claim", {
-    includeRoster: true, includeRoleTreatment: true, includeAutomaticPolicy: true, ...(requestId ? { requestId } : { automaticOnly: true }), ...(serverId ? { serverId } : {}),
+    includeRoster: true, includeRoleTreatment: true, includeAutomaticPolicy: true, includeTenure: true, supportsLabTenure: true, ...(requestId ? { requestId } : { automaticOnly: true }), ...(serverId ? { serverId } : {}),
   });
   const states = new Map<string, Promise<GuildState>>();
   let botId: Promise<string> | undefined;
