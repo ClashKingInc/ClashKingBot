@@ -205,7 +205,7 @@ async function executePersistentHandler(
   const action = segments.shift();
   if (!domain || !action || (prefix === "ck" ? domain !== "link" : domain !== "base")) return unknownInteraction(context.locale);
   if (domain === "base" && segments.length !== (action === "submit" ? 0 : 1)) return unknownInteraction(context.locale);
-  if (domain === "link" && segments.length !== 0) return unknownInteraction(context.locale);
+  if (domain === "link" && segments.length !== 0 && !(segments.length === 2 && segments[0] === "ticket" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(segments[1]!) && ["start", "submit"].includes(action))) return unknownInteraction(context.locale);
   const isSubmit = action === "submit";
   if (isSubmit !== (context.interaction.type === InteractionType.ModalSubmit)) return unknownInteraction(context.locale);
   const handler = domain && action ? componentHandlers.get(`${domain}:${action}`) : undefined;

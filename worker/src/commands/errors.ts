@@ -27,6 +27,11 @@ function explain(error:unknown,interaction:DiscordInteraction):Explanation{
     if(error.outcome.kind==='maintenance')return {title:'Clash of Clans maintenance',description:'Game data is temporarily unavailable. Please try again after maintenance ends.'};
     if(error.outcome.kind==='privateWarLog'||reason==='privateWarLog')return {title:'Private war log',description:'This clan’s war log is private. Ask a clan leader to make it public in Clash of Clans.'};
     if(reason==='linked_account')return {title:'Link an account first',description:'Use /link add to link and verify your account, then try again.'};
+    if(reason==='ticket_metadata')return {title:'Player details unavailable',description:'We could not check your linked player’s requirements yet. Try again shortly.'};
+    if(reason==='ticket_requirements'){
+      let message:string|undefined;try{message=JSON.parse(error.body).message;}catch{}
+      return {title:'Ticket requirements not met',description:message&&/^This ticket requires a linked account at Town Hall \d{1,2} or higher(?: with at least \d+(?:\.\d+)?% hero progress)?\.$/u.test(message)?message:'None of your linked accounts meets this ticket’s Town Hall and hero requirements.'};
+    }
     if(reason==='wrong_message')return {title:'This control is no longer available',description:'Run the command again or open the current panel.'};
     if(reason==='roles')return {title:'Permission needed',description:'Your server roles do not allow this action. Ask a server administrator to check your access.'};
     // Only known domain failures become user-facing instructions. Never echo

@@ -2,6 +2,7 @@ import { interactionErrorData } from "./errors";
 import { mainAccountAction } from "./refresh";
 import { ClashKingApiError } from "../api/client";
 import { actionRow, legacyMessage } from "../discord/components";
+import { commandMentions } from "../discord/command-mentions";
 import { InteractionResponseType, InteractionType } from "../discord/types";
 import { localizations, translate } from "../localization/catalog";
 import { CommandInputError, OptionType, invokingUserId, normalizeTag, requireGuildId, stringOption } from "./command-utils";
@@ -47,17 +48,24 @@ export const linkCommand: Command = {
       // Reuse the account renderer and its persistent paging controls. The
       // canonical links response remains responsible for hidden accounts.
       const accounts = (await linkedAccounts(ctx)).filter(account => !account.hidden);
-      if (!accounts.length) return legacyMessage({ content: "No visible linked accounts found.", allowed_mentions: { parse: [] } });
+      if (!accounts.length) {
+        const mention = await commandMentions(ctx.services.discordRest);
+        return legacyMessage({ embeds: [{ color: 0x2b2d31, title: "No linked accounts to show",
+          description: `No accounts are available to display. Use ${mention("link add")} to link your account.` }], allowed_mentions: { parse: [] } }, { ephemeral: true });
+      }
       return playerAccountsReply(ctx, accounts, await emojis(ctx));
     }
     return linkModal(ctx);
   },
 };
 
+function ticketPreparation(context: CommandContext): string | undefined {
+  return /^ck:link:(?:start|submit):ticket:([0-9a-f-]{36})$/iu.exec(context.interaction.data?.custom_id ?? "")?.[1];
+}
 function linkModal(context: CommandContext) {
   requireGuildId(context);
   return { type: InteractionResponseType.Modal, data: {
-    custom_id: "ck:link:submit", title: translate("link.title", context.locale),
+    custom_id: ticketPreparation(context) ? `ck:link:submit:ticket:${ticketPreparation(context)}` : "ck:link:submit", title: translate("link.title", context.locale),
     components: [
       { type: 10, content: translate("link.help", context.locale) },
       textField("player", translate("link.player", context.locale), 12),
@@ -73,6 +81,11 @@ const startLink: ComponentHandler = async (context) => {
   return linkModal(context);
 };
 
+function linkedReply(context: CommandContext, content: string) {
+  const preparation = ticketPreparation(context);
+  return legacyMessage({ content, ...(preparation ? { components: [actionRow({ type: 2, style: 1,
+    custom_id: `ck:ticket:resume:${preparation}`, label: "Continue ticket" })] } : {}) }, { ephemeral: true });
+}
 const submitLink: ComponentHandler = async (context) => {
   requireGuildId(context);
   if (context.interaction.type !== InteractionType.ModalSubmit) {
@@ -90,13 +103,13 @@ const submitLink: ComponentHandler = async (context) => {
   try {
     const existing = await context.services.api.get<LinksResponse>(`/v2/links/${userId}`);
     if (existing.items.some((item) => item.player_tag === tag && item.is_verified)) {
-      return legacyMessage({ content: translate("link.already", context.locale, { tag }) }, { ephemeral: true });
+      return linkedReply(context, translate("link.already", context.locale, { tag }));
     }
     // The canonical API verifies and atomically transfers other-owned links.
     // Do not automatically retry this mutation or persist its token.
     const result = await context.services.api.post<LinkResponse>(`/v2/links/${userId}`, { api_token: token, player_tag: tag });
     if (!result.account.is_verified || result.account.tag !== tag) return retry(context, "link.unavailable");
-    return legacyMessage({ content: translate("link.success", context.locale, { tag }) }, { ephemeral: true });
+    return linkedReply(context, translate("link.success", context.locale, { tag }));
   } catch (error) {
     if (error instanceof ClashKingApiError) {
       if (error.status === 403) return retry(context, "link.invalidToken");
@@ -109,7 +122,7 @@ const submitLink: ComponentHandler = async (context) => {
 
 function retry(context: CommandContext, key: Parameters<typeof translate>[0]) {
   return legacyMessage({ ...interactionErrorData(new CommandInputError(translate(key, context.locale)),context.interaction), components: [actionRow({
-    type: 2, style: 1, custom_id: "ck:link:start", label: translate("link.retry", context.locale),
+    type: 2, style: 1, custom_id: ticketPreparation(context) ? `ck:link:start:ticket:${ticketPreparation(context)}` : "ck:link:start", label: translate("link.retry", context.locale),
   })] }, { ephemeral: true });
 }
 
