@@ -112,7 +112,7 @@ export function ticketPath(interaction: DiscordInteraction): string | undefined 
   if (new RegExp(`^ck:ticket:open:${uuid}:${uuid}$`, "iu").test(id)) return `${base}/tickets/open/prepare`;
   if (new RegExp(`^ck:ticket:menu:${uuid}:[0-9a-z-]+$`, "iu").test(id)) return `${base}/tickets/open/prepare`;
   if (new RegExp(`^ck:ticket:resume:${uuid}$`, "iu").test(id)) return `${base}/tickets/resume`;
-  if (new RegExp(`^ck:ticket:(accounts-view|account-view|link|link-submit):${uuid}$`, "iu").test(id)) return `${base}/tickets/accounts`;
+  if (new RegExp(`^ck:ticket:(accounts-view|account-view):${uuid}$`, "iu").test(id)) return `${base}/tickets/accounts`;
   if (new RegExp(`^ck:ticket:(close|delete|assign|approve):${uuid}$`, "iu").test(id)) return `${base}/tickets/actions`;
   const advance = new RegExp(`^ck:ticket:(accounts|select|continue|answers):(${uuid})(?::[0-9]+)?$`, "iu").exec(id);
   if (advance) return `${base}/ticket-operations/${advance[2]}/advance`;
