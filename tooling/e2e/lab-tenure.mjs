@@ -105,6 +105,10 @@ try{
     assert(!(await tickets.createButton(guild,'Client E2E',{label:'Apply',style:1})).error,'Dashboard client creates button');
     const panel=(await tickets.getPanels(guild)).data.items.find(item=>item.name==='Client E2E');
     const customId=panel.components[0].custom_id,initialSettings=panel.button_settings[customId];
+    const makeQuestion=i=>({id:`migrated-${i}`,label:`Question ${i}`,type:'text',required:true,options:[],order:i});
+    const oversized=Array.from({length:26},(_,i)=>makeQuestion(i));
+    const rejectedNew=await tickets.updateButtonSettings(guild,'Client E2E',customId,{...initialSettings,application_questions:oversized});
+    assert.equal(rejectedNew.status,400,'API rejects a new form above the shared authoring cap');
     const questions=Array.from({length:6},(_,i)=>({id:`migrated-${i}`,label:i===0?'A migrated question longer than forty-five characters remains saved':`Question ${i}`,type:'text',required:true,options:[],order:i}));
     const firstSave=await tickets.updateButtonSettings(guild,'Client E2E',customId,{...initialSettings,application_questions:questions,roles_to_add:[otherRole]});
     assert(!firstSave.error,JSON.stringify(firstSave));
@@ -114,6 +118,17 @@ try{
     assert(!secondSave.error,JSON.stringify(secondSave));
     const reread=(await tickets.getPanels(guild)).data.items.find(item=>item.name==='Client E2E').button_settings[customId];
     assert.deepEqual(reread.application_questions,questions);assert.deepEqual(reread.roles_to_add,[otherRole]);assert.deepEqual(reread.roles_to_remove,[tenureRole]);
+    // Seed a pre-existing migrated form above the authoring cap. The API must
+    // trust the locked stored count, permit edits/reductions, and reject growth.
+    const legacy=Array.from({length:27},(_,i)=>makeQuestion(i));
+    await db.query("UPDATE ticket_panels SET data=jsonb_set(data,ARRAY[$2,'application_questions'],$3::jsonb) WHERE server_id=$1 AND name='Client E2E'",[guild,customId+'_settings',JSON.stringify(legacy)]);
+    const legacySettings=(await tickets.getPanels(guild)).data.items.find(item=>item.name==='Client E2E').button_settings[customId];
+    assert(!(await tickets.updateButtonSettings(guild,'Client E2E',customId,{...legacySettings,roles_to_add:[]})).error,'existing larger form remains editable');
+    const rejectedGrowth=await tickets.updateButtonSettings(guild,'Client E2E',customId,{...legacySettings,application_questions:[...legacy,makeQuestion(27)]});
+    assert.equal(rejectedGrowth.status,400,'API rejects increasing an existing oversized form');
+    assert(!(await tickets.updateButtonSettings(guild,'Client E2E',customId,{...legacySettings,application_questions:legacy.slice(0,26)})).error,'existing oversized form can be reduced');
+    const reduced=(await tickets.getPanels(guild)).data.items.find(item=>item.name==='Client E2E').button_settings[customId];
+    assert.equal(reduced.application_questions.length,26,'reduced legacy questions persist');
   }
   assert.equal((await call(settingsPath,{credential:managerToken})).lab_tenure_roles_enabled,false,'new servers default off');
   const toggle=(credential,value,status=200)=>call(settingsPath,{method:'PATCH',credential,body:{lab_tenure_roles_enabled:value},status});
