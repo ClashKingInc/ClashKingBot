@@ -54,6 +54,8 @@ function explain(error:unknown,interaction:DiscordInteraction):Explanation{
       'Roster form expired, completed, or its board was archived':{title:'Roster form expired',description:'Open the current roster board and start again.'},
     };
     if(error.path?.includes('/tickets/')&&['Ticket button configuration is invalid','Ticket settings require review','Ticket application form is invalid'].includes(message??''))return {title:'Ticket panel needs attention',description:'This ticket panel has invalid settings. Ask a server administrator to review it in the dashboard.'};
+    if(error.path?.includes('/tickets/')&&message==='Ticket is still being set up')return {title:'Ticket is being set up',description:'Give the bot a moment to finish, then try again.'};
+    if(error.path?.includes('/tickets/')&&message==='Ticket setup did not finish')return {title:'Ticket setup needs attention',description:'This is a ticket channel, but its setup failed. Ask server staff to check its status in the dashboard.'};
     if(error.path?.includes('/tickets/')&&message==='Ticket not found in this channel')return {title:'Not a ticket channel',description:'Use this command inside the ticket channel you want to update.'};
     if(error.path?.includes('/tickets/')&&message==='This member already has access to this ticket')return {title:'Already in this ticket',description:'This member already has access. No changes were made.'};
     if(error.path?.includes('roster')&&message&&Object.hasOwn(rosterMessages,message))return rosterMessages[message]!;
