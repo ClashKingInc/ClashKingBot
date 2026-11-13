@@ -83,7 +83,7 @@ try{
   await db.query('INSERT INTO discord_cache.guilds(id,data,application_id,shard_id,generation,available,metadata_complete,members_complete) VALUES($1,$2,$3,0,$4,true,true,true)',[guild,{owner_id:'999999999999993099'},app,generation]);
   for(const [id,member] of members)await db.query('INSERT INTO discord_cache.members(guild_id,user_id,data) VALUES($1,$2,$3)',[guild,id,member]);
   for(const role of roleDefinitions)await db.query('INSERT INTO discord_cache.roles(guild_id,id,data) VALUES($1,$2,$3)',[guild,role.id,role]);
-  for(const [role,section,level] of [[managerRole,'settings','manage'],[managerRole,'roles','manage'],[viewRole,'settings','view'],[rolesRole,'roles','manage']])await db.query('INSERT INTO dashboard_role_grants(server_id,role_id,section,access_level) VALUES($1,$2,$3,$4)',[guild,role,section,level]);
+  for(const [role,section,level] of [[managerRole,'settings','manage'],[managerRole,'roles','manage'],[managerRole,'tickets','manage'],[viewRole,'settings','view'],[rolesRole,'roles','manage']])await db.query('INSERT INTO dashboard_role_grants(server_id,role_id,section,access_level) VALUES($1,$2,$3,$4)',[guild,role,section,level]);
   const env={PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:process.env.TMPDIR,CLASHKING_DISPOSABLE_TIMESCALE:'1',TEST_DATABASE_URL:dsn.href,CLASHKING_LOCAL_DATABASE_URL:dsn.href,CLASHKING_LOCAL_API_PORT:String(port),CLASHKING_LOCAL_DISCORD_CLIENT_ID:app,CLASHKING_LOCAL_DISCORD_BOT_TOKEN:'local-only',CLASHKING_LOCAL_DISCORD_TEST_ORIGIN:providerOrigin,CLASHKING_LOCAL_DISCORD_CLIENT_SECRET:'local',CLASHKING_LOCAL_DISCORD_PUBLIC_KEY:'0'.repeat(64),CLASHKING_LOCAL_ARCHIVE_BRIDGE:'0',CLASHKING_LOCAL_CLASH_PROXY_ORIGIN:providerOrigin,CLASHKING_LOCAL_STATIC_ASSETS_ROOT:process.env.CLASHKING_E2E_STATIC_ASSETS_ROOT,CLASHKING_LOCAL_STORAGE_ROOT:mkdtempSync(join(tmpdir(),'ck-lab-storage-')),...Object.fromEntries(Object.entries(keys).map(([k,v])=>[`CLASHKING_E2E_${k}`,v]))};
   api=spawn(process.execPath,['scripts/start-local-rewrite-api.mjs'],{cwd:apiRoot,env,stdio:['ignore','pipe','pipe']});api.stdout.on('data',d=>logs+=d);api.stderr.on('data',d=>logs+=d);
   await wait(async()=>{try{return (await fetch(origin+'/v2/health')).ok&&logs.includes('local_static_assets_seeded');}catch{return false;}},'API readiness');
@@ -98,6 +98,22 @@ try{
     assert.equal((await client.getSettings(guild)).data?.lab_tenure_roles_enabled,true,'Dashboard client decodes saved choice');
     assert(!(await client.updateSettings(guild,{lab_tenure_roles_enabled:false})).error,'Dashboard client disables Lab');
     client.setAccessToken(viewerToken);assert.equal((await client.updateSettings(guild,{lab_tenure_roles_enabled:true})).status,403,'Dashboard view-only cannot enable Lab');
+    const ticketOutput=join(tmpdir(),`ck-ticket-client-${randomUUID()}.mjs`);
+    await require('esbuild').build({entryPoints:[join(dashboard,'lib/api/clients/tickets-client.ts')],outfile:ticketOutput,bundle:true,platform:'node',format:'esm',alias:{'@':dashboard},define:{'import.meta.env':JSON.stringify({DEV:true,VITE_CLASHKING_API_ORIGIN:origin})},logLevel:'silent'});
+    const {TicketsClient}=await import(pathToFileURL(ticketOutput).href), tickets=new TicketsClient({baseUrl:origin,accessToken:managerToken});
+    assert(!(await tickets.createPanel(guild,{name:'Client E2E'})).error,'Dashboard client creates ticket panel');
+    assert(!(await tickets.createButton(guild,'Client E2E',{label:'Apply',style:1})).error,'Dashboard client creates button');
+    const panel=(await tickets.getPanels(guild)).data.items.find(item=>item.name==='Client E2E');
+    const customId=panel.components[0].custom_id,initialSettings=panel.button_settings[customId];
+    const questions=Array.from({length:6},(_,i)=>({id:`migrated-${i}`,label:i===0?'A migrated question longer than forty-five characters remains saved':`Question ${i}`,type:'text',required:true,options:[],order:i}));
+    const firstSave=await tickets.updateButtonSettings(guild,'Client E2E',customId,{...initialSettings,application_questions:questions,roles_to_add:[otherRole]});
+    assert(!firstSave.error,JSON.stringify(firstSave));
+    const saved=(await tickets.getPanels(guild)).data.items.find(item=>item.name==='Client E2E').button_settings[customId];
+    assert.deepEqual(saved.application_questions,questions,'Dashboard client retains multi-page and long migrated questions');
+    const secondSave=await tickets.updateButtonSettings(guild,'Client E2E',customId,{...saved,roles_to_remove:[tenureRole]});
+    assert(!secondSave.error,JSON.stringify(secondSave));
+    const reread=(await tickets.getPanels(guild)).data.items.find(item=>item.name==='Client E2E').button_settings[customId];
+    assert.deepEqual(reread.application_questions,questions);assert.deepEqual(reread.roles_to_add,[otherRole]);assert.deepEqual(reread.roles_to_remove,[tenureRole]);
   }
   assert.equal((await call(settingsPath,{credential:managerToken})).lab_tenure_roles_enabled,false,'new servers default off');
   const toggle=(credential,value,status=200)=>call(settingsPath,{method:'PATCH',credential,body:{lab_tenure_roles_enabled:value},status});
@@ -136,7 +152,7 @@ try{
   await wait(async()=>Boolean((await db.query("SELECT completed_at FROM role_refresh_jobs WHERE id='lab-shared'")).rows[0]?.completed_at),'disabled shared role job');
   assert(members.get(manager).roles.includes(tenureRole),'disabled shared role remains assigned');
   assert.equal(patches.length,before,'disabled shared role did not trigger a Discord edit');
-  console.log('PASS Lab: Goose migration and default-off, manager/viewer/role-only authorization, rule gate, enabled Bot/API/SQL assignment, stale plan fence, old consumer gate, disable preserves rules and shared assigned role');
+  console.log('PASS Lab: Goose migration and default-off, manager/viewer/role-only authorization, Dashboard client settings/ticket round trips, multi-page question preservation, rule gate, enabled Bot/API/SQL assignment, stale plan fence, old consumer gate, disable preserves rules and shared assigned role');
 }catch(error){
   console.error(logs.slice(-8000));
   throw error;
