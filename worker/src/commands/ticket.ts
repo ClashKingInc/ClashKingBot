@@ -164,6 +164,9 @@ function ticketReply(result: typeof reply.Type, interaction:DiscordInteraction, 
     return privateMessage(channelId && /^\d{1,20}$/u.test(channelId)
       ? `Your ticket is ready: [Open ticket](https://discord.com/channels/${guild}/${channelId}).` : "Ticket updated.");
   }
+  if (result.state === "failed" && "result" in result && typeof result.result === "object" && result.result !== null && "channelId" in result.result && typeof result.result.channelId === "string" && /^\d{1,20}$/u.test(result.result.channelId)) {
+    return privateMessage(`Your ticket is open: [Open ticket](https://discord.com/channels/${guild}/${result.result.channelId}). Some setup steps failed; please let server staff know.`);
+  }
   return result.state === "failed" ? interactionErrorReply(new CommandInputError("This ticket action failed. Contact your server staff."),interaction) : privateMessage("Processing your ticket…");
 }
 
