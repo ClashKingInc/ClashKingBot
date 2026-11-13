@@ -105,30 +105,21 @@ try{
     assert(!(await tickets.createButton(guild,'Client E2E',{label:'Apply',style:1})).error,'Dashboard client creates button');
     const panel=(await tickets.getPanels(guild)).data.items.find(item=>item.name==='Client E2E');
     const customId=panel.components[0].custom_id,initialSettings=panel.button_settings[customId];
-    const makeQuestion=i=>({id:`migrated-${i}`,label:`Question ${i}`,type:'text',required:true,options:[],order:i});
-    const oversized=Array.from({length:26},(_,i)=>makeQuestion(i));
-    const rejectedNew=await tickets.updateButtonSettings(guild,'Client E2E',customId,{...initialSettings,application_questions:oversized});
-    assert.equal(rejectedNew.status,400,'API rejects a new form above the shared authoring cap');
-    const questions=Array.from({length:6},(_,i)=>({id:`migrated-${i}`,label:i===0?'A migrated question longer than forty-five characters remains saved':`Question ${i}`,type:'text',required:true,options:[],order:i}));
+    const makeQuestion=i=>({id:`question-${i}`,label:`Question ${i}`,type:'text',required:true,options:[],order:i});
+    const questions=Array.from({length:5},(_,i)=>makeQuestion(i));
+    assert.equal((await tickets.updateButtonSettings(guild,'Client E2E',customId,{...initialSettings,application_questions:[...questions,makeQuestion(5)]})).status,400,'six questions without account selection are rejected');
+    assert.equal((await tickets.updateButtonSettings(guild,'Client E2E',customId,{...initialSettings,application_questions:[{...questions[0],label:'X'.repeat(46)}]})).status,400,'overlong question labels are rejected');
     const firstSave=await tickets.updateButtonSettings(guild,'Client E2E',customId,{...initialSettings,application_questions:questions,roles_to_add:[otherRole]});
     assert(!firstSave.error,JSON.stringify(firstSave));
     const saved=(await tickets.getPanels(guild)).data.items.find(item=>item.name==='Client E2E').button_settings[customId];
-    assert.deepEqual(saved.application_questions,questions,'Dashboard client retains multi-page and long migrated questions');
-    const secondSave=await tickets.updateButtonSettings(guild,'Client E2E',customId,{...saved,roles_to_remove:[tenureRole]});
-    assert(!secondSave.error,JSON.stringify(secondSave));
+    assert.deepEqual(saved.application_questions,questions,'five questions fit without account selection');
+    assert.equal((await tickets.updateButtonSettings(guild,'Client E2E',customId,{...saved,account_apply:true})).status,400,'account selection leaves room for only four questions');
+    const withAccount={...saved,account_apply:true,application_questions:questions.slice(0,4),roles_to_remove:[tenureRole]};
+    assert(!(await tickets.updateButtonSettings(guild,'Client E2E',customId,withAccount)).error,'four questions fit with account selection');
     const reread=(await tickets.getPanels(guild)).data.items.find(item=>item.name==='Client E2E').button_settings[customId];
-    assert.deepEqual(reread.application_questions,questions);assert.deepEqual(reread.roles_to_add,[otherRole]);assert.deepEqual(reread.roles_to_remove,[tenureRole]);
-    // Seed a pre-existing migrated form above the authoring cap. The API must
-    // trust the locked stored count, permit edits/reductions, and reject growth.
-    const legacy=Array.from({length:27},(_,i)=>makeQuestion(i));
-    await db.query("UPDATE ticket_panels SET data=jsonb_set(data,ARRAY[$2,'application_questions'],$3::jsonb) WHERE server_id=$1 AND name='Client E2E'",[guild,customId+'_settings',JSON.stringify(legacy)]);
-    const legacySettings=(await tickets.getPanels(guild)).data.items.find(item=>item.name==='Client E2E').button_settings[customId];
-    assert(!(await tickets.updateButtonSettings(guild,'Client E2E',customId,{...legacySettings,roles_to_add:[]})).error,'existing larger form remains editable');
-    const rejectedGrowth=await tickets.updateButtonSettings(guild,'Client E2E',customId,{...legacySettings,application_questions:[...legacy,makeQuestion(27)]});
-    assert.equal(rejectedGrowth.status,400,'API rejects increasing an existing oversized form');
-    assert(!(await tickets.updateButtonSettings(guild,'Client E2E',customId,{...legacySettings,application_questions:legacy.slice(0,26)})).error,'existing oversized form can be reduced');
-    const reduced=(await tickets.getPanels(guild)).data.items.find(item=>item.name==='Client E2E').button_settings[customId];
-    assert.equal(reduced.application_questions.length,26,'reduced legacy questions persist');
+    assert.equal(reread.account_apply,true);assert.deepEqual(reread.application_questions,questions.slice(0,4));assert.deepEqual(reread.roles_to_add,[otherRole]);assert.deepEqual(reread.roles_to_remove,[tenureRole]);
+    assert.equal((await tickets.updateButtonSettings(guild,'Client E2E',customId,{...reread,application_questions:questions})).status,400,'five questions with account selection are rejected');
+    assert(!(await tickets.updateButtonSettings(guild,'Client E2E',customId,{...reread,account_apply:false,application_questions:questions})).error,'disabling account selection allows the fifth question');
   }
   assert.equal((await call(settingsPath,{credential:managerToken})).lab_tenure_roles_enabled,false,'new servers default off');
   const toggle=(credential,value,status=200)=>call(settingsPath,{method:'PATCH',credential,body:{lab_tenure_roles_enabled:value},status});
@@ -167,7 +158,7 @@ try{
   await wait(async()=>Boolean((await db.query("SELECT completed_at FROM role_refresh_jobs WHERE id='lab-shared'")).rows[0]?.completed_at),'disabled shared role job');
   assert(members.get(manager).roles.includes(tenureRole),'disabled shared role remains assigned');
   assert.equal(patches.length,before,'disabled shared role did not trigger a Discord edit');
-  console.log('PASS Lab: Goose migration and default-off, manager/viewer/role-only authorization, Dashboard client settings/ticket round trips, multi-page question preservation, rule gate, enabled Bot/API/SQL assignment, stale plan fence, old consumer gate, disable preserves rules and shared assigned role');
+  console.log('PASS Lab: Goose migration and default-off, manager/viewer/role-only authorization, Dashboard client settings/ticket round trips, single-modal question limits, rule gate, enabled Bot/API/SQL assignment, stale plan fence, old consumer gate, disable preserves rules and shared assigned role');
 }catch(error){
   console.error(logs.slice(-8000));
   throw error;
