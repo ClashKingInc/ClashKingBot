@@ -44,6 +44,7 @@ function explain(error:unknown,interaction:DiscordInteraction):Explanation{
       'No linked accounts are available to add to this roster':{title:'No eligible accounts',description:'Your linked accounts are already signed up or do not meet this roster’s requirements.'},
       'Roster form expired, completed, or its board was archived':{title:'Roster form expired',description:'Open the current roster board and start again.'},
     };
+    if(error.path?.includes('/tickets/')&&['Ticket button configuration is invalid','Ticket settings require review','Ticket application form is invalid'].includes(message??''))return {title:'Ticket panel needs attention',description:'This ticket panel has invalid settings. Ask a server administrator to review it in the dashboard.'};
     if(error.path?.includes('/tickets/')&&message==='Ticket not found in this channel')return {title:'Not a ticket channel',description:'Use this command inside the ticket channel you want to update.'};
     if(error.path?.includes('/tickets/')&&message==='This member already has access to this ticket')return {title:'Already in this ticket',description:'This member already has access. No changes were made.'};
     if(error.path?.includes('roster')&&message&&Object.hasOwn(rosterMessages,message))return rosterMessages[message]!;
