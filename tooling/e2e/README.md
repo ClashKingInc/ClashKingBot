@@ -85,4 +85,6 @@ Coverage:
 
 `node tooling/e2e/contextual-autocomplete.mjs` exercises signed autocomplete and DM lookup requests through the local Bot Worker, including superscript labels, server rosters, global Legend search, personal history and recording completed DM searches. No Discord messages are sent.
 
+`node tooling/e2e/roster-brackets.mjs` exercises signed roster join, withdrawal and view requests through the actual Bot Worker. It verifies literal bracketed account and clan names and disabled mentions. It needs no database and sends no Discord messages.
+
 `node tooling/e2e/command-parity.mjs --graph-month-only` verifies graph categories, the 24 largest non-empty clan choices, multi-selection, filter retention, guild binding, and removed-clan rejection through the actual local Bot Worker, API and PostgreSQL. No visual inspection or production Discord writes.

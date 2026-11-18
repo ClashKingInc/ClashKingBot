@@ -24,7 +24,15 @@ const PAGE_SIZE = 15;
 type Key = Parameters<typeof translate>[0];
 const t = (ctx: CommandContext, key: Key) => translate(key, ctx.locale);
 const reply = (content: string) => legacyMessage({ content }, { ephemeral: true });
-const clean = (value: string, length: number) => value.replace(/[\\`*_~|<>[\]\r\n]/g, " ").slice(0, length);
+const clean = (value: string, length: number) => {
+  let text = "";
+  for (const character of value.replace(/[\r\n<>]/gu, " ")) {
+    const escaped = escapeMarkdown(character);
+    if (text.length + escaped.length > length) break;
+    text += escaped;
+  }
+  return text;
+};
 const endpoint = (ctx: CommandContext, id = "") => `/v2/server/${requireGuildId(ctx)}/rosters${id ? `/${id}` : ""}`;
 const button = (ctx: CommandContext, action: string, key: Key, id = ""): ButtonComponent => ({
   type: 2, style: 2, custom_id: `ck:roster:${action}${id ? `:${id}` : ""}`, label: t(ctx, key),
