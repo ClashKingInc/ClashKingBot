@@ -171,8 +171,8 @@ async function formVersion(questions: Question[]): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(questions)));
   return [...new Uint8Array(digest)].slice(0, 8).map(n => n.toString(16).padStart(2, "0")).join("");
 }
-function questionsFor(roster: Roster): Question[] {
-  return [...roster.questionnaire.questions].sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+function questionsFor(questions: readonly Question[]): Question[] {
+  return [...questions].sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
 }
 function supported(questions: Question[]): boolean {
   return questions.length <= 4 && questions.every(q => q.label.length > 0 && q.label.length <= 45
@@ -180,12 +180,23 @@ function supported(questions: Question[]): boolean {
     && (q.type !== "single_select" || q.options.length > 0 && q.options.length <= 25 && q.options.every(o => o.length > 0 && o.length <= 100)));
 }
 interface SignupAccount { tag: string; name: string; townhall: number; isVerified: boolean; signedUp: boolean }
+interface SignupAccountsResponse {
+  items: SignupAccount[];
+  remainingSlots?: number | null;
+  requireVerified: boolean;
+  questionnaire: { questions: Question[] };
+}
+interface SignupFormResponse {
+  requireVerified: boolean;
+  questions: Question[];
+}
 async function joinModal(ctx: CommandContext, id: string, page?: number, removing = false) {
   // Modal responses cannot be deferred: cap this one read below Discord's acknowledgement deadline.
-  const [roster, result, emojis] = await Promise.all([load(ctx, id, true), ctx.services.api.get<{ items: SignupAccount[]; remainingSlots?: number | null }>(
-    endpoint(ctx, id) + "/accounts", { discordUserId: invokingUserId(ctx) }, AbortSignal.timeout(1500)),
+  const [result, emojis] = await Promise.all([
+    ctx.services.api.get<SignupAccountsResponse>(
+      endpoint(ctx, id) + "/accounts", { discordUserId: invokingUserId(ctx) }, AbortSignal.timeout(1500)),
     ctx.services.discordRest.run(api=>api.listApplicationEmojis(ctx.services.discordRest.applicationId).pipe(Effect.timeout("1500 millis"))).then(result=>result.items).catch(()=>[])]);
-  const accounts = result.items.filter(a => removing ? a.signedUp : !a.signedUp && (!roster.requireVerified || a.isVerified));
+  const accounts = result.items.filter(a => removing ? a.signedUp : !a.signedUp && (!result.requireVerified || a.isVerified));
   if (!accounts.length) return interactionErrorReply(new CommandInputError(t(ctx,"roster.empty")),ctx.interaction);
   const action = removing ? "leave" : "join";
   if (accounts.length > 25 && page === undefined) {
@@ -197,7 +208,7 @@ async function joinModal(ctx: CommandContext, id: string, page?: number, removin
   }
   const selected = accounts.slice((page ?? 0) * 25, ((page ?? 0) + 1) * 25);
   if (!selected.length) return interactionErrorReply(new CommandInputError(t(ctx,"error.invalidInteraction")),ctx.interaction);
-  const questions = removing ? [] : questionsFor(roster);
+  const questions = removing ? [] : questionsFor(result.questionnaire.questions);
   if (!supported(questions)) return interactionErrorReply(new CommandInputError(t(ctx,"roster.formUnsupported")),ctx.interaction);
   const maxAccounts = removing || questions.length > 0 ? 1 : Math.min(selected.length, result.remainingSlots ?? selected.length);
   if (maxAccounts < 1) return interactionErrorReply(new CommandInputError(t(ctx,"roster.empty")),ctx.interaction);
@@ -205,7 +216,8 @@ async function joinModal(ctx: CommandContext, id: string, page?: number, removin
     { type: 18, label: t(ctx, "roster.accounts"), component: { type: 3, custom_id: "player", min_values: 1, max_values: maxAccounts,
       options: selected.map(a => {
         const emoji = new ApplicationEmojis(emojis).component(a.townhall);
-        return { label: `${a.name} (${a.tag})`.slice(0, 100), value: a.tag,
+        const label = a.name && a.name !== a.tag ? `${a.name} (${a.tag})` : a.tag;
+        return { label: label.slice(0, 100), value: a.tag,
           ...(emoji ? { emoji: { id: emoji.id, name: emoji.name, animated: emoji.animated ?? false } } : {}) };
       }) } },
     ...questions.map((q, i) => q.type === "text" ? { type: 18, label: q.label, component: {
@@ -218,8 +230,8 @@ async function joinModal(ctx: CommandContext, id: string, page?: number, removin
   ] } };
 }
 async function submit(ctx: CommandContext, id: string, version: string) {
-  const roster = await load(ctx, id);
-  const questions = questionsFor(roster);
+  const form = await ctx.services.api.get<SignupFormResponse>(endpoint(ctx, id) + "/signup-form", {}, AbortSignal.timeout(8000));
+  const questions = questionsFor(form.questions);
   if (!supported(questions) || await formVersion(questions) !== version) return interactionErrorReply(new CommandInputError(t(ctx,"roster.formUnsupported")),ctx.interaction);
   const fields = modalFields(ctx.interaction.data?.components);
   const selections = fields.get("player")?.values;
@@ -234,7 +246,7 @@ async function submit(ctx: CommandContext, id: string, version: string) {
   if (player.length > 12) throw new CommandInputError(t(ctx, "error.tag"));
   const tag = normalizeTag(player, ctx.locale);
   const links = await ctx.services.api.get<{ items: Array<{ player_tag: string; is_verified: boolean }> }>(`/v2/links/${invokingUserId(ctx)}`);
-  if (!links.items.some(l => l.player_tag === tag && (!roster.requireVerified || l.is_verified))) return reply(t(ctx, "roster.linkRequired"));
+  if (!links.items.some(l => l.player_tag === tag && (!form.requireVerified || l.is_verified))) return reply(t(ctx, "roster.linkRequired"));
   const answers: Record<string, string | boolean> = {};
   for (const [i, q] of questions.entries()) {
     const field = fields.get(`q${i}`);

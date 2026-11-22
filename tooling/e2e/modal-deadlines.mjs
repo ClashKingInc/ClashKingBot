@@ -12,8 +12,7 @@ const runtime=new Miniflare(convertV4MiniflareOptions({host:'127.0.0.1',port:0,w
  if(url.hostname==='discord.com'&&url.pathname.endsWith('/emojis')){await new Promise(r=>setTimeout(r,4000));return Response.json({items:[]});}
  if(url.hostname==='local-api.test'){
   if(url.pathname.endsWith('/tickets/open/prepare'))return Response.json({outcome:'ready',form:{kind:'modal',customId:'sdk-modal',title:'Apply',fields:[{customId:'name',label:'Name',required:true,style:'short',maxLength:50}]}});
-  if(url.pathname.endsWith('/accounts'))return Response.json({items:[{tag:'#2PP',name:'Account',townhall:18,isVerified:true,signedUp:false}],remainingSlots:1});
-  if(url.pathname.endsWith('/rosters/'+id))return Response.json({roster:{id,serverId:guild,alias:'Fixture',description:null,memberCount:0,members:[],questionnaire:{questions:[]}}});
+  if(url.pathname.endsWith('/accounts'))return Response.json({items:[{tag:'#2PP',name:'Account',townhall:18,isVerified:true,signedUp:false}],remainingSlots:1,requireVerified:false,questionnaire:{accountSelector:{id:'account',type:'account',required:true},questions:[]}});
   if(url.pathname.includes('activity'))return Response.json({ok:true});
  }
  throw Error('Unexpected local provider path');
